@@ -1,5 +1,33 @@
 class ConversionsController < ApplicationController
+  MAX_FILE_SIZE = 10.megabytes
+  MAX_FILES = 20
+  ALLOWED_TYPES = %w[image/jpeg image/png image/webp image/heic].freeze
+
   def create
+    files = Array(params[:files]).reject(&:blank?)
+
+    if files.empty?
+      redirect_back fallback_location: root_path, alert: t("upload.no_files")
+      return
+    end
+
+    if files.size > MAX_FILES
+      redirect_back fallback_location: root_path, alert: t("upload.too_many", max: MAX_FILES)
+      return
+    end
+
+    oversized = files.select { |f| f.size > MAX_FILE_SIZE }
+    if oversized.any?
+      redirect_back fallback_location: root_path, alert: t("upload.too_large", max: "10MB")
+      return
+    end
+
+    invalid = files.reject { |f| ALLOWED_TYPES.include?(f.content_type) }
+    if invalid.any?
+      redirect_back fallback_location: root_path, alert: t("upload.invalid_type")
+      return
+    end
+
     @conversion = Conversion.new(
       conversion_type: params[:conversion_type],
       status: "pending"
@@ -10,7 +38,7 @@ class ConversionsController < ApplicationController
       return
     end
 
-    @conversion.source_files.attach(params[:files])
+    @conversion.source_files.attach(files)
     @conversion.update(original_size: calculate_total_size(@conversion.source_files))
 
     process_conversion(@conversion)

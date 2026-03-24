@@ -45,6 +45,12 @@ en:
     failed: "Processing failed. Please try again with different images."
     failed_short: "Processing failed. Please try again."
     back: "Back to Home"
+  upload:
+    hint: "Supported: JPG, PNG, WebP, HEIC — Max 10MB per file, up to 20 files"
+    no_files: "Please select files first."
+    too_many: "Too many files. Maximum is %{max}."
+    too_large: "File too large. Maximum size is %{max} per file."
+    invalid_type: "Unsupported file type. Use JPG, PNG, WebP, or HEIC."
   toast:
     success: "Conversion complete! Your file is ready."
     error: "Something went wrong. Please try again."

@@ -21,7 +21,7 @@ class SocialResizer
       .source(@source)
       .resize_to_fill(width, height)
       .convert("jpeg")
-      .saver(quality: 85)
+      .saver(quality: 85, strip: true, interlace: true)
       .call
 
     return result if result.size <= TARGET_SIZE
@@ -29,7 +29,7 @@ class SocialResizer
     ImageProcessing::Vips
       .source(result.path)
       .convert("jpeg")
-      .saver(quality: 60)
+      .saver(quality: 60, strip: true, interlace: true)
       .call
   end
 

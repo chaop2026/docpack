@@ -260,6 +260,12 @@ p {
 }
 .upload-zone p { font-size: 13px; margin-bottom: 0; }
 .upload-zone input[type="file"] { margin-top: 0.875rem; }
+.upload-hint {
+  margin-top: 0.75rem !important;
+  font-size: 11px !important;
+  color: #9B9990 !important;
+  letter-spacing: 0.01em;
+}
 
 /* Service-specific upload borders */
 .upload-zone--compress:hover { border-color: var(--compress); background: var(--compress-light); }

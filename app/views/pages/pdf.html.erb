@@ -18,6 +18,7 @@
       <p><%= t("pdf.drop_zone") %></p>
       <%= f.file_field :files, multiple: true, accept: "image/jpeg,image/png,image/heic,image/webp",
           data: { upload_target: "input", action: "change->upload#preview", progress_target: "fileInput" } %>
+      <p class="upload-hint"><%= t("upload.hint") %></p>
     </div>
 
     <div id="preview-area" data-upload-target="preview"></div>
