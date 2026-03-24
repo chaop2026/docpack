@@ -1,4 +1,5 @@
 <% content_for(:title, t("compress.title")) %>
+<% page_meta(title: t("compress.title"), description: t("seo.compress_description"), path: "/compress") %>
 
 <div class="container" data-controller="progress">
   <%= link_to root_path, class: "btn-back" do %>&larr; <%= t("nav.back") %><% end %>

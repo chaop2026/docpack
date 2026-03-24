@@ -1,4 +1,5 @@
 <% content_for(:title, t("social.title")) %>
+<% page_meta(title: t("social.title"), description: t("seo.social_description"), path: "/social") %>
 
 <div class="container" data-controller="progress">
   <%= link_to root_path, class: "btn-back" do %>&larr; <%= t("nav.back") %><% end %>

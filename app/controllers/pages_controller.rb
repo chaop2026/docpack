@@ -14,4 +14,11 @@ class PagesController < ApplicationController
 
   def about
   end
+
+  def sitemap
+    @base_url = helpers.base_url
+    respond_to do |format|
+      format.xml
+    end
+  end
 end

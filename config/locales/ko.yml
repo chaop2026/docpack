@@ -58,3 +58,10 @@ ko:
     error: "문제가 발생했습니다. 다시 시도해 주세요."
     network_error: "네트워크 오류입니다. 다시 시도해 주세요."
     no_files: "파일을 먼저 선택해 주세요."
+  seo:
+    default_description: "무료 온라인 이미지 압축, PDF 변환, 소셜 미디어 리사이즈 도구. 2MB 이하, 회원가입 불필요."
+    home_description: "DocPack - 무료 이미지 압축, PDF 변환, 소셜 미디어 리사이즈 도구. 빠르고 안전하며 회원가입이 필요 없습니다."
+    compress_description: "JPG, PNG, WebP 이미지를 품질 유지하면서 2MB 이하로 압축하세요. 무료 온라인 이미지 압축기."
+    pdf_description: "여러 이미지를 2MB 이하의 단일 PDF 파일로 변환하세요. 무료 온라인 이미지-PDF 변환기."
+    social_description: "Instagram, Facebook 등에 맞게 이미지를 리사이즈하세요. 모든 소셜 미디어 플랫폼에 완벽한 규격."
+    keywords: "이미지 압축, PDF 변환, 소셜 미디어 리사이즈, 이미지 압축기, 이미지 PDF 변환, 무료 온라인 도구, DocPack"

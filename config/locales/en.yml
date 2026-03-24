@@ -58,3 +58,10 @@ en:
     error: "Something went wrong. Please try again."
     network_error: "Network error. Please try again."
     no_files: "Please select files first."
+  seo:
+    default_description: "Free online tool to compress images, convert to PDF, and resize for social media. All under 2MB, no signup required."
+    home_description: "DocPack - Free image compression, PDF conversion, and social media resizing tool. Fast, secure, no signup."
+    compress_description: "Compress JPG, PNG, WebP images to under 2MB while maintaining quality. Free online image compressor."
+    pdf_description: "Convert multiple images to a single PDF file under 2MB. Free online image to PDF converter."
+    social_description: "Resize images for Instagram, Facebook and more. Perfect dimensions for every social media platform."
+    keywords: "image compression, PDF conversion, social media resize, image compressor, image to PDF, free online tool, DocPack"

@@ -29,5 +29,7 @@ Rails.application.routes.draw do
     root to: "banners#index"
   end
 
+  get "sitemap.xml", to: "pages#sitemap", as: :sitemap, defaults: { format: :xml }
+
   get "up" => "rails/health#show", as: :rails_health_check
 end
