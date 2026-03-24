@@ -13,6 +13,7 @@ Rails.application.routes.draw do
   get "/pdf",      to: "pages#pdf"
   get "/social",   to: "pages#social"
   get "/about",    to: "pages#about"
+  get "/faq",      to: "pages#faq"
 
   namespace :admin do
     get  "login",  to: "sessions#new",     as: :login

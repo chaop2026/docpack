@@ -1,0 +1,30 @@
+# DocPack
+> Free online tool for image compression, PDF conversion, and social media resizing.
+
+## What DocPack does
+- Compresses images to under 2MB while maintaining quality
+- Converts multiple images into a single PDF file
+- Resizes images to fit Instagram, Facebook, and other social media formats
+- Works entirely in the browser — no signup required
+- Free to use, no watermarks
+
+## Who uses DocPack
+- Job seekers compressing resume photos for Korean public institution submissions
+- Teachers and instructors uploading profile documents to TeacherMatch
+- Content creators resizing images for Instagram and Facebook
+- Anyone needing to reduce file size for email or web upload
+
+## Features
+- Image Compression: JPG, PNG, WebP, HEIC → optimized JPEG under 2MB
+- PDF Conversion: Multiple images → single PDF document
+- Social Media Resize: Instagram 1:1 (1080x1080), 4:5 (1080x1350), Facebook 1.91:1 (1200x630), 9:16 (1080x1920)
+- Bilingual interface: English and Korean
+- Progressive JPEG output with metadata stripping
+
+## Related services
+- TeacherMatch (https://teachermatch.kr) — connects Korean schools with instructors
+- HelloKorean (https://hellokorean.org) — Korean language learning for international students
+- rolli (https://rolli.ac) — personal link page builder
+
+## Contact
+- Website: https://docpack.kr

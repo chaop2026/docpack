@@ -532,6 +532,86 @@ p {
 
 .banner-adsense { margin: 0.5rem 0; }
 
+/* ── FAQ Accordion ── */
+.faq-list {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.accordion-item {
+  background: var(--card-bg);
+  border: var(--card-border);
+  border-radius: var(--r-banner);
+  overflow: hidden;
+}
+.accordion-question {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  text-align: left;
+  gap: 1rem;
+  letter-spacing: -0.01em;
+}
+.accordion-question:hover { background: #FDFCFA; }
+.accordion-arrow {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--text-sub);
+  border-bottom: 2px solid var(--text-sub);
+  transform: rotate(45deg);
+  transition: transform 0.2s;
+}
+.accordion-item--open .accordion-arrow {
+  transform: rotate(-135deg);
+}
+.accordion-answer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.25s ease, padding 0.25s ease;
+  padding: 0 1.25rem;
+}
+.accordion-item--open .accordion-answer {
+  max-height: 200px;
+  padding: 0 1.25rem 1rem;
+}
+.accordion-answer p {
+  font-size: 13px;
+  color: var(--text-sub);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ── Footer ── */
+.site-footer {
+  margin-top: 3rem;
+  padding: 1.5rem 0;
+  border-top: var(--card-border);
+  text-align: center;
+}
+.site-footer-links {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+.site-footer-links a {
+  font-size: 12px;
+  color: var(--text-sub);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.site-footer-links a:hover { color: var(--text); }
+
 /* ── Responsive ── */
 @media (max-width: 640px) {
   .hero h1 { font-size: 22px; }

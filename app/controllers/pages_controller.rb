@@ -15,6 +15,10 @@ class PagesController < ApplicationController
   def about
   end
 
+  def faq
+    @faq_items = t("faq.items")
+  end
+
   def sitemap
     @base_url = helpers.base_url
     respond_to do |format|

@@ -1,0 +1,48 @@
+<% content_for(:title, t("faq.title")) %>
+<% page_meta(title: t("faq.title"), description: t("seo.faq_description"), path: "/faq") %>
+
+<% content_for(:head) do %>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      <% @faq_items.each_with_index do |item, i| %>
+      {
+        "@type": "Question",
+        "name": "<%= j item[:q] %>",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "<%= j item[:a] %>"
+        }
+      }<%= "," unless i == @faq_items.size - 1 %>
+      <% end %>
+    ]
+  }
+  </script>
+<% end %>
+
+<div class="container">
+  <%= link_to root_path, class: "btn-back" do %>&larr; <%= t("nav.back") %><% end %>
+
+  <div class="page-header">
+    <div class="page-header-icon" style="background:var(--compress-light);color:var(--compress);">?</div>
+    <div>
+      <h1><%= t("faq.heading") %></h1>
+    </div>
+  </div>
+
+  <div class="faq-list" data-controller="accordion">
+    <% @faq_items.each_with_index do |item, i| %>
+      <div class="accordion-item" data-accordion-target="item">
+        <button class="accordion-question" data-action="accordion#toggle">
+          <span><%= item[:q] %></span>
+          <span class="accordion-arrow"></span>
+        </button>
+        <div class="accordion-answer">
+          <p><%= item[:a] %></p>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
