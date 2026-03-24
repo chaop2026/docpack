@@ -1,22 +1,37 @@
-<% content_for(:title, "Image Compression - DocPack") %>
+<% content_for(:title, t("compress.title")) %>
 
-<div class="container">
-  <h1>Image Compression</h1>
-  <p>Compress images to under 2MB while maintaining quality.</p>
+<div class="container" data-controller="progress">
+  <%= link_to root_path, class: "btn-back" do %>&larr; <%= t("nav.back") %><% end %>
+  <h1><%= t("compress.heading") %></h1>
+  <p><%= t("compress.description") %></p>
 
-  <%= form_with url: conversions_path, method: :post, data: { turbo: true } do |f| %>
+  <%= form_with url: conversions_path, method: :post, data: { progress_target: "form" } do |f| %>
     <%= f.hidden_field :conversion_type, value: "compress" %>
 
     <div class="upload-zone" id="upload-zone" data-controller="upload">
-      <p>Drag & drop images here or click to select</p>
+      <p><%= t("compress.drop_zone") %></p>
       <%= f.file_field :files, multiple: true, accept: "image/jpeg,image/png,image/heic,image/webp",
-          data: { upload_target: "input", action: "change->upload#preview" } %>
+          data: { upload_target: "input", action: "change->upload#preview", progress_target: "fileInput" } %>
     </div>
 
     <div id="preview-area" data-upload-target="preview"></div>
 
-    <%= f.submit "Compress", class: "btn btn-primary" %>
+    <div class="progress-area" data-progress-target="progressArea">
+      <div class="progress-track">
+        <div class="progress-bar" data-progress-target="progressBar"></div>
+      </div>
+      <div class="progress-text" data-progress-target="progressText"><%= t("compress.uploading") %></div>
+    </div>
+
+    <div class="processing-area" data-progress-target="processingArea">
+      <div class="spinner"></div>
+      <span class="processing-text"><%= t("compress.processing") %></span>
+    </div>
+
+    <%= f.submit t("compress.submit"), class: "btn btn-primary", data: { progress_target: "submitBtn" } %>
   <% end %>
 
   <turbo-frame id="conversion_result"></turbo-frame>
+
+  <%= render_banners(page: "compress", position: "after_result") %>
 </div>

@@ -1,0 +1,26 @@
+<div class="banners-section">
+  <% banners.each do |banner| %>
+    <% if banner.banner_type == "adsense" && banner.adsense_slot_id.present? %>
+      <div class="banner-adsense">
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="<%= banner.adsense_slot_id.split('/').first %>"
+             data-ad-slot="<%= banner.adsense_slot_id.split('/').last %>"
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
+      </div>
+    <% else %>
+      <a href="<%= banner.link_url %>" class="banner-card" target="_blank" rel="noopener">
+        <div class="banner-content">
+          <div class="banner-title"><%= banner.title %></div>
+          <% if banner.description.present? %>
+            <div class="banner-desc"><%= banner.description %></div>
+          <% end %>
+        </div>
+        <% if banner.link_url.present? %>
+          <span class="banner-btn"><%= banner.button_text %></span>
+        <% end %>
+      </a>
+    <% end %>
+  <% end %>
+</div>

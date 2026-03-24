@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_03_24_143948) do
+ActiveRecord::Schema[8.0].define(version: 2026_03_25_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -40,6 +40,26 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_24_143948) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "banners", force: :cascade do |t|
+    t.string "title_en", default: "", null: false
+    t.string "title_ko", default: "", null: false
+    t.string "description_en", default: ""
+    t.string "description_ko", default: ""
+    t.string "link_url"
+    t.string "button_text_en", default: "Learn More"
+    t.string "button_text_ko", default: "자세히 보기"
+    t.string "image_url"
+    t.string "position", default: "after_result", null: false
+    t.string "page", default: "all", null: false
+    t.boolean "active", default: true, null: false
+    t.integer "sort_order", default: 0, null: false
+    t.string "banner_type", default: "internal", null: false
+    t.string "adsense_slot_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["page", "position", "active", "sort_order"], name: "index_banners_on_page_position_active_sort"
   end
 
   create_table "conversions", force: :cascade do |t|

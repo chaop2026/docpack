@@ -1,0 +1,64 @@
+<% content_for(:admin_title, "Banner Management") %>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+  <p style="color:#6b7280;margin:0;"><%= @banners.size %> banner(s)</p>
+  <%= link_to "New Banner", new_admin_banner_path, class: "admin-btn admin-btn-primary" %>
+</div>
+
+<% if @banners.any? %>
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>Order</th>
+        <th>Title</th>
+        <th>Page</th>
+        <th>Position</th>
+        <th>Type</th>
+        <th>Active</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @banners.each do |banner| %>
+        <tr>
+          <td>
+            <div class="admin-btn-group">
+              <%= button_to "↑", move_admin_banner_path(banner, direction: "up"), method: :patch, class: "admin-btn admin-btn-sm" %>
+              <%= button_to "↓", move_admin_banner_path(banner, direction: "down"), method: :patch, class: "admin-btn admin-btn-sm" %>
+            </div>
+          </td>
+          <td>
+            <strong><%= banner.title_en %></strong>
+            <% if banner.title_ko.present? %>
+              <br><span style="color:#6b7280;font-size:0.8rem;"><%= banner.title_ko %></span>
+            <% end %>
+          </td>
+          <td><span class="admin-badge admin-badge-gray"><%= banner.page %></span></td>
+          <td><%= banner.position %></td>
+          <td><span class="admin-badge admin-badge-gray"><%= banner.banner_type %></span></td>
+          <td>
+            <%= button_to toggle_admin_banner_path(banner), method: :patch, style: "background:none;border:none;padding:0;cursor:pointer;" do %>
+              <label class="admin-toggle" style="pointer-events:none;">
+                <input type="checkbox" <%= "checked" if banner.active %> disabled>
+                <span class="admin-toggle-slider"></span>
+              </label>
+            <% end %>
+          </td>
+          <td>
+            <div class="admin-btn-group">
+              <%= link_to "Edit", edit_admin_banner_path(banner), class: "admin-btn admin-btn-sm" %>
+              <%= button_to "Delete", admin_banner_path(banner), method: :delete,
+                  class: "admin-btn admin-btn-sm admin-btn-danger",
+                  data: { turbo_confirm: "Delete this banner?" } %>
+            </div>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <div style="text-align:center;padding:3rem;background:white;border-radius:8px;color:#6b7280;">
+    <p>No banners yet.</p>
+    <%= link_to "Create your first banner", new_admin_banner_path, class: "admin-btn admin-btn-primary" %>
+  </div>
+<% end %>

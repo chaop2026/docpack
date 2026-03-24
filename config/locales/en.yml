@@ -1,31 +1,52 @@
-# Files in the config/locales directory are used for internationalization and
-# are automatically loaded by Rails. If you want to use locales other than
-# English, add the necessary files in this directory.
-#
-# To use the locales, use `I18n.t`:
-#
-#     I18n.t "hello"
-#
-# In views, this is aliased to just `t`:
-#
-#     <%= t("hello") %>
-#
-# To use a different locale, set it with `I18n.locale`:
-#
-#     I18n.locale = :es
-#
-# This would use the information in config/locales/es.yml.
-#
-# To learn more about the API, please read the Rails Internationalization guide
-# at https://guides.rubyonrails.org/i18n.html.
-#
-# Be aware that YAML interprets the following case-insensitive strings as
-# booleans: `true`, `false`, `on`, `off`, `yes`, `no`. Therefore, these strings
-# must be quoted to be interpreted as strings. For example:
-#
-#     en:
-#       "yes": yup
-#       enabled: "ON"
-
 en:
-  hello: "Hello world"
+  lang_label: "한국어"
+  nav:
+    back: "Back to Home"
+  home:
+    title: "DocPack - Image Compression & PDF Conversion"
+    heading: "DocPack"
+    description: "Upload images, compress them, and convert to PDF - all under 2MB."
+    compress: "Image Compress"
+    pdf: "PDF Conversion"
+    social: "Social Presets"
+  compress:
+    title: "Image Compression - DocPack"
+    heading: "Image Compression"
+    description: "Compress images to under 2MB while maintaining quality."
+    drop_zone: "Drag & drop images here or click to select"
+    uploading: "Uploading... 0%"
+    processing: "Compressing your images..."
+    submit: "Compress"
+  pdf:
+    title: "PDF Conversion - DocPack"
+    heading: "Image to PDF"
+    description: "Combine multiple images into a single PDF under 2MB."
+    drop_zone: "Drag & drop images here or click to select"
+    uploading: "Uploading... 0%"
+    processing: "Converting to PDF..."
+    submit: "Convert to PDF"
+  social:
+    title: "Social Media Presets - DocPack"
+    heading: "Social Media Presets"
+    description: "Resize images for social media platforms."
+    drop_zone: "Drag & drop images here or click to select"
+    uploading: "Uploading... 0%"
+    processing: "Resizing images..."
+    submit: "Resize"
+  result:
+    title: "Conversion Result - DocPack"
+    heading: "Conversion Result"
+    status: "Status"
+    type: "Type"
+    original: "Original"
+    result: "Result"
+    reduced: "reduced"
+    download: "Download"
+    failed: "Processing failed. Please try again with different images."
+    failed_short: "Processing failed. Please try again."
+    back: "Back to Home"
+  toast:
+    success: "Conversion complete! Your file is ready."
+    error: "Something went wrong. Please try again."
+    network_error: "Network error. Please try again."
+    no_files: "Please select files first."

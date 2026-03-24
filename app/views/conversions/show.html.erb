@@ -1,37 +1,40 @@
-<% content_for(:title, "Conversion Result - DocPack") %>
+<% content_for(:title, t("result.title")) %>
 
 <div class="container">
-  <h1>Conversion Result</h1>
+  <h1><%= t("result.heading") %></h1>
 
   <div class="result-card">
     <div class="result-status status-<%= @conversion.status %>">
-      <strong>Status:</strong> <%= @conversion.status.capitalize %>
+      <strong><%= t("result.status") %>:</strong> <%= @conversion.status.capitalize %>
     </div>
 
     <div class="result-details">
-      <p><strong>Type:</strong> <%= @conversion.conversion_type.capitalize %></p>
+      <p><strong><%= t("result.type") %>:</strong> <%= @conversion.conversion_type.capitalize %></p>
 
       <% if @conversion.original_size.present? && @conversion.result_size.present? %>
         <div class="size-comparison">
-          <span class="original-size">Original: <%= number_to_human_size(@conversion.original_size) %></span>
+          <span class="original-size"><%= t("result.original") %>: <%= number_to_human_size(@conversion.original_size) %></span>
           <span class="arrow">&rarr;</span>
-          <span class="result-size">Result: <%= number_to_human_size(@conversion.result_size) %></span>
+          <span class="result-size"><%= t("result.result") %>: <%= number_to_human_size(@conversion.result_size) %></span>
           <% reduction = (100.0 * (1 - @conversion.result_size.to_f / @conversion.original_size)).round(1) %>
-          <span class="reduction">(<%= reduction %>% reduced)</span>
+          <span class="reduction">(<%= reduction %>% <%= t("result.reduced") %>)</span>
         </div>
       <% end %>
     </div>
 
     <% if @conversion.status == "done" && @conversion.result_file.attached? %>
       <div class="result-actions">
-        <%= link_to "Download", download_conversion_path(@conversion), class: "btn btn-primary" %>
+        <a href="<%= download_conversion_path(@conversion) %>"
+           class="btn btn-primary"
+           data-turbo="false"
+           download="<%= @conversion.result_file.filename %>"><%= t("result.download") %></a>
       </div>
     <% elsif @conversion.status == "failed" %>
-      <p class="error-message">Processing failed. Please try again with different images.</p>
+      <p class="error-message"><%= t("result.failed") %></p>
     <% end %>
   </div>
 
   <div class="back-link">
-    <%= link_to "Back to Home", root_path %>
+    <%= link_to t("result.back"), root_path %>
   </div>
 </div>

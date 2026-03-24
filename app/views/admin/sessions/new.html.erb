@@ -1,0 +1,21 @@
+<div class="login-wrapper">
+  <div class="login-card">
+    <h1>DocPack Admin</h1>
+    <p>Enter the admin password to continue.</p>
+
+    <% if flash[:alert] %>
+      <div class="admin-flash admin-flash-alert"><%= flash[:alert] %></div>
+    <% end %>
+    <% if flash[:notice] %>
+      <div class="admin-flash admin-flash-notice"><%= flash[:notice] %></div>
+    <% end %>
+
+    <%= form_with url: admin_login_path, method: :post, local: true do |f| %>
+      <div class="admin-form-group">
+        <label for="password">Password</label>
+        <%= f.password_field :password, id: "password", autofocus: true, autocomplete: "current-password" %>
+      </div>
+      <%= f.submit "Login", class: "admin-btn admin-btn-primary", style: "width:100%;padding:0.625rem;" %>
+    <% end %>
+  </div>
+</div>

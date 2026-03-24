@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="<%= I18n.locale %>">
   <head>
     <title><%= content_for(:title) || "Docpack" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -7,6 +7,10 @@
     <meta name="mobile-web-app-capable" content="yes">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
+    <meta name="i18n-success" content="<%= t('toast.success') %>">
+    <meta name="i18n-error" content="<%= t('toast.error') %>">
+    <meta name="i18n-network-error" content="<%= t('toast.network_error') %>">
+    <meta name="i18n-no-files" content="<%= t('toast.no_files') %>">
 
     <%= yield :head %>
 
@@ -23,6 +27,12 @@
   </head>
 
   <body>
+    <header class="top-bar">
+      <div class="top-bar-inner">
+        <%= link_to "DocPack", root_path, class: "top-bar-logo" %>
+        <%= button_to t("lang_label"), toggle_locale_path, method: :post, class: "btn-lang" %>
+      </div>
+    </header>
     <%= yield %>
   </body>
 </html>

@@ -33,7 +33,10 @@ class ConversionsController < ApplicationController
       return
     end
 
-    redirect_to rails_blob_path(@conversion.result_file, disposition: "attachment")
+    send_data @conversion.result_file.download,
+              filename: @conversion.result_file.filename.to_s,
+              content_type: @conversion.result_file.content_type,
+              disposition: "attachment"
   end
 
   private

@@ -1,14 +1,14 @@
-<% content_for(:title, "DocPack - Image Compression & PDF Conversion") %>
+<% content_for(:title, t("home.title")) %>
 
 <div class="container">
   <header class="hero">
-    <h1>DocPack</h1>
-    <p>Upload images, compress them, and convert to PDF - all under 2MB.</p>
+    <h1><%= t("home.heading") %></h1>
+    <p><%= t("home.description") %></p>
   </header>
 
   <nav class="feature-nav">
-    <%= link_to "Image Compress", compress_path, class: "feature-card" %>
-    <%= link_to "PDF Conversion", pdf_path, class: "feature-card" %>
-    <%= link_to "Social Presets", social_path, class: "feature-card" %>
+    <%= link_to t("home.compress"), compress_path, class: "feature-card" %>
+    <%= link_to t("home.pdf"), pdf_path, class: "feature-card" %>
+    <%= link_to t("home.social"), social_path, class: "feature-card" %>
   </nav>
 </div>

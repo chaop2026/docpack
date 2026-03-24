@@ -1,10 +1,11 @@
-<% content_for(:title, "Social Media Presets - DocPack") %>
+<% content_for(:title, t("social.title")) %>
 
-<div class="container">
-  <h1>Social Media Presets</h1>
-  <p>Resize images for social media platforms.</p>
+<div class="container" data-controller="progress">
+  <%= link_to root_path, class: "btn-back" do %>&larr; <%= t("nav.back") %><% end %>
+  <h1><%= t("social.heading") %></h1>
+  <p><%= t("social.description") %></p>
 
-  <%= form_with url: conversions_path, method: :post, data: { turbo: true } do |f| %>
+  <%= form_with url: conversions_path, method: :post, data: { progress_target: "form" } do |f| %>
     <%= f.hidden_field :conversion_type, value: "social" %>
 
     <div class="preset-options">
@@ -17,15 +18,29 @@
     </div>
 
     <div class="upload-zone" id="upload-zone" data-controller="upload">
-      <p>Drag & drop images here or click to select</p>
+      <p><%= t("social.drop_zone") %></p>
       <%= f.file_field :files, multiple: true, accept: "image/jpeg,image/png,image/heic,image/webp",
-          data: { upload_target: "input", action: "change->upload#preview" } %>
+          data: { upload_target: "input", action: "change->upload#preview", progress_target: "fileInput" } %>
     </div>
 
     <div id="preview-area" data-upload-target="preview"></div>
 
-    <%= f.submit "Resize", class: "btn btn-primary" %>
+    <div class="progress-area" data-progress-target="progressArea">
+      <div class="progress-track">
+        <div class="progress-bar" data-progress-target="progressBar"></div>
+      </div>
+      <div class="progress-text" data-progress-target="progressText"><%= t("social.uploading") %></div>
+    </div>
+
+    <div class="processing-area" data-progress-target="processingArea">
+      <div class="spinner"></div>
+      <span class="processing-text"><%= t("social.processing") %></span>
+    </div>
+
+    <%= f.submit t("social.submit"), class: "btn btn-primary", data: { progress_target: "submitBtn" } %>
   <% end %>
 
   <turbo-frame id="conversion_result"></turbo-frame>
+
+  <%= render_banners(page: "social", position: "after_result") %>
 </div>
