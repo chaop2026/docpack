@@ -1,5 +1,7 @@
 en:
   lang_label: "한국어"
+  bookmark:
+    message: "Bookmark this page for quick access! Mac: Cmd+D / Windows: Ctrl+D"
   nav:
     back: "Back to Home"
   home:

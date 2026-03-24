@@ -33,6 +33,11 @@
         <%= button_to t("lang_label"), toggle_locale_path, method: :post, class: "btn-lang" %>
       </div>
     </header>
+    <div class="bookmark-banner" data-controller="bookmark-banner" data-bookmark-banner-target="banner" style="display:none;">
+      <span class="bookmark-banner-icon">&#11088;</span>
+      <span class="bookmark-banner-text"><%= t("bookmark.message") %></span>
+      <button class="bookmark-banner-close" data-action="bookmark-banner#dismiss">&times;</button>
+    </div>
     <%= yield %>
   </body>
 </html>
