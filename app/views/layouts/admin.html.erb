@@ -8,99 +8,108 @@
   <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
   <%= javascript_importmap_tags %>
   <style>
+    /* ── Admin: Bento Soft ── */
     .admin-layout { display: flex; min-height: 100vh; }
+
     .admin-sidebar {
-      width: 220px; background: #1f2937; color: white; padding: 1.5rem 0;
+      width: 220px; background: #1A1918; color: white; padding: 1.5rem 0;
       flex-shrink: 0;
     }
     .admin-sidebar-logo {
-      font-size: 1.25rem; font-weight: 700; color: white;
+      font-size: 1.1rem; font-weight: 700; color: white;
       text-decoration: none; padding: 0 1.25rem; display: block; margin-bottom: 2rem;
+      letter-spacing: -0.02em;
     }
-    .admin-sidebar-logo span { color: #60a5fa; }
-    .admin-nav a {
-      display: block; padding: 0.625rem 1.25rem; color: #d1d5db;
-      text-decoration: none; font-size: 0.875rem; transition: all 0.15s;
+    .admin-sidebar-logo span { color: #0A6E8A; }
+    .admin-nav a, .admin-nav button {
+      display: block; padding: 0.6rem 1.25rem; color: #9B9990;
+      text-decoration: none; font-size: 13px; transition: all 0.15s;
+      background: none; border: none; cursor: pointer; width: 100%; text-align: left;
     }
-    .admin-nav a:hover, .admin-nav a.active { background: #374151; color: white; }
-    .admin-nav-divider { border-top: 1px solid #374151; margin: 1rem 0; }
-    .admin-main { flex: 1; background: #f3f4f6; }
+    .admin-nav a:hover, .admin-nav a.active,
+    .admin-nav button:hover { background: #2A2926; color: white; }
+    .admin-nav-divider { border-top: 1px solid #2A2926; margin: 0.75rem 0; }
+
+    .admin-main { flex: 1; background: #F8F7F4; }
     .admin-header {
-      background: white; border-bottom: 1px solid #e5e7eb;
+      background: #ffffff; border-bottom: 0.5px solid #E5E3DC;
       padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center;
     }
-    .admin-header h2 { font-size: 1.25rem; margin: 0; }
+    .admin-header h2 {
+      font-size: 18px; font-weight: 600; letter-spacing: -0.02em; margin: 0;
+    }
     .admin-content { padding: 2rem; }
 
     .admin-flash {
-      padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 1rem;
-      font-size: 0.875rem;
+      padding: 0.75rem 1rem; border-radius: 12px; margin-bottom: 1rem;
+      font-size: 13px;
     }
     .admin-flash-notice { background: #d1fae5; color: #065f46; }
     .admin-flash-alert { background: #fee2e2; color: #991b1b; }
 
     .admin-table {
-      width: 100%; border-collapse: collapse; background: white;
-      border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      width: 100%; border-collapse: collapse; background: #ffffff;
+      border-radius: 20px; overflow: hidden;
+      border: 0.5px solid #E5E3DC;
     }
     .admin-table th {
-      text-align: left; padding: 0.75rem 1rem; background: #f9fafb;
-      font-size: 0.75rem; text-transform: uppercase; color: #6b7280;
-      border-bottom: 1px solid #e5e7eb;
+      text-align: left; padding: 0.7rem 1rem; background: #F8F7F4;
+      font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em;
+      color: #6B6963; border-bottom: 0.5px solid #E5E3DC; font-weight: 600;
     }
     .admin-table td {
-      padding: 0.75rem 1rem; border-bottom: 1px solid #f3f4f6;
-      font-size: 0.875rem; vertical-align: middle;
+      padding: 0.7rem 1rem; border-bottom: 0.5px solid #F0EFEB;
+      font-size: 13px; vertical-align: middle;
     }
-    .admin-table tr:hover td { background: #f9fafb; }
+    .admin-table tr:nth-child(even) td { background: #FDFCFA; }
+    .admin-table tr:hover td { background: #F8F7F4; }
 
     .admin-btn {
-      display: inline-block; padding: 0.375rem 0.75rem; border-radius: 6px;
-      font-size: 0.8rem; font-weight: 500; text-decoration: none;
-      border: 1px solid #d1d5db; background: white; color: #374151; cursor: pointer;
+      display: inline-block; padding: 0.375rem 0.75rem; border-radius: 12px;
+      font-size: 12px; font-weight: 500; text-decoration: none;
+      border: 0.5px solid #E5E3DC; background: white; color: #1A1918; cursor: pointer;
       transition: all 0.15s;
     }
-    .admin-btn:hover { background: #f9fafb; border-color: #9ca3af; }
-    .admin-btn-primary { background: #2563eb; color: white; border-color: #2563eb; }
-    .admin-btn-primary:hover { background: #1d4ed8; }
+    .admin-btn:hover { background: #F8F7F4; border-color: #ccc; }
+    .admin-btn-primary { background: #0A6E8A; color: white; border-color: #0A6E8A; }
+    .admin-btn-primary:hover { opacity: 0.88; }
     .admin-btn-danger { color: #dc2626; border-color: #fca5a5; }
     .admin-btn-danger:hover { background: #fef2f2; }
-    .admin-btn-sm { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+    .admin-btn-sm { padding: 0.25rem 0.5rem; font-size: 11px; }
     .admin-btn-group { display: flex; gap: 0.375rem; }
 
     .admin-badge {
-      display: inline-block; padding: 0.125rem 0.5rem; border-radius: 9999px;
-      font-size: 0.7rem; font-weight: 600;
+      display: inline-block; padding: 0.15rem 0.5rem; border-radius: 20px;
+      font-size: 10px; font-weight: 600; letter-spacing: 0.03em;
     }
     .admin-badge-green { background: #d1fae5; color: #065f46; }
-    .admin-badge-gray { background: #f3f4f6; color: #6b7280; }
+    .admin-badge-gray { background: #F0EFEB; color: #6B6963; }
 
     .admin-form { max-width: 640px; }
     .admin-form-group { margin-bottom: 1.25rem; }
     .admin-form-group label {
-      display: block; font-size: 0.8rem; font-weight: 600;
-      color: #374151; margin-bottom: 0.375rem;
+      display: block; font-size: 12px; font-weight: 600;
+      color: #1A1918; margin-bottom: 0.375rem;
     }
     .admin-form-group input,
     .admin-form-group select,
     .admin-form-group textarea {
-      width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db;
-      border-radius: 6px; font-size: 0.875rem; transition: border-color 0.15s;
+      width: 100%; padding: 0.5rem 0.75rem; border: 0.5px solid #E5E3DC;
+      border-radius: 12px; font-size: 13px; transition: border-color 0.15s;
+      background: #ffffff;
     }
     .admin-form-group input:focus,
     .admin-form-group select:focus,
     .admin-form-group textarea:focus {
-      outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+      outline: none; border-color: #0A6E8A; box-shadow: 0 0 0 3px rgba(10,110,138,0.08);
     }
     .admin-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    .admin-form-hint { font-size: 0.75rem; color: #9ca3af; margin-top: 0.25rem; }
+    .admin-form-hint { font-size: 11px; color: #9B9990; margin-top: 0.25rem; }
 
-    .admin-toggle {
-      position: relative; width: 40px; height: 22px; cursor: pointer;
-    }
+    .admin-toggle { position: relative; width: 40px; height: 22px; cursor: pointer; }
     .admin-toggle input { opacity: 0; width: 0; height: 0; }
     .admin-toggle-slider {
-      position: absolute; inset: 0; background: #d1d5db; border-radius: 11px;
+      position: absolute; inset: 0; background: #E5E3DC; border-radius: 11px;
       transition: 0.2s;
     }
     .admin-toggle-slider::before {
@@ -108,24 +117,31 @@
       left: 3px; bottom: 3px; background: white; border-radius: 50%;
       transition: 0.2s;
     }
-    .admin-toggle input:checked + .admin-toggle-slider { background: #16a34a; }
+    .admin-toggle input:checked + .admin-toggle-slider { background: #0A6E8A; }
     .admin-toggle input:checked + .admin-toggle-slider::before { transform: translateX(18px); }
 
     .admin-preview {
-      margin-top: 1.5rem; padding: 1rem;
-      background: #f9fafb; border: 1px dashed #d1d5db; border-radius: 8px;
+      margin-top: 1.5rem; padding: 1.25rem;
+      background: #F8F7F4; border: 0.5px dashed #E5E3DC; border-radius: 14px;
     }
-    .admin-preview h4 { font-size: 0.8rem; color: #6b7280; margin-bottom: 0.75rem; }
+    .admin-preview h4 {
+      font-size: 10px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.04em; color: #6B6963; margin-bottom: 0.75rem;
+    }
 
     .login-wrapper {
       display: flex; align-items: center; justify-content: center;
-      min-height: 100vh; background: #f3f4f6;
+      min-height: 100vh; background: #F8F7F4;
     }
     .login-card {
-      background: white; padding: 2.5rem; border-radius: 12px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.08); width: 100%; max-width: 380px;
+      background: white; padding: 2.5rem; border-radius: 20px;
+      border: 0.5px solid #E5E3DC;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.04); width: 100%; max-width: 380px;
     }
-    .login-card h1 { font-size: 1.5rem; margin-bottom: 0.5rem; text-align: center; }
+    .login-card h1 {
+      font-size: 22px; font-weight: 600; letter-spacing: -0.02em;
+      margin-bottom: 0.375rem; text-align: center;
+    }
     .login-card p { text-align: center; margin-bottom: 1.5rem; }
   </style>
 </head>
@@ -142,7 +158,7 @@
           <a href="<%= admin_banners_path %>" class="<%= 'active' if controller_name == 'banners' %>">Banners</a>
           <div class="admin-nav-divider"></div>
           <a href="<%= root_path %>">View Site</a>
-          <%= button_to "Logout", admin_logout_path, method: :delete, class: "admin-nav a", style: "background:none;border:none;color:#d1d5db;padding:0.625rem 1.25rem;font-size:0.875rem;cursor:pointer;width:100%;text-align:left;" %>
+          <%= button_to "Logout", admin_logout_path, method: :delete %>
         </nav>
       </aside>
       <div class="admin-main">

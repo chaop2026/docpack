@@ -1,6 +1,7 @@
 <% content_for(:title, t("result.title")) %>
 
 <div class="container">
+  <%= link_to root_path, class: "btn-back" do %>&larr; <%= t("result.back") %><% end %>
   <h1><%= t("result.heading") %></h1>
 
   <div class="result-card">
@@ -13,9 +14,9 @@
 
       <% if @conversion.original_size.present? && @conversion.result_size.present? %>
         <div class="size-comparison">
-          <span class="original-size"><%= t("result.original") %>: <%= number_to_human_size(@conversion.original_size) %></span>
-          <span class="arrow">&rarr;</span>
-          <span class="result-size"><%= t("result.result") %>: <%= number_to_human_size(@conversion.result_size) %></span>
+          <span><%= t("result.original") %>: <%= number_to_human_size(@conversion.original_size) %></span>
+          <span>&rarr;</span>
+          <span><%= t("result.result") %>: <%= number_to_human_size(@conversion.result_size) %></span>
           <% reduction = (100.0 * (1 - @conversion.result_size.to_f / @conversion.original_size)).round(1) %>
           <span class="reduction">(<%= reduction %>% <%= t("result.reduced") %>)</span>
         </div>

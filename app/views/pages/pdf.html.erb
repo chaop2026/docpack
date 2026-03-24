@@ -2,13 +2,19 @@
 
 <div class="container" data-controller="progress">
   <%= link_to root_path, class: "btn-back" do %>&larr; <%= t("nav.back") %><% end %>
-  <h1><%= t("pdf.heading") %></h1>
-  <p><%= t("pdf.description") %></p>
+
+  <div class="page-header">
+    <div class="page-header-icon" style="background:var(--pdf-light);color:var(--pdf);">📄</div>
+    <div>
+      <h1><%= t("pdf.heading") %></h1>
+      <p style="margin:0;"><%= t("pdf.description") %></p>
+    </div>
+  </div>
 
   <%= form_with url: conversions_path, method: :post, data: { progress_target: "form" } do |f| %>
     <%= f.hidden_field :conversion_type, value: "pdf" %>
 
-    <div class="upload-zone" id="upload-zone" data-controller="upload">
+    <div class="upload-zone upload-zone--pdf" id="upload-zone" data-controller="upload">
       <p><%= t("pdf.drop_zone") %></p>
       <%= f.file_field :files, multiple: true, accept: "image/jpeg,image/png,image/heic,image/webp",
           data: { upload_target: "input", action: "change->upload#preview", progress_target: "fileInput" } %>
@@ -18,17 +24,17 @@
 
     <div class="progress-area" data-progress-target="progressArea">
       <div class="progress-track">
-        <div class="progress-bar" data-progress-target="progressBar"></div>
+        <div class="progress-bar progress-bar--pdf" data-progress-target="progressBar"></div>
       </div>
       <div class="progress-text" data-progress-target="progressText"><%= t("pdf.uploading") %></div>
     </div>
 
     <div class="processing-area" data-progress-target="processingArea">
-      <div class="spinner"></div>
+      <div class="spinner spinner--pdf"></div>
       <span class="processing-text"><%= t("pdf.processing") %></span>
     </div>
 
-    <%= f.submit t("pdf.submit"), class: "btn btn-primary", data: { progress_target: "submitBtn" } %>
+    <%= f.submit t("pdf.submit"), class: "btn btn--pdf", data: { progress_target: "submitBtn" } %>
   <% end %>
 
   <turbo-frame id="conversion_result"></turbo-frame>

@@ -7,8 +7,30 @@
   </header>
 
   <nav class="feature-nav">
-    <%= link_to t("home.compress"), compress_path, class: "feature-card" %>
-    <%= link_to t("home.pdf"), pdf_path, class: "feature-card" %>
-    <%= link_to t("home.social"), social_path, class: "feature-card" %>
+    <%= link_to compress_path, class: "feature-card feature-card--compress" do %>
+      <div class="feature-card-icon">🗜</div>
+      <span class="feature-card-tag">IMAGE</span>
+      <div class="feature-card-title"><%= t("home.compress") %></div>
+      <p class="feature-card-desc"><%= t("compress.description") %></p>
+      <span class="feature-card-btn"><%= t("compress.submit") %></span>
+    <% end %>
+
+    <%= link_to pdf_path, class: "feature-card feature-card--pdf" do %>
+      <div class="feature-card-icon">📄</div>
+      <span class="feature-card-tag">PDF</span>
+      <div class="feature-card-title"><%= t("home.pdf") %></div>
+      <p class="feature-card-desc"><%= t("pdf.description") %></p>
+      <span class="feature-card-btn"><%= t("pdf.submit") %></span>
+    <% end %>
+
+    <%= link_to social_path, class: "feature-card feature-card--social" do %>
+      <div class="feature-card-icon">📱</div>
+      <span class="feature-card-tag">SOCIAL</span>
+      <div class="feature-card-title"><%= t("home.social") %></div>
+      <p class="feature-card-desc"><%= t("social.description") %></p>
+      <span class="feature-card-btn"><%= t("social.submit") %></span>
+    <% end %>
   </nav>
+
+  <%= render_banners(page: "all", position: "after_result") %>
 </div>
