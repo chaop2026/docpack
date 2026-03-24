@@ -87,9 +87,13 @@ class ConversionsController < ApplicationController
   end
 
   def process_pdf(conversion)
-    tempfiles = conversion.source_files.map do |file|
-      tf = file.open
-      tf
+    tempfiles = []
+    conversion.source_files.each do |file|
+      tf = Tempfile.new(["pdf_src", File.extname(file.filename.to_s)])
+      tf.binmode
+      file.download { |chunk| tf.write(chunk) }
+      tf.rewind
+      tempfiles << tf
     end
 
     result = PdfBuilder.new(tempfiles).call
