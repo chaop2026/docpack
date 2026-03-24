@@ -1,0 +1,22 @@
+<% content_for(:title, "PDF Conversion - DocPack") %>
+
+<div class="container">
+  <h1>Image to PDF</h1>
+  <p>Combine multiple images into a single PDF under 2MB.</p>
+
+  <%= form_with url: conversions_path, method: :post, data: { turbo: true } do |f| %>
+    <%= f.hidden_field :conversion_type, value: "pdf" %>
+
+    <div class="upload-zone" id="upload-zone" data-controller="upload">
+      <p>Drag & drop images here or click to select</p>
+      <%= f.file_field :files, multiple: true, accept: "image/jpeg,image/png,image/heic,image/webp",
+          data: { upload_target: "input", action: "change->upload#preview" } %>
+    </div>
+
+    <div id="preview-area" data-upload-target="preview"></div>
+
+    <%= f.submit "Convert to PDF", class: "btn btn-primary" %>
+  <% end %>
+
+  <turbo-frame id="conversion_result"></turbo-frame>
+</div>

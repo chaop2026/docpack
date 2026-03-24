@@ -1,0 +1,23 @@
+<%= turbo_stream.update "conversion_result" do %>
+  <div class="result-card">
+    <div class="result-status status-<%= @conversion.status %>">
+      <strong>Status:</strong> <%= @conversion.status.capitalize %>
+    </div>
+
+    <% if @conversion.original_size.present? && @conversion.result_size.present? %>
+      <div class="size-comparison">
+        <span>Original: <%= number_to_human_size(@conversion.original_size) %></span>
+        <span>&rarr;</span>
+        <span>Result: <%= number_to_human_size(@conversion.result_size) %></span>
+        <% reduction = (100.0 * (1 - @conversion.result_size.to_f / @conversion.original_size)).round(1) %>
+        <span>(<%= reduction %>% reduced)</span>
+      </div>
+    <% end %>
+
+    <% if @conversion.status == "done" && @conversion.result_file.attached? %>
+      <%= link_to "Download", download_conversion_path(@conversion), class: "btn btn-primary" %>
+    <% elsif @conversion.status == "failed" %>
+      <p class="error-message">Processing failed. Please try again.</p>
+    <% end %>
+  </div>
+<% end %>

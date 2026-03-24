@@ -1,0 +1,37 @@
+<% content_for(:title, "Conversion Result - DocPack") %>
+
+<div class="container">
+  <h1>Conversion Result</h1>
+
+  <div class="result-card">
+    <div class="result-status status-<%= @conversion.status %>">
+      <strong>Status:</strong> <%= @conversion.status.capitalize %>
+    </div>
+
+    <div class="result-details">
+      <p><strong>Type:</strong> <%= @conversion.conversion_type.capitalize %></p>
+
+      <% if @conversion.original_size.present? && @conversion.result_size.present? %>
+        <div class="size-comparison">
+          <span class="original-size">Original: <%= number_to_human_size(@conversion.original_size) %></span>
+          <span class="arrow">&rarr;</span>
+          <span class="result-size">Result: <%= number_to_human_size(@conversion.result_size) %></span>
+          <% reduction = (100.0 * (1 - @conversion.result_size.to_f / @conversion.original_size)).round(1) %>
+          <span class="reduction">(<%= reduction %>% reduced)</span>
+        </div>
+      <% end %>
+    </div>
+
+    <% if @conversion.status == "done" && @conversion.result_file.attached? %>
+      <div class="result-actions">
+        <%= link_to "Download", download_conversion_path(@conversion), class: "btn btn-primary" %>
+      </div>
+    <% elsif @conversion.status == "failed" %>
+      <p class="error-message">Processing failed. Please try again with different images.</p>
+    <% end %>
+  </div>
+
+  <div class="back-link">
+    <%= link_to "Back to Home", root_path %>
+  </div>
+</div>
