@@ -55,6 +55,6 @@ accessories:
         POSTGRES_USER: docpack
         POSTGRES_DB: docpack_production
       secret:
-        - DB_PASSWORD
+        - POSTGRES_PASSWORD
     directories:
       - docpack_pgdata:/var/lib/postgresql/data
