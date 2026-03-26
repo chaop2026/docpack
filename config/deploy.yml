@@ -7,8 +7,8 @@ servers:
     - 5.223.92.4
 
 proxy:
-  ssl: false
-  host: 5.223.92.4
+  ssl: true
+  host: slimfile.net
   app_port: 3000
 
 registry:
