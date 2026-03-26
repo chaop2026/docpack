@@ -18,5 +18,3 @@ test:
 production:
   <<: *default
   database: docpack_production
-  username: docpack
-  password: <%= ENV["DOCPACK_DATABASE_PASSWORD"] %>
