@@ -24,7 +24,7 @@ env:
   clear:
     RAILS_ENV: production
     RAILS_LOG_LEVEL: info
-    SOLID_QUEUE_IN_PUMA: true
+    SOLID_QUEUE_IN_PUMA: false
     DB_HOST: docpack-db
     DB_PORT: 5432
     DB_USERNAME: docpack
