@@ -16,5 +16,18 @@ test:
   database: docpack_test
 
 production:
-  <<: *default
-  database: docpack_production
+  primary:
+    <<: *default
+    database: docpack_production
+  cache:
+    <<: *default
+    database: docpack_production
+    migrations_paths: db/cache_migrate
+  queue:
+    <<: *default
+    database: docpack_production
+    migrations_paths: db/queue_migrate
+  cable:
+    <<: *default
+    database: docpack_production
+    migrations_paths: db/cable_migrate
