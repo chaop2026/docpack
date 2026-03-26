@@ -1,6 +1,6 @@
 service: docpack
 
-image: ghcr.io/chaop2026/docpack
+image: chaop2026/docpack
 
 servers:
   web:
