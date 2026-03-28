@@ -5,8 +5,8 @@ en:
   nav:
     back: "Back to Home"
   home:
-    title: "DocPack - Image Compression & PDF Conversion"
-    heading: "DocPack"
+    title: "SlimFile - Image Compression & PDF Conversion"
+    heading: "SlimFile"
     description: "Upload images, compress them, and convert to PDF - all under 2MB."
     compress: "Image Compress"
     pdf: "PDF Conversion"

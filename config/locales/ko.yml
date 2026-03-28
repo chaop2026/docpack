@@ -5,8 +5,8 @@ ko:
   nav:
     back: "홈으로 돌아가기"
   home:
-    title: "DocPack - 이미지 압축 & PDF 변환"
-    heading: "DocPack"
+    title: "SlimFile - 이미지 압축 & PDF 변환"
+    heading: "SlimFile"
     description: "이미지를 업로드하고, 압축하고, PDF로 변환하세요 - 모두 2MB 이하로."
     compress: "이미지 압축"
     pdf: "PDF 변환"
