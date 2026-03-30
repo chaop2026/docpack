@@ -77,7 +77,9 @@ class ImageCompressor
   end
 
   def vips_dimensions(source)
-    img = Vips::Image.new_from_file(source.is_a?(String) ? source : source.path)
+    path = source.is_a?(String) ? source : source.path
+    require "ruby-vips" unless defined?(::Vips)
+    img = ::Vips::Image.new_from_file(path)
     [img.width, img.height]
   end
 end

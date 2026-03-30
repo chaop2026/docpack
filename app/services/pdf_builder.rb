@@ -36,7 +36,8 @@ class PdfBuilder
     @cleanup_paths << resized.path
 
     jpeg_data = File.binread(resized.path)
-    img = Vips::Image.new_from_file(resized.path)
+    require "ruby-vips" unless defined?(::Vips)
+    img = ::Vips::Image.new_from_file(resized.path)
     img_w = img.width
     img_h = img.height
 
