@@ -1,15 +1,6 @@
 class ImageCompressor
   TARGET_SIZE = 2.megabytes
 
-  # Compression strategies: [scale, quality] pairs ordered from aggressive to gentle
-  STRATEGIES = [
-    [0.2, 10], [0.25, 10], [0.25, 15], [0.3, 15], [0.3, 20],
-    [0.35, 20], [0.35, 25], [0.4, 25], [0.4, 30], [0.5, 20],
-    [0.5, 30], [0.5, 40], [0.6, 30], [0.6, 40], [0.75, 25],
-    [0.75, 35], [0.75, 50], [1.0, 15], [1.0, 25], [1.0, 35],
-    [1.0, 50], [1.0, 65], [1.0, 80]
-  ].freeze
-
   def initialize(source, target_percent: nil)
     @source = source
     @target_percent = target_percent&.to_i
@@ -31,20 +22,33 @@ class ImageCompressor
   private
 
   def compress_to_target(path, target_bytes, width, height)
-    STRATEGIES.each do |scale, quality|
-      w = (width * scale).to_i
-      h = (height * scale).to_i
+    # Try quality levels from high to low, find the best one that fits target
+    best = nil
 
-      pipeline = ImageProcessing::Vips.source(path)
-      pipeline = pipeline.resize_to_limit(w, h) if scale < 1.0
-      result = pipeline.convert("jpeg").saver(quality: quality, strip: true, interlace: true).call
+    scales = [1.0, 0.75, 0.5, 0.35, 0.25]
+    qualities = [80, 65, 50, 40, 30, 20, 15, 10]
 
-      return result if result.size <= target_bytes
+    # First pass: find the highest quality + largest scale that fits
+    scales.each do |scale|
+      qualities.each do |quality|
+        w = (width * scale).to_i
+        h = (height * scale).to_i
 
-      result.close!
+        pipeline = ImageProcessing::Vips.source(path)
+        pipeline = pipeline.resize_to_limit(w, h) if scale < 1.0
+        result = pipeline.convert("jpeg").saver(quality: quality, strip: true, interlace: true).call
+
+        if result.size <= target_bytes
+          # This fits — use it (it's the highest quality at this scale)
+          best&.close!
+          return result
+        end
+
+        result.close!
+      end
     end
 
-    # Fallback: most aggressive
+    # Nothing fit — use most aggressive
     ImageProcessing::Vips.source(path)
       .resize_to_limit(width / 5, height / 5)
       .convert("jpeg")
