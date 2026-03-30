@@ -24,6 +24,24 @@
 
     <div id="preview-area" data-upload-target="preview"></div>
 
+    <div class="quality-slider" data-controller="quality-slider">
+      <label class="quality-slider-label"><%= t("compress.slider_label") %></label>
+      <div class="quality-slider-row">
+        <span class="quality-slider-min"><%= t("compress.slider_min") %></span>
+        <input type="range" name="target_percent" min="5" max="50" value="10" step="5"
+               class="quality-slider-input"
+               data-quality-slider-target="slider"
+               data-action="input->quality-slider#update">
+        <span class="quality-slider-max"><%= t("compress.slider_max") %></span>
+      </div>
+      <div class="quality-slider-value">
+        <span><%= t("compress.slider_target") %></span>
+        <strong data-quality-slider-target="display">10</strong><span>%</span>
+        <span class="quality-slider-hint" data-quality-slider-target="hint"></span>
+      </div>
+      <p class="quality-slider-desc"><%= t("compress.slider_desc") %></p>
+    </div>
+
     <div class="progress-area" data-progress-target="progressArea">
       <div class="progress-track">
         <div class="progress-bar progress-bar--compress" data-progress-target="progressBar"></div>

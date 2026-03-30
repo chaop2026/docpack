@@ -19,6 +19,11 @@ en:
     uploading: "Uploading... 0%"
     processing: "Compressing your images..."
     submit: "Compress"
+    slider_label: "Target Size (% of original)"
+    slider_min: "5%"
+    slider_max: "50%"
+    slider_target: "Compress to"
+    slider_desc: "e.g. 10% = a 3MB photo becomes about 300KB"
   pdf:
     title: "PDF Conversion - DocPack"
     heading: "Image to PDF"

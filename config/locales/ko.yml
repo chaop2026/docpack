@@ -19,6 +19,11 @@ ko:
     uploading: "업로드 중... 0%"
     processing: "이미지 압축 중..."
     submit: "압축하기"
+    slider_label: "목표 용량 (원본 대비 %)"
+    slider_min: "5%"
+    slider_max: "50%"
+    slider_target: "원본의"
+    slider_desc: "예: 10% = 3MB 사진이 약 300KB로 줄어듭니다"
   pdf:
     title: "PDF 변환 - DocPack"
     heading: "이미지를 PDF로"

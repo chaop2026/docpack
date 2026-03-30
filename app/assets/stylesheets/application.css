@@ -302,6 +302,94 @@ p {
 .upload-zone--pdf:hover { border-color: var(--pdf); background: var(--pdf-light); }
 .upload-zone--social:hover { border-color: var(--social); background: var(--social-light); }
 
+/* ── Quality Slider ── */
+.quality-slider {
+  background: var(--card-bg);
+  border: var(--card-border);
+  border-radius: var(--r-card);
+  padding: 1.25rem 1.5rem;
+  margin: 1rem 0;
+}
+.quality-slider-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  display: block;
+  margin-bottom: 0.75rem;
+}
+.quality-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.quality-slider-min,
+.quality-slider-max {
+  font-size: 11px;
+  color: var(--text-sub);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.quality-slider-input {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  background: var(--border-color);
+  border-radius: 3px;
+  outline: none;
+}
+.quality-slider-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: var(--compress);
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  transition: transform 0.15s;
+}
+.quality-slider-input::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+.quality-slider-input::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: var(--compress);
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+.quality-slider-value {
+  font-size: 12px;
+  color: var(--text-sub);
+  text-align: center;
+  margin-top: 0.75rem;
+}
+.quality-slider-value strong {
+  color: var(--compress);
+  font-size: 14px;
+}
+.quality-slider-hint {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.15rem 0.5rem;
+  background: var(--compress-light);
+  color: var(--compress-text);
+  border-radius: var(--r-chip);
+  font-size: 10px;
+  font-weight: 600;
+}
+.quality-slider-desc {
+  font-size: 11px !important;
+  color: #9B9990 !important;
+  text-align: center;
+  margin-top: 0.5rem !important;
+  margin-bottom: 0 !important;
+}
+
 /* ── Preset Options ── */
 .preset-options {
   display: flex;

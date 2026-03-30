@@ -88,9 +88,10 @@ class ConversionsController < ApplicationController
   end
 
   def process_compress(conversion)
+    target_percent = params[:target_percent].present? ? params[:target_percent].to_i : nil
     results = conversion.source_files.map do |file|
       file.open do |tempfile|
-        ImageCompressor.new(tempfile.path).call
+        ImageCompressor.new(tempfile.path, target_percent: target_percent).call
       end
     end
 
