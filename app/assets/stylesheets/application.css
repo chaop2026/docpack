@@ -180,6 +180,10 @@ p {
   max-width: 400px;
   margin: 0.5rem auto 0;
 }
+.hero-keyword {
+  color: var(--compress);
+  font-weight: 700;
+}
 
 /* ── Feature Cards (Home) ── */
 .feature-nav {

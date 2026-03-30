@@ -8,6 +8,7 @@ en:
     title: "SlimFile - Image Compression & PDF Conversion"
     heading: "SlimFile"
     description: "Upload images, compress them, and convert to PDF - all under 2MB."
+    description_html: 'Upload images, <span class="hero-keyword">compress</span> them, and convert to <span class="hero-keyword">PDF</span> - all under 2MB.'
     compress: "Image Compress"
     pdf: "PDF Conversion"
     social: "Social Presets"
