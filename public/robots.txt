@@ -3,4 +3,4 @@ Allow: /
 Disallow: /admin
 Disallow: /conversions
 
-Sitemap: https://fileslim.net/sitemap.xml
+Sitemap: https://slimfile.net/sitemap.xml
