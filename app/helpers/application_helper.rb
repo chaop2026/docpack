@@ -1,6 +1,6 @@
 module ApplicationHelper
   def base_url
-    ENV.fetch("BASE_URL", "https://docpack.app")
+    ENV.fetch("BASE_URL", "https://fileslim.net")
   end
 
   def page_meta(title:, description:, path: request.path, image: nil)

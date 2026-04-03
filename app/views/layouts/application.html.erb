@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="<%= I18n.locale %>">
   <head>
-    <title><%= content_for(:meta_title) || content_for(:title) || "DocPack" %></title>
+    <title><%= content_for(:meta_title) || content_for(:title) || "SlimFile" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
@@ -13,7 +13,7 @@
     <link rel="canonical" href="<%= content_for(:meta_url) || "#{base_url}#{request.path}" %>">
 
     <meta property="og:type" content="website">
-    <meta property="og:site_name" content="DocPack">
+    <meta property="og:site_name" content="SlimFile">
     <meta property="og:title" content="<%= content_for(:meta_title) || content_for(:title) || 'DocPack' %>">
     <meta property="og:description" content="<%= content_for(:meta_description) || t('seo.default_description') %>">
     <meta property="og:url" content="<%= content_for(:meta_url) || "#{base_url}#{request.path}" %>">
@@ -45,7 +45,7 @@
     {
       "@context": "https://schema.org",
       "@type": "WebApplication",
-      "name": "DocPack",
+      "name": "SlimFile",
       "url": "<%= base_url %>",
       "description": "<%= t('seo.default_description') %>",
       "applicationCategory": "MultimediaApplication",

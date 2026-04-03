@@ -3,4 +3,4 @@ Allow: /
 Disallow: /admin
 Disallow: /conversions
 
-Sitemap: https://docpack.app/sitemap.xml
+Sitemap: https://fileslim.net/sitemap.xml
