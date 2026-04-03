@@ -3,7 +3,7 @@ class PostsController < ApplicationController
     @posts = Post.published.recent
     @posts = @posts.by_category(params[:category]) if params[:category].present?
 
-    page_meta(
+    helpers.page_meta(
       title: t("blog.title"),
       description: t("blog.meta_description"),
       path: "/blog"
@@ -15,7 +15,7 @@ class PostsController < ApplicationController
     @post.increment!(:view_count)
     @related_posts = Post.published.where(category: @post.category).where.not(id: @post.id).recent.limit(3)
 
-    page_meta(
+    helpers.page_meta(
       title: @post.title,
       description: @post.meta_description.presence || @post.title,
       path: "/blog/#{@post.slug}"
