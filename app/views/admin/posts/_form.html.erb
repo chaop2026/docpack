@@ -1,0 +1,81 @@
+<%= form_with(model: [:admin, post], class: "admin-form") do |f| %>
+  <% if post.errors.any? %>
+    <div class="admin-flash admin-flash-alert">
+      <% post.errors.full_messages.each do |msg| %>
+        <p><%= msg %></p>
+      <% end %>
+    </div>
+  <% end %>
+
+  <div class="admin-form-row">
+    <div class="admin-form-group">
+      <label>Status</label>
+      <%= f.select :status, %w[draft scheduled published], {}, class: "" %>
+    </div>
+    <div class="admin-form-group">
+      <label>Category</label>
+      <%= f.select :category, %w[pdf image office student freelancer global], {}, class: "" %>
+    </div>
+  </div>
+
+  <div class="admin-form-row">
+    <div class="admin-form-group">
+      <label>Title (KO)</label>
+      <%= f.text_field :title_ko %>
+    </div>
+    <div class="admin-form-group">
+      <label>Title (EN)</label>
+      <%= f.text_field :title_en %>
+    </div>
+  </div>
+
+  <div class="admin-form-group">
+    <label>Slug</label>
+    <%= f.text_field :slug %>
+    <div class="admin-form-hint">URL: /blog/your-slug</div>
+  </div>
+
+  <div class="admin-form-group">
+    <label>Body (KO) — HTML</label>
+    <%= f.text_area :body_ko, rows: 15, style: "font-family: monospace; font-size: 12px;" %>
+  </div>
+
+  <div class="admin-form-group">
+    <label>Body (EN) — HTML</label>
+    <%= f.text_area :body_en, rows: 10, style: "font-family: monospace; font-size: 12px;" %>
+  </div>
+
+  <div class="admin-form-row">
+    <div class="admin-form-group">
+      <label>Meta Description (KO)</label>
+      <%= f.text_field :meta_description_ko %>
+    </div>
+    <div class="admin-form-group">
+      <label>Meta Description (EN)</label>
+      <%= f.text_field :meta_description_en %>
+    </div>
+  </div>
+
+  <div class="admin-form-group">
+    <label>Published At</label>
+    <%= f.datetime_local_field :published_at %>
+    <div class="admin-form-hint">Set future date for scheduled publishing</div>
+  </div>
+
+  <div class="admin-form-group">
+    <label>Cover SVG</label>
+    <%= f.text_area :cover_svg, rows: 6, style: "font-family: monospace; font-size: 11px;" %>
+  </div>
+
+  <% if post.cover_svg.present? %>
+    <div class="admin-preview">
+      <h4>Cover Preview</h4>
+      <div style="max-width: 400px;"><%= post.cover_svg.html_safe %></div>
+    </div>
+  <% end %>
+
+  <div style="margin-top: 1.5rem; display: flex; gap: 0.5rem;">
+    <%= f.submit "Save Post", class: "admin-btn admin-btn-primary" %>
+    <a href="<%= admin_posts_path %>" class="admin-btn">Cancel</a>
+  </div>
+<% end %>

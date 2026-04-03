@@ -69,7 +69,10 @@
     <header class="top-bar">
       <div class="top-bar-inner">
         <%= link_to "SlimFile", root_path, class: "top-bar-logo" %>
-        <%= button_to t("lang_label"), toggle_locale_path, method: :post, class: "btn-lang" %>
+        <div class="top-bar-right">
+          <%= link_to t("nav_blog"), blog_path, class: "top-bar-nav-link" %>
+          <%= button_to t("lang_label"), toggle_locale_path, method: :post, class: "btn-lang" %>
+        </div>
       </div>
     </header>
     <div class="bookmark-banner" data-controller="bookmark-banner" data-bookmark-banner-target="banner" style="display:none;">

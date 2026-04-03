@@ -155,6 +155,7 @@
           DocPack <span>Admin</span>
         </a>
         <nav class="admin-nav">
+          <a href="<%= admin_posts_path %>" class="<%= 'active' if controller_name == 'posts' %>">Blog Posts</a>
           <a href="<%= admin_banners_path %>" class="<%= 'active' if controller_name == 'banners' %>">Banners</a>
           <div class="admin-nav-divider"></div>
           <a href="<%= root_path %>">View Site</a>

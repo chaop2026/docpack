@@ -15,10 +15,23 @@ Rails.application.routes.draw do
   get "/about",    to: "pages#about"
   get "/faq",      to: "pages#faq"
 
+  get "/blog",       to: "posts#index", as: :blog
+  get "/blog/:slug", to: "posts#show",  as: :blog_post
+
   namespace :admin do
     get  "login",  to: "sessions#new",     as: :login
     post "login",  to: "sessions#create"
     delete "logout", to: "sessions#destroy", as: :logout
+
+    resources :posts do
+      member do
+        post :generate
+        post :improve
+      end
+      collection do
+        post :auto_generate
+      end
+    end
 
     resources :banners do
       member do

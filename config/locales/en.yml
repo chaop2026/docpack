@@ -64,6 +64,28 @@ en:
     error: "Something went wrong. Please try again."
     network_error: "Network error. Please try again."
     no_files: "Please select files first."
+  blog:
+    title: "Blog - SlimFile"
+    heading: "Blog"
+    description: "Tips and guides for image compression, PDF conversion, and file optimization."
+    meta_description: "Practical tips and guides for image compression, PDF conversion, and file management. Free online tools and best practices."
+    all: "All"
+    categories:
+      image: "Image"
+      pdf: "PDF"
+      office: "Office"
+      student: "Student"
+      freelancer: "Freelancer"
+      global: "Global"
+    empty: "No posts yet. Stay tuned!"
+    views:
+      one: "%{count} view"
+      other: "%{count} views"
+    cta_title: "Try SlimFile Now"
+    cta_desc: "Compress images and convert to PDF for free. No signup required."
+    related: "Related Posts"
+    back_to_list: "Back to Blog"
+  nav_blog: "Blog"
   seo:
     default_description: "Free online tool to compress images, convert to PDF, and resize for social media. All under 2MB, no signup required."
     home_description: "DocPack - Free image compression, PDF conversion, and social media resizing tool. Fast, secure, no signup."

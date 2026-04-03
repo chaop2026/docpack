@@ -93,13 +93,26 @@ All styles are in `app/assets/stylesheets/application.css` using CSS custom prop
 - Login: `/admin/login`, password from `ENV["ADMIN_PASSWORD"]` (default: `docpack2025`)
 - Session-based auth via `Admin::BaseController`
 
+## Blog System
+
+- Model: `Post` (title_ko/en, body_ko/en, slug, category, status, published_at, cover_svg, meta_description_ko/en, view_count)
+- Categories: `pdf`, `image`, `office`, `student`, `freelancer`, `global`
+- Status: `draft`, `scheduled`, `published`
+- Routes: `GET /blog` → `posts#index`, `GET /blog/:slug` → `posts#show`
+- Admin: `/admin/posts` — CRUD + AI generate/improve
+- AI Service: `BlogGeneratorService` — uses Claude API via net/http (ENV `ANTHROPIC_API_KEY`)
+- Scheduler: `PublishScheduledPostsJob` — runs daily at 9am via solid_queue, publishes scheduled posts
+- Blog topics seed: `db/seeds/blog_topics.yml` — 100 topics across 6 categories
+- CSS: `.blog-*` classes in `application.css`
+- I18n: `blog.*` keys in en.yml/ko.yml
+
 ## SEO & Sitemap
 
 - Domain: `https://slimfile.net` (default `BASE_URL` in `app/helpers/application_helper.rb`)
 - Dynamic sitemap: `GET /sitemap.xml` → `PagesController#sitemap` → `app/views/pages/sitemap.xml.erb`
 - Static fallback: `public/sitemap.xml` (update manually when pages change)
 - `public/robots.txt` includes `Sitemap: https://slimfile.net/sitemap.xml`
-- Pages in sitemap: `/`, `/compress`, `/pdf`, `/social`, `/about`, `/faq`
+- Pages in sitemap: `/`, `/compress`, `/pdf`, `/social`, `/about`, `/faq`, `/blog`, `/blog/:slug`
 - OG meta, Twitter cards, and JSON-LD structured data are in `app/views/layouts/application.html.erb`
 - Per-page meta via `page_meta` helper in `ApplicationHelper`
 - Google Search Console verification: `<meta name="google-site-verification">` in `application.html.erb`

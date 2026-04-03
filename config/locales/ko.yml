@@ -64,6 +64,28 @@ ko:
     error: "문제가 발생했습니다. 다시 시도해 주세요."
     network_error: "네트워크 오류입니다. 다시 시도해 주세요."
     no_files: "파일을 먼저 선택해 주세요."
+  blog:
+    title: "블로그 - SlimFile"
+    heading: "블로그"
+    description: "이미지 압축, PDF 변환, 파일 최적화에 대한 실용적인 팁과 가이드."
+    meta_description: "이미지 압축, PDF 변환, 파일 관리에 대한 실용적인 팁과 가이드. 무료 온라인 도구와 모범 사례."
+    all: "전체"
+    categories:
+      image: "이미지"
+      pdf: "PDF"
+      office: "오피스"
+      student: "학생"
+      freelancer: "프리랜서"
+      global: "글로벌"
+    empty: "아직 게시물이 없습니다. 곧 찾아뵙겠습니다!"
+    views:
+      one: "조회 %{count}회"
+      other: "조회 %{count}회"
+    cta_title: "SlimFile 지금 사용해보세요"
+    cta_desc: "이미지 압축과 PDF 변환을 무료로. 회원가입 없이 바로 시작하세요."
+    related: "관련 글"
+    back_to_list: "블로그 목록으로"
+  nav_blog: "블로그"
   seo:
     default_description: "무료 온라인 이미지 압축, PDF 변환, 소셜 미디어 리사이즈 도구. 2MB 이하, 회원가입 불필요."
     home_description: "DocPack - 무료 이미지 압축, PDF 변환, 소셜 미디어 리사이즈 도구. 빠르고 안전하며 회원가입이 필요 없습니다."

@@ -1,0 +1,41 @@
+<% content_for :admin_title, "Edit Post" %>
+
+<div style="display: flex; gap: 1.5rem; align-items: start;">
+  <div style="flex: 1;">
+    <%= render "form", post: @post %>
+  </div>
+
+  <div style="width: 300px; flex-shrink: 0;">
+    <div style="background: white; border-radius: 14px; border: 0.5px solid #E5E3DC; padding: 1rem; margin-bottom: 1rem;">
+      <h4 style="font-size: 12px; font-weight: 600; margin-bottom: 0.75rem;">AI Generate Content</h4>
+      <form action="<%= generate_admin_post_path(@post) %>" method="post">
+        <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+        <input type="text" name="topic" placeholder="Enter topic..." style="width: 100%; padding: 0.4rem 0.6rem; border: 0.5px solid #E5E3DC; border-radius: 10px; font-size: 12px; margin-bottom: 0.5rem;">
+        <button type="submit" class="admin-btn admin-btn-primary" style="width: 100%;">Generate with AI</button>
+      </form>
+    </div>
+
+    <div style="background: white; border-radius: 14px; border: 0.5px solid #E5E3DC; padding: 1rem; margin-bottom: 1rem;">
+      <h4 style="font-size: 12px; font-weight: 600; margin-bottom: 0.75rem;">AI Improve Content</h4>
+      <form action="<%= improve_admin_post_path(@post) %>" method="post">
+        <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+        <textarea name="instruction" rows="3" placeholder="Describe how to improve..." style="width: 100%; padding: 0.4rem 0.6rem; border: 0.5px solid #E5E3DC; border-radius: 10px; font-size: 12px; margin-bottom: 0.5rem; resize: vertical;"></textarea>
+        <button type="submit" class="admin-btn admin-btn-primary" style="width: 100%;">Improve with AI</button>
+      </form>
+    </div>
+
+    <div style="background: white; border-radius: 14px; border: 0.5px solid #E5E3DC; padding: 1rem;">
+      <h4 style="font-size: 12px; font-weight: 600; margin-bottom: 0.5rem;">Info</h4>
+      <div style="font-size: 12px; color: var(--text-sub); line-height: 1.6;">
+        <div>Views: <strong><%= @post.view_count %></strong></div>
+        <div>Created: <%= @post.created_at&.strftime("%Y-%m-%d") %></div>
+        <div>Updated: <%= @post.updated_at&.strftime("%Y-%m-%d") %></div>
+        <% if @post.slug.present? %>
+          <div style="margin-top: 0.5rem;">
+            <a href="<%= blog_post_path(slug: @post.slug) %>" target="_blank" class="admin-btn admin-btn-sm" style="width: 100%; text-align: center;">Preview</a>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

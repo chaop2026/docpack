@@ -1,0 +1,84 @@
+<% content_for :head do %>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "<%= j @post.title %>",
+    "description": "<%= j(@post.meta_description.to_s) %>",
+    "url": "<%= base_url %>/blog/<%= @post.slug %>",
+    "datePublished": "<%= @post.published_at&.iso8601 %>",
+    "dateModified": "<%= @post.updated_at&.iso8601 %>",
+    "author": {
+      "@type": "Organization",
+      "name": "SlimFile"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "SlimFile",
+      "url": "<%= base_url %>"
+    },
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": "<%= base_url %>/blog/<%= @post.slug %>"
+    }
+  }
+  </script>
+<% end %>
+
+<div class="container">
+  <div class="blog-show">
+    <div class="blog-show-header">
+      <span class="blog-card-cat"><%= t("blog.categories.#{@post.category}") %></span>
+      <h1 class="blog-show-title"><%= @post.title %></h1>
+      <div class="blog-show-meta">
+        <time><%= @post.published_at&.strftime("%Y.%m.%d") %></time>
+        <span class="blog-show-views"><%= t("blog.views", count: @post.view_count) %></span>
+      </div>
+    </div>
+
+    <% if @post.cover_svg.present? %>
+      <div class="blog-show-cover"><%= @post.cover_svg.html_safe %></div>
+    <% end %>
+
+    <div class="blog-show-body"><%= @post.body.to_s.html_safe %></div>
+
+    <div class="blog-cta">
+      <div class="blog-cta-inner">
+        <h3><%= t("blog.cta_title") %></h3>
+        <p><%= t("blog.cta_desc") %></p>
+        <div class="blog-cta-buttons">
+          <%= link_to t("home.compress"), compress_path, class: "btn btn--compress" %>
+          <%= link_to t("home.pdf"), pdf_path, class: "btn btn--pdf" %>
+        </div>
+      </div>
+    </div>
+
+    <% if @related_posts.any? %>
+      <div class="blog-related">
+        <h3><%= t("blog.related") %></h3>
+        <div class="blog-grid">
+          <% @related_posts.each do |post| %>
+            <article class="blog-card">
+              <% if post.cover_svg.present? %>
+                <div class="blog-card-cover"><%= post.cover_svg.html_safe %></div>
+              <% else %>
+                <div class="blog-card-cover blog-card-cover--placeholder">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--compress)" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                </div>
+              <% end %>
+              <div class="blog-card-body">
+                <span class="blog-card-cat"><%= t("blog.categories.#{post.category}") %></span>
+                <h2 class="blog-card-title"><%= link_to post.title, blog_post_path(slug: post.slug) %></h2>
+                <p class="blog-card-desc"><%= truncate(post.meta_description.to_s, length: 100) %></p>
+              </div>
+            </article>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <div class="blog-back">
+      <%= link_to t("blog.back_to_list"), blog_path, class: "btn-back" %>
+    </div>
+  </div>
+</div>

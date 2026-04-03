@@ -1,0 +1,68 @@
+<% content_for :admin_title, "Blog Posts" %>
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+  <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+    <a href="<%= admin_posts_path %>" class="admin-btn admin-btn-sm <%= 'admin-btn-primary' if params[:status].blank? && params[:category].blank? %>">All</a>
+    <% %w[draft scheduled published].each do |s| %>
+      <a href="<%= admin_posts_path(status: s) %>" class="admin-btn admin-btn-sm <%= 'admin-btn-primary' if params[:status] == s %>"><%= s.capitalize %></a>
+    <% end %>
+    <span style="color: var(--border-color);">|</span>
+    <% %w[image pdf office student freelancer global].each do |c| %>
+      <a href="<%= admin_posts_path(category: c) %>" class="admin-btn admin-btn-sm <%= 'admin-btn-primary' if params[:category] == c %>"><%= c.capitalize %></a>
+    <% end %>
+  </div>
+  <a href="<%= new_admin_post_path %>" class="admin-btn admin-btn-primary">+ New Post</a>
+</div>
+
+<div style="background: white; border-radius: 14px; border: 0.5px solid #E5E3DC; padding: 1rem; margin-bottom: 1.5rem;">
+  <form action="<%= auto_generate_admin_posts_path %>" method="post" style="display: flex; gap: 0.5rem; align-items: end;">
+    <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+    <div style="flex: 1;">
+      <label style="font-size: 11px; font-weight: 600; color: var(--text-sub); display: block; margin-bottom: 0.25rem;">AI Auto-Generate</label>
+      <input type="text" name="topic" placeholder="Enter topic in Korean..." style="width: 100%; padding: 0.4rem 0.75rem; border: 0.5px solid #E5E3DC; border-radius: 10px; font-size: 13px;">
+    </div>
+    <div>
+      <select name="category" style="padding: 0.4rem 0.5rem; border: 0.5px solid #E5E3DC; border-radius: 10px; font-size: 13px;">
+        <% %w[image pdf office student freelancer global].each do |c| %>
+          <option value="<%= c %>"><%= c.capitalize %></option>
+        <% end %>
+      </select>
+    </div>
+    <button type="submit" class="admin-btn admin-btn-primary">Generate</button>
+  </form>
+</div>
+
+<table class="admin-table">
+  <thead>
+    <tr>
+      <th>Title</th>
+      <th>Category</th>
+      <th>Status</th>
+      <th>Published</th>
+      <th>Views</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @posts.each do |post| %>
+      <tr>
+        <td style="max-width: 300px;"><%= truncate(post.title_ko.to_s, length: 50) %></td>
+        <td><span class="admin-badge admin-badge-gray"><%= post.category %></span></td>
+        <td>
+          <span class="admin-badge <%= post.status == 'published' ? 'admin-badge-green' : 'admin-badge-gray' %>">
+            <%= post.status %>
+          </span>
+        </td>
+        <td style="font-size: 12px; color: var(--text-sub);"><%= post.published_at&.strftime("%Y-%m-%d %H:%M") || "-" %></td>
+        <td style="font-size: 12px;"><%= post.view_count %></td>
+        <td>
+          <div class="admin-btn-group">
+            <a href="<%= edit_admin_post_path(post) %>" class="admin-btn admin-btn-sm">Edit</a>
+            <a href="<%= blog_post_path(slug: post.slug) %>" class="admin-btn admin-btn-sm" target="_blank">View</a>
+            <%= button_to "Delete", admin_post_path(post), method: :delete, class: "admin-btn admin-btn-sm admin-btn-danger", data: { turbo_confirm: "Delete this post?" } %>
+          </div>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
