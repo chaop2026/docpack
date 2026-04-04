@@ -101,10 +101,22 @@ All styles are in `app/assets/stylesheets/application.css` using CSS custom prop
 - Routes: `GET /blog` → `posts#index`, `GET /blog/:slug` → `posts#show`
 - Admin: `/admin/posts` — CRUD + AI generate/improve
 - AI Service: `BlogGeneratorService` — uses Claude API via net/http (ENV `ANTHROPIC_API_KEY`)
-- Scheduler: `PublishScheduledPostsJob` — runs daily at 9am via solid_queue, publishes scheduled posts
-- Blog topics seed: `db/seeds/blog_topics.yml` — 100 topics across 6 categories
 - CSS: `.blog-*` classes in `application.css`
 - I18n: `blog.*` keys in en.yml/ko.yml
+
+### Blog Auto-Generation Pipeline
+
+- **BlogTopic model**: `topic` (string), `category` (string), `used` (boolean, default: false)
+- **100 SEO topics**: `db/seeds/blog_topics.rb` — 25 pdf, 20 image, 20 office, 15 student, 10 freelancer, 10 global
+- **Seed command**: `rake blog:seed_topics`
+- **Auto-generate job**: `AutoGenerateBlogPostJob` — picks random unused topic, calls Claude API, creates `scheduled` post with next MWF 9am KST publish date
+- **Publish job**: `PublishScheduledPostsJob` — runs daily at 9am KST, publishes posts where `published_at <= now`
+- **Schedule** (`config/recurring.yml`):
+  - `auto_generate_blog_post`: every Mon/Wed/Fri at midnight KST (generates post ahead of time)
+  - `publish_scheduled_posts`: every day at 9am KST
+- **Rake tasks** (`lib/tasks/blog.rake`):
+  - `rake blog:generate[N]` — batch generate N posts (default 10), each scheduled for next available MWF
+  - `rake blog:seed_topics` — seed 100 topics from `db/seeds/blog_topics.rb`
 
 ## SEO & Sitemap
 
