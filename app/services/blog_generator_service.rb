@@ -1,3 +1,7 @@
+require "net/http"
+require "json"
+require "uri"
+
 class BlogGeneratorService
   API_URL = "https://api.anthropic.com/v1/messages"
   MODEL = "claude-sonnet-4-20250514"
