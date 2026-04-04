@@ -12,7 +12,10 @@
 production:
   publish_scheduled_posts:
     class: PublishScheduledPostsJob
-    schedule: every day at 9am
+    schedule: every day at 9am Asia/Seoul
+  auto_generate_blog_post:
+    class: AutoGenerateBlogPostJob
+    schedule: every Monday, Wednesday, and Friday at 0am Asia/Seoul
   clear_solid_queue_finished_jobs:
     command: "SolidQueue::Job.clear_finished_in_batches(sleep_between_batches: 0.3)"
     schedule: every hour at minute 12

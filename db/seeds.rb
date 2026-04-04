@@ -48,3 +48,6 @@ banners.each do |attrs|
 end
 
 puts "Seeded #{Banner.count} banners."
+
+# Blog topics
+load Rails.root.join("db/seeds/blog_topics.rb")
