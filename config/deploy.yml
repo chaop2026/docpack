@@ -22,8 +22,9 @@ env:
     - RAILS_MASTER_KEY
     - DB_PASSWORD
     - ANTHROPIC_API_KEY
-    - GMAIL_USERNAME
-    - GMAIL_PASSWORD
+    # TODO: Add these secrets after setting GMAIL_USERNAME and GMAIL_PASSWORD env vars
+    # - GMAIL_USERNAME
+    # - GMAIL_PASSWORD
   clear:
     RAILS_ENV: production
     RAILS_LOG_LEVEL: info
