@@ -11,7 +11,7 @@ class PostsController < ApplicationController
   end
 
   def show
-    @post = Post.published.find_by!(slug: params[:slug])
+    @post = Post.where(status: [ "published", "scheduled" ]).find_by!(slug: params[:slug])
     @post.increment!(:view_count)
     @related_posts = Post.published.where(category: @post.category).where.not(id: @post.id).recent.limit(3)
 
