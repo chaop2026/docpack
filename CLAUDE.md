@@ -124,9 +124,10 @@ All styles are in `app/assets/stylesheets/application.css` using CSS custom prop
 - Triggered by `PublishScheduledPostsJob` after changing post status to `published`
 - Email includes: post title, link, summary, upcoming scheduled posts, remaining topic count
 - SMTP: Gmail via `smtp.gmail.com:587`
-- **Required env vars** (set via `kamal env push`):
+- **Required env vars** (configured in `.kamal/secrets` and `config/deploy.yml` env.secret):
   - `GMAIL_USERNAME` — Gmail address used as sender (e.g. `chaop2@gmail.com`)
   - `GMAIL_PASSWORD` — Gmail App Password (not regular password; generate at https://myaccount.google.com/apppasswords)
+- **Status**: Gmail SMTP activated and verified on 2026-04-04. Test email sent successfully.
 - Config: `config/environments/production.rb` (action_mailer.smtp_settings)
 - Secrets in `config/deploy.yml` under `env.secret`
 
