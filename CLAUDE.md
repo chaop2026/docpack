@@ -141,6 +141,12 @@ All styles are in `app/assets/stylesheets/application.css` using CSS custom prop
   3. `kamal app exec 'bin/rails blog:verify_autopublish'` — verify scheduled→published transition
 - **Auto-publish flow**: `PublishScheduledPostsJob` runs daily at 9am KST, finds `scheduled` posts with `published_at <= now`, updates to `published`, sends email via `BlogMailer`
 - **Auto-generate flow**: `AutoGenerateBlogPostJob` runs MWF midnight KST, picks random unused topic, generates via Claude API, schedules for next MWF 9am KST
+- **Verification results (2026-04-04 01:39 UTC)**:
+  - 100 blog topics seeded on production
+  - Test post published: "reduce-pdf-file-size-without-losing-quality" (category: global)
+  - Auto-publish verified: "youtube-channel-art-image-optimization-guide" scheduled→published via PublishScheduledPostsJob, email notification enqueued
+  - Final state: 2 published, 9 scheduled, 89 unused topics
+  - Next scheduled: business-file-sharing-optimization-guide (2026-04-08)
 
 ## SEO & Sitemap
 
