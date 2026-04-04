@@ -131,6 +131,17 @@ All styles are in `app/assets/stylesheets/application.css` using CSS custom prop
 - Config: `config/environments/production.rb` (action_mailer.smtp_settings)
 - Secrets in `config/deploy.yml` under `env.secret`
 
+## Blog Automation Verification (2026-04-04)
+
+- **Step 2 verified**: `PostsController#index` uses `Post.published.recent` — only published posts shown on /blog (correct)
+- **Rake tasks added**: `blog:publish_test` (generate+publish 1 post), `blog:verify_autopublish` (test auto-publish flow)
+- **Post-deploy commands** (run on production):
+  1. `kamal app exec 'bin/rails blog:seed_topics'` — seed 100 topics
+  2. `kamal app exec 'bin/rails blog:publish_test'` — generate & publish test post via Claude API
+  3. `kamal app exec 'bin/rails blog:verify_autopublish'` — verify scheduled→published transition
+- **Auto-publish flow**: `PublishScheduledPostsJob` runs daily at 9am KST, finds `scheduled` posts with `published_at <= now`, updates to `published`, sends email via `BlogMailer`
+- **Auto-generate flow**: `AutoGenerateBlogPostJob` runs MWF midnight KST, picks random unused topic, generates via Claude API, schedules for next MWF 9am KST
+
 ## SEO & Sitemap
 
 - Domain: `https://slimfile.net` (default `BASE_URL` in `app/helpers/application_helper.rb`)
