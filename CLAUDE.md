@@ -118,6 +118,18 @@ All styles are in `app/assets/stylesheets/application.css` using CSS custom prop
   - `rake blog:generate[N]` — batch generate N posts (default 10), each scheduled for next available MWF
   - `rake blog:seed_topics` — seed 100 topics from `db/seeds/blog_topics.rb`
 
+## Email Notifications
+
+- **BlogMailer**: sends email to `chaop2@gmail.com` when a blog post is published
+- Triggered by `PublishScheduledPostsJob` after changing post status to `published`
+- Email includes: post title, link, summary, upcoming scheduled posts, remaining topic count
+- SMTP: Gmail via `smtp.gmail.com:587`
+- **Required env vars** (set via `kamal env push`):
+  - `GMAIL_USERNAME` — Gmail address used as sender (e.g. `chaop2@gmail.com`)
+  - `GMAIL_PASSWORD` — Gmail App Password (not regular password; generate at https://myaccount.google.com/apppasswords)
+- Config: `config/environments/production.rb` (action_mailer.smtp_settings)
+- Secrets in `config/deploy.yml` under `env.secret`
+
 ## SEO & Sitemap
 
 - Domain: `https://slimfile.net` (default `BASE_URL` in `app/helpers/application_helper.rb`)
