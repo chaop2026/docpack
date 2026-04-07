@@ -142,4 +142,80 @@ namespace :blog do
       puts "  Next: #{p.slug} → #{p.published_at}"
     end
   end
+
+  desc "Regenerate scheduled posts with new prompt (max 5)"
+  task regenerate_scheduled: :environment do
+    service = BlogGeneratorService.new
+    posts = Post.where(status: "scheduled").order(:published_at).limit(5)
+
+    if posts.empty?
+      puts "No scheduled posts to regenerate."
+      next
+    end
+
+    puts "Regenerating #{posts.count} scheduled posts..."
+
+    posts.each_with_index do |post, i|
+      topic = BlogTopic.find_by(topic: post.title_ko, used: true) ||
+              BlogTopic.where(category: post.category, used: true).first
+
+      topic_text = topic&.topic || post.title_ko
+      puts "[#{i + 1}/#{posts.count}] Regenerating: #{topic_text} (#{post.category})..."
+
+      result = service.generate_post(topic_text, post.category)
+      unless result
+        puts "  FAILED — skipping"
+        next
+      end
+
+      post.update!(
+        title_ko: result[:title_ko],
+        body_ko: result[:body_ko],
+        meta_description_ko: result[:meta_description_ko],
+        cover_svg: result[:cover_svg]
+      )
+
+      puts "  OK — updated '#{post.slug}' (published_at: #{post.published_at})"
+      sleep 3 if i < posts.count - 1
+    end
+
+    puts "\nDone!"
+  end
+
+  desc "Generate 1 new post with new prompt and publish immediately"
+  task publish_new: :environment do
+    topic = BlogTopic.unused.order("RANDOM()").first
+    unless topic
+      puts "ERROR: No unused topics remaining"
+      exit 1
+    end
+
+    puts "Selected topic: #{topic.topic} (#{topic.category})"
+    puts "Generating post with psychology-based prompt..."
+
+    service = BlogGeneratorService.new
+    result = service.generate_post(topic.topic, topic.category)
+
+    unless result
+      puts "ERROR: BlogGeneratorService returned nil — check ANTHROPIC_API_KEY"
+      exit 1
+    end
+
+    post = Post.create!(
+      title_ko: result[:title_ko],
+      body_ko: result[:body_ko],
+      meta_description_ko: result[:meta_description_ko],
+      slug: result[:slug],
+      cover_svg: result[:cover_svg],
+      category: topic.category,
+      status: "published",
+      published_at: Time.current
+    )
+    topic.update!(used: true)
+
+    puts "SUCCESS: Published '#{post.title_ko}'"
+    puts "  Slug: #{post.slug}"
+    puts "  URL: https://slimfile.net/blog/#{post.slug}"
+    puts "  Category: #{post.category}"
+  end
 end

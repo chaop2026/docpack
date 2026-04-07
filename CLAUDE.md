@@ -149,6 +149,39 @@ All styles are in `app/assets/stylesheets/application.css` using CSS custom prop
   - Final state: 2 published, 9 scheduled, 89 unused topics
   - Next scheduled: business-file-sharing-optimization-guide (2026-04-08)
 
+## Blog Content Strategy: Psychology-Based Marketing (2026-04-07)
+
+All blog posts are generated using a psychology-based marketing approach. The `BlogGeneratorService` uses a system prompt + structured user prompt.
+
+### Core Principles
+- **Loss Aversion first**: Show what the reader is losing NOW before showing what they gain
+- **Pain-point opening**: First sentence must pierce the reader's specific pain
+- **Concrete numbers only**: No vague expressions — every claim includes specific numbers
+- **Dual CTA**: Call-to-action appears after problem recognition AND at the end
+- **Pre-emptive FAQ**: Address the objections readers are already thinking
+
+### Required 9 Sections (in order)
+1. `blog-intro` — Pain empathy (2-3 sentences with specific scenario)
+2. `blog-loss` — Loss list (4 concrete losses with ul/li)
+3. `blog-cta-inline` — First CTA link to SlimFile
+4. `blog-stats` — 3 key statistics with numbers
+5. `blog-cause` — Why this problem occurs (3 causes with numbers)
+6. `blog-steps` — 3-step solution with time per step
+7. `blog-situations` — 4 situation cards (email/submission/portfolio/storage)
+8. `blog-checklist` — 5-item pre-send checklist
+9. `blog-faq` — 4 Q&A (quality/privacy/size/mobile)
+10. `blog-cta-bottom` — Final CTA
+
+### SVG Cover Image Standard
+- viewBox: `0 0 600 280`
+- Before box (red: `#FCEBEB`/`#A32D2D`) → SlimFile arrow (`#0A6E8A`) → After box (green: `#EAF3DE`/`#3B6D11`)
+- Background: `#F8F7F4`, all text in Korean, sans-serif font
+- Bottom: 3 benefits (speed, size, quality)
+
+### Rake Tasks
+- `blog:regenerate_scheduled` — Regenerate up to 5 scheduled posts with new prompt
+- `blog:publish_new` — Generate 1 new post and publish immediately
+
 ## SEO & Sitemap
 
 - Domain: `https://slimfile.net` (default `BASE_URL` in `app/helpers/application_helper.rb`)
