@@ -18,19 +18,24 @@ class AutoGenerateBlogPostJob < ApplicationJob
 
     published_at = next_publish_date
 
+    result.delete(:_generate_hero_image)
     post = Post.create!(
-      title_ko: result[:title_ko],
-      body_ko: result[:body_ko],
-      meta_description_ko: result[:meta_description_ko],
-      slug: result[:slug],
-      cover_svg: result[:cover_svg],
+      **result.slice(:title_ko, :subtitle_ko, :body_ko, :meta_description_ko, :slug, :cover_svg,
+                      :trust_bar, :pain_tag, :error_mockup, :recognition_text, :loss_items, :stats),
       category: topic.category,
       status: "scheduled",
       published_at: published_at
     )
 
+    # 히어로 이미지 생성
+    begin
+      service.generate_hero_image(post)
+    rescue => e
+      Rails.logger.error("AutoGenerateBlogPostJob: Hero image failed for '#{post.slug}': #{e.message}")
+    end
+
     topic.update!(used: true)
-    Rails.logger.info("AutoGenerateBlogPostJob: Created scheduled post '#{post.slug}' for #{published_at}")
+    Rails.logger.info("AutoGenerateBlogPostJob: Created scheduled post '#{post.slug}' for #{published_at} (image: #{post.hero_image.attached?})")
   end
 
   private

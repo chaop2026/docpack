@@ -47,6 +47,13 @@
     <span><%= t("blog.views", count: @post.view_count) %></span>
   </div>
 
+  <%# Hero Image %>
+  <% if @post.hero_image.attached? %>
+    <div style="margin-bottom: 24px; border-radius: 14px; overflow: hidden; border: 0.5px solid #E5E3DC;">
+      <%= image_tag @post.hero_image, style: "width: 100%; height: auto; display: block;", alt: @post.title_ko %>
+    </div>
+  <% end %>
+
   <%# Error Mockup %>
   <% if @post.error_mockup.present? %>
     <% mockup = begin; JSON.parse(@post.error_mockup); rescue; nil; end %>

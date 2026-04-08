@@ -1,4 +1,6 @@
 class Post < ApplicationRecord
+  has_one_attached :hero_image
+
   validates :title_ko, presence: true
   validates :slug, presence: true, uniqueness: true
   validates :category, inclusion: { in: %w[pdf image office student freelancer global] }

@@ -188,7 +188,17 @@ All blog posts use structured JSON generation with psychological marketing hooks
 - **Dual CTA**: Call-to-action appears after problem recognition AND at the end
 - **Pre-emptive FAQ**: Address the objections readers are already thinking
 
-### SVG Cover Image Standard
+### Hero Image System (BlogImageService)
+- **Service**: `app/services/blog_image_service.rb`
+- **Storage**: Active Storage (`has_one_attached :hero_image` on Post model)
+- **Generation**: Claude API로 고품질 SVG 히어로 이미지 생성
+- **Content**: 문제 상황 재현 (브라우저 에러 목업 + Before/After 비교)
+- **ViewBox**: `0 0 800 420`, 상단 60% 에러 재현 / 하단 40% 해결 결과
+- **Trigger**: AI 포스트 생성 시 자동, AutoGenerateBlogPostJob에서도 자동
+- **Display**: `show.html.erb`에서 메타 정보 아래 히어로 이미지 표시
+- **Note**: Google Imagen은 유료 전용. 추후 유료 전환 시 BlogImageService에서 Imagen 4.0 사용 가능
+
+### SVG Cover Image Standard (cover_svg)
 - viewBox: `0 0 600 280`
 - Before box (red: `#FCEBEB`/`#A32D2D`) → SlimFile arrow (`#0A6E8A`) → After box (green: `#EAF3DE`/`#3B6D11`)
 - Background: `#F8F7F4`, all text in Korean, sans-serif font

@@ -24,7 +24,14 @@ class BlogGeneratorService
     prompt = build_generate_prompt(topic, category)
     system = build_system_prompt
     response = call_api(prompt, system)
-    parse_json_response(response)
+    result = parse_json_response(response)
+    result[:_generate_hero_image] = true if result
+    result
+  end
+
+  # 포스트 저장 후 히어로 이미지 생성
+  def generate_hero_image(post)
+    BlogImageService.new.generate_for_post(post)
   end
 
   def improve_post(post, instruction)
