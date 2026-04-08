@@ -1,0 +1,136 @@
+<% content_for(:admin_title) { @blog_style.source_name } %>
+
+<div style="max-width: 720px;">
+  <div style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem;">
+    <a href="<%= admin_blog_styles_path %>" class="admin-btn">← 목록</a>
+    <a href="<%= edit_admin_blog_style_path(@blog_style) %>" class="admin-btn">수정</a>
+    <%= button_to "Claude로 분석하기", analyze_admin_blog_style_path(@blog_style), method: :post, class: "admin-btn admin-btn-primary" %>
+    <%= button_to @blog_style.is_active? ? "비활성화" : "활성화", toggle_admin_blog_style_path(@blog_style), method: :post, class: "admin-btn" %>
+  </div>
+
+  <%# 상태 %>
+  <div style="background: #ffffff; border: 0.5px solid #E5E3DC; border-radius: 20px; padding: 1.25rem; margin-bottom: 1rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <span style="font-size: 15px; font-weight: 600;"><%= @blog_style.source_name %></span>
+        <span style="font-size: 12px; color: #6B6963; margin-left: 0.75rem;"><%= @blog_style.created_at.strftime("%Y-%m-%d %H:%M") %></span>
+      </div>
+      <% if @blog_style.is_active? %>
+        <span class="admin-badge admin-badge-green">활성</span>
+      <% else %>
+        <span class="admin-badge admin-badge-gray">비활성</span>
+      <% end %>
+    </div>
+    <% if @blog_style.notes.present? %>
+      <p style="margin: 0.75rem 0 0; font-size: 13px; color: #6B6963;"><%= @blog_style.notes %></p>
+    <% end %>
+  </div>
+
+  <%# 후킹 패턴 %>
+  <div style="background: #ffffff; border: 0.5px solid #E5E3DC; border-radius: 20px; padding: 1.25rem; margin-bottom: 1rem;">
+    <h3 style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: #6B6963; margin: 0 0 0.75rem;">후킹 패턴</h3>
+    <% if @blog_style.hooking_patterns.present? %>
+      <% begin %>
+        <% patterns = JSON.parse(@blog_style.hooking_patterns) %>
+        <% patterns.each do |p| %>
+          <div style="padding: 0.75rem; background: #F8F7F4; border-radius: 14px; margin-bottom: 0.5rem;">
+            <div style="font-size: 13px; font-weight: 600; color: #1A1918;"><%= p["pattern"] %></div>
+            <div style="font-size: 12px; color: #0A6E8A; margin-top: 0.25rem;">"<%= p["example"] %>"</div>
+            <div style="font-size: 11px; color: #9B9990; margin-top: 0.25rem;"><%= p["when_to_use"] %></div>
+          </div>
+        <% end %>
+      <% rescue JSON::ParserError %>
+        <pre style="font-size: 12px; color: #6B6963;"><%= @blog_style.hooking_patterns %></pre>
+      <% end %>
+    <% else %>
+      <p style="font-size: 13px; color: #9B9990;">아직 분석되지 않았습니다.</p>
+    <% end %>
+  </div>
+
+  <%# 문장 구조 %>
+  <div style="background: #ffffff; border: 0.5px solid #E5E3DC; border-radius: 20px; padding: 1.25rem; margin-bottom: 1rem;">
+    <h3 style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: #6B6963; margin: 0 0 0.75rem;">문장 구조</h3>
+    <% if @blog_style.sentence_structure.present? %>
+      <% begin %>
+        <% structures = JSON.parse(@blog_style.sentence_structure) %>
+        <% structures.each do |s| %>
+          <div style="padding: 0.75rem; background: #F8F7F4; border-radius: 14px; margin-bottom: 0.5rem;">
+            <div style="font-size: 13px; font-weight: 600;"><%= s["feature"] %></div>
+            <div style="font-size: 12px; color: #6B6963; margin-top: 0.25rem;"><%= s["example"] %></div>
+          </div>
+        <% end %>
+      <% rescue JSON::ParserError %>
+        <pre style="font-size: 12px; color: #6B6963;"><%= @blog_style.sentence_structure %></pre>
+      <% end %>
+    <% else %>
+      <p style="font-size: 13px; color: #9B9990;">아직 분석되지 않았습니다.</p>
+    <% end %>
+  </div>
+
+  <%# 심리 트리거 %>
+  <div style="background: #ffffff; border: 0.5px solid #E5E3DC; border-radius: 20px; padding: 1.25rem; margin-bottom: 1rem;">
+    <h3 style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: #6B6963; margin: 0 0 0.75rem;">심리 트리거</h3>
+    <% if @blog_style.psychological_triggers.present? %>
+      <% begin %>
+        <% triggers = JSON.parse(@blog_style.psychological_triggers) %>
+        <% triggers.each do |t| %>
+          <div style="padding: 0.75rem; background: #F8F7F4; border-radius: 14px; margin-bottom: 0.5rem;">
+            <div style="font-size: 13px; font-weight: 600; color: #7C3AED;"><%= t["trigger"] %></div>
+            <div style="font-size: 12px; color: #1A1918; margin-top: 0.25rem;"><%= t["description"] %></div>
+            <div style="font-size: 12px; color: #6B6963; margin-top: 0.25rem;">"<%= t["example"] %>"</div>
+          </div>
+        <% end %>
+      <% rescue JSON::ParserError %>
+        <pre style="font-size: 12px; color: #6B6963;"><%= @blog_style.psychological_triggers %></pre>
+      <% end %>
+    <% else %>
+      <p style="font-size: 13px; color: #9B9990;">아직 분석되지 않았습니다.</p>
+    <% end %>
+  </div>
+
+  <%# 톤/스타일 %>
+  <div style="background: #ffffff; border: 0.5px solid #E5E3DC; border-radius: 20px; padding: 1.25rem; margin-bottom: 1rem;">
+    <h3 style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: #6B6963; margin: 0 0 0.75rem;">톤 / 스타일</h3>
+    <% if @blog_style.tone_style.present? %>
+      <% begin %>
+        <% tone = JSON.parse(@blog_style.tone_style) %>
+        <div style="margin-bottom: 0.75rem;">
+          <span style="font-size: 13px; font-weight: 600;">전반적 톤:</span>
+          <span style="font-size: 13px; color: #1A1918;"><%= tone["overall_tone"] %></span>
+        </div>
+        <% if tone["key_characteristics"] %>
+          <div style="margin-bottom: 0.5rem;">
+            <span style="font-size: 11px; font-weight: 600; color: #6B6963; text-transform: uppercase; letter-spacing: 0.04em;">핵심 특징</span>
+            <div style="display: flex; gap: 0.375rem; flex-wrap: wrap; margin-top: 0.375rem;">
+              <% tone["key_characteristics"].each do |c| %>
+                <span style="display: inline-block; padding: 0.15rem 0.5rem; background: #E1F5F9; color: #07596F; border-radius: 20px; font-size: 11px;"><%= c %></span>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+        <% if tone["avoid"] %>
+          <div>
+            <span style="font-size: 11px; font-weight: 600; color: #6B6963; text-transform: uppercase; letter-spacing: 0.04em;">피해야 할 것</span>
+            <div style="display: flex; gap: 0.375rem; flex-wrap: wrap; margin-top: 0.375rem;">
+              <% tone["avoid"].each do |a| %>
+                <span style="display: inline-block; padding: 0.15rem 0.5rem; background: #fee2e2; color: #991b1b; border-radius: 20px; font-size: 11px;"><%= a %></span>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      <% rescue JSON::ParserError %>
+        <pre style="font-size: 12px; color: #6B6963;"><%= @blog_style.tone_style %></pre>
+      <% end %>
+    <% else %>
+      <p style="font-size: 13px; color: #9B9990;">아직 분석되지 않았습니다.</p>
+    <% end %>
+  </div>
+
+  <%# 원본 스크립트 %>
+  <% if @blog_style.raw_script.present? %>
+    <div style="background: #ffffff; border: 0.5px solid #E5E3DC; border-radius: 20px; padding: 1.25rem;">
+      <h3 style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: #6B6963; margin: 0 0 0.75rem;">원본 스크립트</h3>
+      <div style="font-size: 12px; color: #6B6963; line-height: 1.6; max-height: 300px; overflow-y: auto; white-space: pre-wrap;"><%= @blog_style.raw_script %></div>
+    </div>
+  <% end %>
+</div>

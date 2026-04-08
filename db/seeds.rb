@@ -51,3 +51,6 @@ puts "Seeded #{Banner.count} banners."
 
 # Blog topics
 load Rails.root.join("db/seeds/blog_topics.rb")
+
+# Blog styles
+load Rails.root.join("db/seeds/blog_styles.rb")

@@ -1,0 +1,92 @@
+<% content_for(:admin_title) { "블로그 글쓰기 전략 관리" } %>
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+  <p style="color: #6B6963; font-size: 13px; margin: 0;">
+    등록된 전략 <%= @blog_styles.count %>개 · 활성 <%= @active_styles.count %>개
+  </p>
+  <a href="<%= new_admin_blog_style_path %>" class="admin-btn admin-btn-primary">+ 새 전략 추가</a>
+</div>
+
+<% if @active_styles.any? %>
+  <div style="background: #ffffff; border: 0.5px solid #E5E3DC; border-radius: 20px; padding: 1.25rem; margin-bottom: 1.5rem;">
+    <h3 style="font-size: 12px; font-weight: 600; color: #1A1918; margin: 0 0 0.75rem; letter-spacing: -0.01em;">현재 적용 중인 전략 요약</h3>
+    <% @active_styles.limit(3).each do |style| %>
+      <div style="margin-bottom: 0.75rem; padding-bottom: 0.75rem; border-bottom: 0.5px solid #F0EFEB;">
+        <span style="font-size: 13px; font-weight: 600; color: #0A6E8A;"><%= style.source_name %></span>
+        <% if style.tone_style.present? %>
+          <% begin %>
+            <% tone = JSON.parse(style.tone_style) %>
+            <span style="font-size: 12px; color: #6B6963; margin-left: 0.5rem;">— <%= tone["overall_tone"] %></span>
+          <% rescue JSON::ParserError %>
+          <% end %>
+        <% end %>
+        <% if style.hooking_patterns.present? %>
+          <% begin %>
+            <% hooks = JSON.parse(style.hooking_patterns) %>
+            <span style="font-size: 11px; color: #9B9990; margin-left: 0.5rem;">후킹 패턴 <%= hooks.size %>개</span>
+          <% rescue JSON::ParserError %>
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+<% end %>
+
+<% if @blog_styles.any? %>
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>출처명</th>
+        <th>생성일</th>
+        <th>활성</th>
+        <th>후킹 패턴</th>
+        <th>액션</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @blog_styles.each do |style| %>
+        <tr>
+          <td style="font-weight: 600;"><%= style.source_name %></td>
+          <td style="color: #6B6963;"><%= style.created_at.strftime("%Y-%m-%d") %></td>
+          <td>
+            <% if style.is_active? %>
+              <span class="admin-badge admin-badge-green">활성</span>
+            <% else %>
+              <span class="admin-badge admin-badge-gray">비활성</span>
+            <% end %>
+          </td>
+          <td>
+            <% if style.hooking_patterns.present? %>
+              <% begin %>
+                <% hooks = JSON.parse(style.hooking_patterns) %>
+                <span><%= hooks.size %>개</span>
+              <% rescue JSON::ParserError %>
+                <span style="color: #9B9990;">—</span>
+              <% end %>
+            <% else %>
+              <span style="color: #9B9990;">미분석</span>
+            <% end %>
+          </td>
+          <td>
+            <div class="admin-btn-group">
+              <a href="<%= admin_blog_style_path(style) %>" class="admin-btn admin-btn-sm">상세</a>
+              <%= button_to style.is_active? ? "비활성화" : "활성화",
+                    toggle_admin_blog_style_path(style),
+                    method: :post,
+                    class: "admin-btn admin-btn-sm" %>
+              <%= button_to "삭제",
+                    admin_blog_style_path(style),
+                    method: :delete,
+                    class: "admin-btn admin-btn-sm admin-btn-danger",
+                    data: { turbo_confirm: "정말 삭제하시겠습니까?" } %>
+            </div>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <div style="text-align: center; padding: 3rem; color: #6B6963; font-size: 13px;">
+    등록된 전략이 없습니다. 새 전략을 추가해보세요.
+  </div>
+<% end %>

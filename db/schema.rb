@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_03_25_100000) do
+ActiveRecord::Schema[8.0].define(version: 2026_04_08_015613) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -62,6 +62,27 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_25_100000) do
     t.index ["page", "position", "active", "sort_order"], name: "index_banners_on_page_position_active_sort"
   end
 
+  create_table "blog_styles", force: :cascade do |t|
+    t.string "source_name"
+    t.text "raw_script"
+    t.text "hooking_patterns"
+    t.text "sentence_structure"
+    t.text "psychological_triggers"
+    t.text "tone_style"
+    t.boolean "is_active", default: true
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "blog_topics", force: :cascade do |t|
+    t.string "topic"
+    t.string "category"
+    t.boolean "used", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
   create_table "conversions", force: :cascade do |t|
     t.string "conversion_type"
     t.string "status"
@@ -70,6 +91,24 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_25_100000) do
     t.datetime "expires_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "posts", force: :cascade do |t|
+    t.string "title_ko"
+    t.string "title_en"
+    t.text "body_ko"
+    t.text "body_en"
+    t.string "slug"
+    t.string "category"
+    t.string "status"
+    t.datetime "published_at"
+    t.text "cover_svg"
+    t.string "meta_description_ko"
+    t.string "meta_description_en"
+    t.integer "view_count", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["slug"], name: "index_posts_on_slug", unique: true
   end
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"

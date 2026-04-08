@@ -21,7 +21,8 @@ class BlogGeneratorService
 
   def generate_post(topic, category)
     prompt = build_generate_prompt(topic, category)
-    response = call_api(prompt)
+    system = build_system_prompt
+    response = call_api(prompt, system)
     parse_json_response(response)
   end
 
@@ -48,6 +49,49 @@ class BlogGeneratorService
   end
 
   private
+
+  def build_system_prompt
+    base = SYSTEM_PROMPT.dup
+    active_styles = BlogStyle.where(is_active: true).order(created_at: :desc).limit(3)
+    return base if active_styles.empty?
+
+    styles_summary = active_styles.map do |style|
+      summary = "출처: #{style.source_name}\n"
+      if style.hooking_patterns.present?
+        begin
+          hooks = JSON.parse(style.hooking_patterns)
+          patterns = hooks.map { |h| h["pattern"] }.compact.join(", ")
+          summary += "- 후킹 패턴: #{patterns}\n"
+        rescue JSON::ParserError
+        end
+      end
+      if style.psychological_triggers.present?
+        begin
+          triggers = JSON.parse(style.psychological_triggers)
+          trigger_names = triggers.map { |t| t["trigger"] }.compact.join(", ")
+          summary += "- 심리 트리거: #{trigger_names}\n"
+        rescue JSON::ParserError
+        end
+      end
+      if style.tone_style.present?
+        begin
+          tone = JSON.parse(style.tone_style)
+          summary += "- 톤: #{tone["overall_tone"]}\n"
+        rescue JSON::ParserError
+        end
+      end
+      summary
+    end.join("\n")
+
+    base + <<~ADDITION
+
+      [참고할 글쓰기 전략]
+      #{styles_summary}
+
+      위 전략의 패턴과 심리 트리거를 자연스럽게 녹여서 블로그 포스트를 작성하세요.
+      단, 억지로 끼워넣지 말고 글의 흐름에 맞게 자연스럽게 활용하세요.
+    ADDITION
+  end
 
   def build_generate_prompt(topic, category)
     <<~PROMPT
@@ -141,7 +185,7 @@ class BlogGeneratorService
     PROMPT
   end
 
-  def call_api(prompt)
+  def call_api(prompt, system = SYSTEM_PROMPT)
     api_key = ENV["ANTHROPIC_API_KEY"]
     return nil if api_key.blank?
 
@@ -157,7 +201,7 @@ class BlogGeneratorService
     request.body = {
       model: MODEL,
       max_tokens: 8192,
-      system: SYSTEM_PROMPT,
+      system: system,
       messages: [{ role: "user", content: prompt }]
     }.to_json
 

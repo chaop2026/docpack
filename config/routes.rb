@@ -40,6 +40,13 @@ Rails.application.routes.draw do
       end
     end
 
+    resources :blog_styles do
+      member do
+        post :analyze
+        post :toggle
+      end
+    end
+
     root to: "banners#index"
   end
 

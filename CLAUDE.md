@@ -184,6 +184,16 @@ All blog posts are generated using a psychology-based marketing approach. The `B
 - `blog:regenerate_scheduled` — Regenerate up to 5 scheduled posts with new prompt
 - `blog:publish_new` — Generate 1 new post and publish immediately
 
+## Blog Writing Strategy Manager (BlogStyle)
+
+- **Model**: `BlogStyle` — stores writing strategy patterns extracted from reference scripts
+- **Columns**: `source_name`, `raw_script`, `hooking_patterns` (JSON), `sentence_structure` (JSON), `psychological_triggers` (JSON), `tone_style` (JSON), `is_active` (boolean), `notes`
+- **Admin UI**: `/admin/blog_styles` — list, create, show, edit, delete, analyze (Claude API), toggle active/inactive
+- **Claude Analysis**: `analyze` action sends `raw_script` to Claude API, extracts marketing patterns into structured JSON fields
+- **BlogGeneratorService integration**: Active strategies (up to 3, newest first) are injected into the system prompt when generating blog posts. Hooking patterns, psychological triggers, and tone style are summarized and appended.
+- **Seed**: `db/seeds/blog_styles.rb` — default strategy with loss aversion, social proof, urgency patterns
+- **Nav**: "글쓰기 전략" link in admin sidebar
+
 ## SEO & Sitemap
 
 - Domain: `https://slimfile.net` (default `BASE_URL` in `app/helpers/application_helper.rb`)

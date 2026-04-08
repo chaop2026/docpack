@@ -1,0 +1,2 @@
+class BlogStyle < ApplicationRecord
+end

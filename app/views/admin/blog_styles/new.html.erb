@@ -1,0 +1,75 @@
+<% content_for(:admin_title) { "새 글쓰기 전략 추가" } %>
+
+<div style="max-width: 720px;">
+  <%= form_with(model: [:admin, @blog_style], local: true, html: { id: "blog-style-form" }) do |f| %>
+
+    <%# Step 1 — 원본 자료 입력 %>
+    <div style="background: #ffffff; border: 0.5px solid #E5E3DC; border-radius: 20px; padding: 1.5rem; margin-bottom: 1.5rem;">
+      <h3 style="font-size: 15px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 1rem;">
+        <span style="display: inline-block; width: 24px; height: 24px; background: #E1F5F9; color: #0A6E8A; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; margin-right: 0.5rem;">1</span>
+        원본 자료 입력
+      </h3>
+
+      <div class="admin-form-group">
+        <%= f.label :source_name, "출처 이름" %>
+        <%= f.text_field :source_name, placeholder: "예: 글천개, 강남신사, 마케팅 유튜브", class: "" %>
+      </div>
+
+      <div class="admin-form-group">
+        <%= f.label :raw_script, "스크립트 / 참고 자료" %>
+        <%= f.text_area :raw_script, rows: 12, placeholder: "유튜브 스크립트, 블로그 글, 마케팅 카피 등 참고할 텍스트를 붙여넣어 주세요", class: "" %>
+      </div>
+
+      <div class="admin-form-group">
+        <%= f.label :notes, "메모 (선택)" %>
+        <%= f.text_area :notes, rows: 3, placeholder: "이 자료에 대한 메모...", class: "" %>
+      </div>
+    </div>
+
+    <%# Step 2 — 분석 결과 (분석 후 직접 입력 또는 수정) %>
+    <div style="background: #ffffff; border: 0.5px solid #E5E3DC; border-radius: 20px; padding: 1.5rem; margin-bottom: 1.5rem;">
+      <h3 style="font-size: 15px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 0.5rem;">
+        <span style="display: inline-block; width: 24px; height: 24px; background: #FEF3C7; color: #92400E; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; margin-right: 0.5rem;">2</span>
+        분석 결과 확인 / 수정
+      </h3>
+      <p style="font-size: 12px; color: #6B6963; margin: 0 0 1rem;">
+        먼저 저장한 뒤, 상세 페이지에서 "Claude로 분석하기"를 실행하세요. 또는 아래에 직접 JSON을 입력할 수 있습니다.
+      </p>
+
+      <div class="admin-form-group">
+        <%= f.label :hooking_patterns, "후킹 패턴 (JSON)" %>
+        <%= f.text_area :hooking_patterns, rows: 6, placeholder: '[{"pattern": "...", "example": "...", "when_to_use": "..."}]', class: "" %>
+        <div class="admin-form-hint">패턴 배열을 JSON 형식으로 입력</div>
+      </div>
+
+      <div class="admin-form-group">
+        <%= f.label :sentence_structure, "문장 구조 (JSON)" %>
+        <%= f.text_area :sentence_structure, rows: 4, placeholder: '[{"feature": "...", "example": "..."}]', class: "" %>
+      </div>
+
+      <div class="admin-form-group">
+        <%= f.label :psychological_triggers, "심리 트리거 (JSON)" %>
+        <%= f.text_area :psychological_triggers, rows: 6, placeholder: '[{"trigger": "...", "description": "...", "example": "..."}]', class: "" %>
+      </div>
+
+      <div class="admin-form-group">
+        <%= f.label :tone_style, "톤/스타일 (JSON)" %>
+        <%= f.text_area :tone_style, rows: 5, placeholder: '{"overall_tone": "...", "key_characteristics": [...], "avoid": [...]}', class: "" %>
+      </div>
+    </div>
+
+    <%# Step 3 — 저장 %>
+    <div style="background: #ffffff; border: 0.5px solid #E5E3DC; border-radius: 20px; padding: 1.5rem; margin-bottom: 1.5rem;">
+      <h3 style="font-size: 15px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 1rem;">
+        <span style="display: inline-block; width: 24px; height: 24px; background: #EDE9FE; color: #4C1D95; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; margin-right: 0.5rem;">3</span>
+        저장
+      </h3>
+
+      <div style="display: flex; gap: 0.75rem;">
+        <%= f.submit "이 전략 저장하기", class: "admin-btn admin-btn-primary" %>
+        <a href="<%= admin_blog_styles_path %>" class="admin-btn">취소</a>
+      </div>
+    </div>
+
+  <% end %>
+</div>
