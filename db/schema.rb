@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_04_08_015613) do
+ActiveRecord::Schema[8.0].define(version: 2026_04_08_071252) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -108,6 +108,13 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_08_015613) do
     t.integer "view_count", default: 0
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "trust_bar"
+    t.string "pain_tag"
+    t.text "error_mockup"
+    t.text "recognition_text"
+    t.text "loss_items"
+    t.text "stats"
+    t.string "subtitle_ko"
     t.index ["slug"], name: "index_posts_on_slug", unique: true
   end
 

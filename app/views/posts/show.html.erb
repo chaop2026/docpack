@@ -25,60 +25,136 @@
   </script>
 <% end %>
 
-<div class="container">
-  <div class="blog-show">
-    <div class="blog-show-header">
-      <span class="blog-card-cat"><%= t("blog.categories.#{@post.category}") %></span>
-      <h1 class="blog-show-title"><%= @post.title %></h1>
-      <div class="blog-show-meta">
-        <time><%= @post.published_at&.strftime("%Y.%m.%d") %></time>
-        <span class="blog-show-views"><%= t("blog.views", count: @post.view_count) %></span>
+<% if @post.trust_bar.present? %>
+<div class="blog-trust-bar">
+  <%= @post.trust_bar %>
+</div>
+<% end %>
+
+<div style="max-width: 640px; margin: 0 auto; padding: 2rem 1.25rem;">
+  <%# Pain Tag %>
+  <div class="blog-pain-tag"><%= @post.pain_tag.presence || @post.category.upcase %></div>
+
+  <%# 제목 %>
+  <h1 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 6px;"><%= @post.title %></h1>
+  <% if @post.subtitle_ko.present? %>
+    <p class="blog-subhead"><%= @post.subtitle_ko %></p>
+  <% end %>
+
+  <%# Meta %>
+  <div class="blog-meta">
+    <span><%= @post.published_at&.strftime("%Y.%m.%d") %></span>
+    <span><%= t("blog.views", count: @post.view_count) %></span>
+  </div>
+
+  <%# Error Mockup %>
+  <% if @post.error_mockup.present? %>
+    <% mockup = begin; JSON.parse(@post.error_mockup); rescue; nil; end %>
+    <% if mockup %>
+    <div class="blog-error-mockup">
+      <div class="blog-browser-bar">
+        <div class="blog-browser-dots">
+          <div class="blog-dot blog-dot-r"></div>
+          <div class="blog-dot blog-dot-y"></div>
+          <div class="blog-dot blog-dot-g"></div>
+        </div>
+        <div class="blog-url-bar"><%= mockup['url_bar'] %></div>
       </div>
-    </div>
-
-    <% if @post.cover_svg.present? %>
-      <div class="blog-show-cover"><%= @post.cover_svg.html_safe %></div>
-    <% end %>
-
-    <div class="blog-show-body"><%= @post.body.to_s.html_safe %></div>
-
-    <div class="blog-cta">
-      <div class="blog-cta-inner">
-        <h3><%= t("blog.cta_title") %></h3>
-        <p><%= t("blog.cta_desc") %></p>
-        <div class="blog-cta-buttons">
-          <%= link_to t("home.compress"), compress_path, class: "btn btn--compress" %>
-          <%= link_to t("home.pdf"), pdf_path, class: "btn btn--pdf" %>
+      <div class="blog-error-body">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+          <div style="width:30px;height:30px;background:<%= mockup['service_icon_color'] %>;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:800;flex-shrink:0">
+            <%= mockup['service_icon_letter'] %>
+          </div>
+          <div>
+            <strong style="display:block;font-size:14px;font-weight:700"><%= mockup['service_name'] %></strong>
+          </div>
+        </div>
+        <div class="blog-error-alert">
+          <div class="blog-error-icon">&#9888;</div>
+          <div>
+            <span class="blog-error-title"><%= mockup['error_title'] %></span>
+            <p class="blog-error-desc"><%= mockup['error_desc'] %></p>
+          </div>
+        </div>
+        <div class="blog-file-row">
+          <div class="blog-file-icon">PDF</div>
+          <div>
+            <span class="blog-file-name"><%= mockup['file_name'] %></span>
+            <span class="blog-file-date">방금 작성</span>
+          </div>
+          <div class="blog-size-badge"><%= mockup['size_label'] %></div>
         </div>
       </div>
     </div>
-
-    <% if @related_posts.any? %>
-      <div class="blog-related">
-        <h3><%= t("blog.related") %></h3>
-        <div class="blog-grid">
-          <% @related_posts.each do |post| %>
-            <article class="blog-card">
-              <% if post.cover_svg.present? %>
-                <div class="blog-card-cover"><%= post.cover_svg.html_safe %></div>
-              <% else %>
-                <div class="blog-card-cover blog-card-cover--placeholder">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--compress)" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-                </div>
-              <% end %>
-              <div class="blog-card-body">
-                <span class="blog-card-cat"><%= t("blog.categories.#{post.category}") %></span>
-                <h2 class="blog-card-title"><%= link_to post.title, blog_post_path(slug: post.slug) %></h2>
-                <p class="blog-card-desc"><%= truncate(post.meta_description.to_s, length: 100) %></p>
-              </div>
-            </article>
-          <% end %>
-        </div>
-      </div>
+    <p style="text-align:center;font-size:12px;color:#6B6963;margin-bottom:24px;font-style:italic">많은 분들이 경험하는 바로 그 상황입니다.</p>
     <% end %>
+  <% end %>
 
-    <div class="blog-back">
-      <%= link_to t("blog.back_to_list"), blog_path, class: "btn-back" %>
+  <%# Recognition %>
+  <% if @post.recognition_text.present? %>
+  <div class="blog-recognition">
+    <%= @post.recognition_text %>
+  </div>
+  <% end %>
+
+  <%# Loss Box %>
+  <% if @post.loss_items.present? %>
+    <% items = begin; JSON.parse(@post.loss_items); rescue; []; end %>
+    <% if items.any? %>
+    <div class="blog-loss-box">
+      <div class="blog-loss-title">지금 이 문제를 방치하면 잃게 되는 것</div>
+      <ul>
+        <% items.each do |item| %>
+        <li>
+          <div class="blog-loss-dot"></div>
+          <span><%= item %></span>
+        </li>
+        <% end %>
+      </ul>
     </div>
+    <% end %>
+  <% end %>
+
+  <%# CTA #1 %>
+  <a href="https://slimfile.net" class="blog-cta-inline-v2">
+    <div class="blog-cta-inline-text">
+      <strong>지금 바로 해결하기</strong>
+      <span>무료 &middot; 회원가입 불필요 &middot; 30초 완료</span>
+    </div>
+    <div class="blog-cta-inline-btn">압축 시작 &rarr;</div>
+  </a>
+
+  <%# Stats %>
+  <% if @post.stats.present? %>
+    <% stats = begin; JSON.parse(@post.stats); rescue; []; end %>
+    <% if stats.any? %>
+    <div class="blog-stats-v2">
+      <% stats.each do |stat| %>
+      <div class="blog-stat-card">
+        <div class="blog-stat-num"><%= stat['num'] %></div>
+        <div class="blog-stat-label"><%= stat['label'] %></div>
+      </div>
+      <% end %>
+    </div>
+    <% end %>
+  <% end %>
+
+  <%# 본문 HTML (cause, steps, ba, situations, checklist, faq) %>
+  <div class="blog-post-body">
+    <%= @post.body.to_s.html_safe %>
+  </div>
+
+  <%# CTA #2 %>
+  <div class="blog-cta-bottom-v2">
+    <h3>지금 바로 해결하세요</h3>
+    <p>무료 &middot; 회원가입 불필요 &middot; 30초 완료 &middot; 오늘 수천 명이 이미 사용 중</p>
+    <div class="blog-btn-group">
+      <a href="https://slimfile.net/compress" class="blog-btn-primary">이미지 압축 시작 &rarr;</a>
+      <a href="https://slimfile.net/pdf" class="blog-btn-secondary">PDF 변환하기</a>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:20px">
+    <a href="/blog" style="font-size:13px;color:#6B6963;text-decoration:none">&larr; 블로그 목록으로</a>
   </div>
 </div>

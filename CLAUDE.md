@@ -151,9 +151,35 @@ All styles are in `app/assets/stylesheets/application.css` using CSS custom prop
   - Final state: 2 published, 9 scheduled, 89 unused topics
   - Next scheduled: business-file-sharing-optimization-guide (2026-04-08)
 
-## Blog Content Strategy: Psychology-Based Marketing (2026-04-07)
+## Blog Content Strategy: Psychology-Based Marketing (v2, 2026-04-08)
 
-All blog posts are generated using a psychology-based marketing approach. The `BlogGeneratorService` uses a system prompt + structured user prompt.
+All blog posts use structured JSON generation with psychological marketing hooks. The `BlogGeneratorService` generates structured data (not raw HTML body) for the show page.
+
+### Post Model — New Columns (2026-04-08)
+- `trust_bar` (string) — social proof bar at top
+- `pain_tag` (string) — urgency tag label
+- `subtitle_ko` (string) — subtitle under title
+- `error_mockup` (text, JSON) — browser error mockup data
+- `recognition_text` (text) — empathy/recognition paragraph
+- `loss_items` (text, JSON array) — loss framing items
+- `stats` (text, JSON array) — 3 key statistics
+
+### Show Page Structure (app/views/posts/show.html.erb)
+1. Trust bar (teal, social proof)
+2. Pain tag + Title + Subtitle + Meta
+3. Error mockup (browser-style with service branding)
+4. Recognition box (amber callout)
+5. Loss box (red border, 4 loss items)
+6. CTA #1 (inline teal bar)
+7. Stats row (3 cards)
+8. body_ko HTML (cause cards, steps, B/A comparison, situations, checklist, FAQ)
+9. CTA #2 (bottom card)
+
+### CSS Classes (v2, suffixed to avoid conflicts)
+- `.blog-cta-inline-v2`, `.blog-stats-v2`, `.blog-steps-v2`
+- `.blog-checklist-v2`, `.blog-faq-v2`, `.blog-cta-bottom-v2`
+- `.blog-error-mockup`, `.blog-recognition`, `.blog-loss-box`
+- `.blog-ba-wrap`, `.blog-situation-grid`, `.blog-cause-list`
 
 ### Core Principles
 - **Loss Aversion first**: Show what the reader is losing NOW before showing what they gain
@@ -161,18 +187,6 @@ All blog posts are generated using a psychology-based marketing approach. The `B
 - **Concrete numbers only**: No vague expressions — every claim includes specific numbers
 - **Dual CTA**: Call-to-action appears after problem recognition AND at the end
 - **Pre-emptive FAQ**: Address the objections readers are already thinking
-
-### Required 9 Sections (in order)
-1. `blog-intro` — Pain empathy (2-3 sentences with specific scenario)
-2. `blog-loss` — Loss list (4 concrete losses with ul/li)
-3. `blog-cta-inline` — First CTA link to SlimFile
-4. `blog-stats` — 3 key statistics with numbers
-5. `blog-cause` — Why this problem occurs (3 causes with numbers)
-6. `blog-steps` — 3-step solution with time per step
-7. `blog-situations` — 4 situation cards (email/submission/portfolio/storage)
-8. `blog-checklist` — 5-item pre-send checklist
-9. `blog-faq` — 4 Q&A (quality/privacy/size/mobile)
-10. `blog-cta-bottom` — Final CTA
 
 ### SVG Cover Image Standard
 - viewBox: `0 0 600 280`

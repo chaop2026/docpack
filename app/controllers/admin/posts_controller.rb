@@ -97,7 +97,8 @@ module Admin
     def post_params
       params.require(:post).permit(
         :title_ko, :title_en, :body_ko, :body_en, :slug, :category,
-        :status, :published_at, :cover_svg, :meta_description_ko, :meta_description_en
+        :status, :published_at, :cover_svg, :meta_description_ko, :meta_description_en,
+        :trust_bar, :pain_tag, :error_mockup, :recognition_text, :loss_items, :stats, :subtitle_ko
       )
     end
   end
