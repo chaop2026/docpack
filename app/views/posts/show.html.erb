@@ -1,4 +1,11 @@
 <% content_for :head do %>
+  <meta property="og:type" content="article">
+  <meta property="article:published_time" content="<%= @post.published_at&.iso8601 %>">
+  <meta property="article:modified_time" content="<%= @post.updated_at&.iso8601 %>">
+  <meta property="article:section" content="<%= @post.category %>">
+  <% if @post.hero_image.attached? %>
+    <% content_for :meta_image, url_for(@post.hero_image) %>
+  <% end %>
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -8,6 +15,9 @@
     "url": "<%= base_url %>/blog/<%= @post.slug %>",
     "datePublished": "<%= @post.published_at&.iso8601 %>",
     "dateModified": "<%= @post.updated_at&.iso8601 %>",
+    <% if @post.hero_image.attached? %>
+    "image": "<%= url_for(@post.hero_image) %>",
+    <% end %>
     "author": {
       "@type": "Organization",
       "name": "SlimFile"

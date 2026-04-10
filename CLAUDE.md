@@ -228,3 +228,6 @@ All blog posts use structured JSON generation with psychological marketing hooks
 - OG meta, Twitter cards, and JSON-LD structured data are in `app/views/layouts/application.html.erb`
 - Per-page meta via `page_meta` helper in `ApplicationHelper`
 - Google Search Console verification: `<meta name="google-site-verification">` in `application.html.erb`
+- Blog posts: JSON-LD Article schema, og:type=article, article:published_time/modified_time in `posts/show.html.erb`
+- AEO: `public/llms.txt` for AI/LLM discoverability, FAQ page with JSON-LD FAQPage schema
+- Blog post hero images set as og:image when attached

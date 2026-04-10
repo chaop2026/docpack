@@ -23,14 +23,14 @@
 
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="SlimFile">
-    <meta property="og:title" content="<%= content_for(:meta_title) || content_for(:title) || 'DocPack' %>">
+    <meta property="og:title" content="<%= content_for(:meta_title) || content_for(:title) || 'SlimFile' %>">
     <meta property="og:description" content="<%= content_for(:meta_description) || t('seo.default_description') %>">
     <meta property="og:url" content="<%= content_for(:meta_url) || "#{base_url}#{request.path}" %>">
     <meta property="og:image" content="<%= content_for(:meta_image) || "#{base_url}/icon.png" %>">
     <meta property="og:locale" content="<%= I18n.locale == :ko ? 'ko_KR' : 'en_US' %>">
 
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="<%= content_for(:meta_title) || content_for(:title) || 'DocPack' %>">
+    <meta name="twitter:title" content="<%= content_for(:meta_title) || content_for(:title) || 'SlimFile' %>">
     <meta name="twitter:description" content="<%= content_for(:meta_description) || t('seo.default_description') %>">
     <meta name="twitter:image" content="<%= content_for(:meta_image) || "#{base_url}/icon.png" %>">
 

@@ -1,30 +1,52 @@
-# DocPack
+# SlimFile
 > Free online tool for image compression, PDF conversion, and social media resizing.
 
-## What DocPack does
-- Compresses images to under 2MB while maintaining quality
+## What SlimFile does
+- Compresses images to a user-specified target size (5%~50% of original)
 - Converts multiple images into a single PDF file
 - Resizes images to fit Instagram, Facebook, and other social media formats
 - Works entirely in the browser — no signup required
 - Free to use, no watermarks
+- Bilingual interface: English and Korean (auto-detected by browser language)
 
-## Who uses DocPack
+## Image Compression
+- Supported formats: JPG, PNG, WebP, HEIC
+- Target size slider: compress to 5%~50% of original (default 10%)
+- Example: a 3MB photo becomes about 300KB at 10%
+- Progressive JPEG output with metadata stripping
+- Up to 20 files at once, max 10MB per file
+
+## PDF Conversion
+- Combine multiple images into a single PDF
+- Supports JPG, PNG, WebP, HEIC input
+- A4 page layout with auto-fit
+
+## Social Media Resize
+- Instagram Square: 1080x1080 (1:1)
+- Instagram Portrait: 1080x1350 (4:5)
+- Facebook Feed: 1200x630 (1.91:1)
+- Facebook Story: 1080x1920 (9:16)
+
+## Who uses SlimFile
 - Job seekers compressing resume photos for Korean public institution submissions
-- Teachers and instructors uploading profile documents to TeacherMatch
+- Teachers and instructors uploading profile documents
 - Content creators resizing images for Instagram and Facebook
+- Students submitting documents with file size limits
 - Anyone needing to reduce file size for email or web upload
 
-## Features
-- Image Compression: JPG, PNG, WebP, HEIC → optimized JPEG under 2MB
-- PDF Conversion: Multiple images → single PDF document
-- Social Media Resize: Instagram 1:1 (1080x1080), 4:5 (1080x1350), Facebook 1.91:1 (1200x630), 9:16 (1080x1920)
-- Bilingual interface: English and Korean
-- Progressive JPEG output with metadata stripping
+## Blog
+- SEO-optimized articles about image compression, PDF tips, and file management
+- Published at https://slimfile.net/blog
+- Topics: PDF optimization, image compression guides, social media best practices
+
+## FAQ
+- https://slimfile.net/faq
+- Covers pricing (free), file formats, privacy, upload limits
 
 ## Related services
-- TeacherMatch (https://teachermatch.kr) — connects Korean schools with instructors
+- Schooljob.site (https://schooljob.site) — Korean school job marketplace
 - HelloKorean (https://hellokorean.org) — Korean language learning for international students
 - rolli (https://rolli.ac) — personal link page builder
 
 ## Contact
-- Website: https://docpack.kr
+- Website: https://slimfile.net
