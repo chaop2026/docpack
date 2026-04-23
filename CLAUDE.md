@@ -231,3 +231,11 @@ All blog posts use structured JSON generation with psychological marketing hooks
 - Blog posts: JSON-LD Article schema, og:type=article, article:published_time/modified_time in `posts/show.html.erb`
 - AEO: `public/llms.txt` for AI/LLM discoverability, FAQ page with JSON-LD FAQPage schema
 - Blog post hero images set as og:image when attached
+
+## Favicon & PWA Manifest (2026-04-22)
+
+- **Files in `public/`**: `favicon.ico`, `favicon-16x16.png`, `favicon-32x32.png`, `apple-touch-icon.png`, `android-chrome-192x192.png`, `android-chrome-512x512.png`, `site.webmanifest`
+- **Manifest**: name=SlimFile, theme_color=`#0A6E8A` (teal primary), background_color=`#F8F7F4` (page bg), display=standalone
+- **Layout**: `<link>` tags in `app/views/layouts/application.html.erb` head — favicon (ico + 16/32 png), apple-touch-icon (180x180), manifest
+- **Source**: Generated via favicon.io
+- **Commit**: `a1fd3dc feat: add full favicon set with PWA manifest`
