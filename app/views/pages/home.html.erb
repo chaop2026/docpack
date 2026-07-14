@@ -31,6 +31,14 @@
       <p class="feature-card-desc"><%= t("social.description") %></p>
       <span class="feature-card-btn"><%= t("social.submit") %></span>
     <% end %>
+
+    <%= link_to "/safe/", class: "feature-card feature-card--safe" do %>
+      <div class="feature-card-icon">🔒</div>
+      <span class="feature-card-tag">PRIVACY</span>
+      <div class="feature-card-title"><%= t("home.safe") %></div>
+      <p class="feature-card-desc"><%= t("safe.description") %></p>
+      <span class="feature-card-btn"><%= t("safe.submit") %></span>
+    <% end %>
   </nav>
 
   <%= render_banners(page: "all", position: "after_result") %>

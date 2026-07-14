@@ -15,6 +15,10 @@ Rails.application.routes.draw do
   get "/about",    to: "pages#about"
   get "/faq",      to: "pages#faq"
 
+  # SafeFile — public/safe/index.html은 Rails가 정적 서빙, API는 AI 정밀 검사 중계
+  get  "/safe",          to: redirect("/safe/")
+  post "/api/safe_scan", to: "api/safe_scan#create"
+
   get "/blog",       to: "posts#index", as: :blog
   get "/blog/:slug", to: "posts#show",  as: :blog_post
 

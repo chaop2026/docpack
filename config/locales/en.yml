@@ -12,6 +12,7 @@ en:
     compress: "Image Compress"
     pdf: "PDF Conversion"
     social: "Social Presets"
+    safe: "SafeFile"
   compress:
     title: "Image Compression - DocPack"
     heading: "Image Compression"
@@ -41,6 +42,9 @@ en:
     uploading: "Uploading... 0%"
     processing: "Resizing images..."
     submit: "Resize"
+  safe:
+    description: "Find & redact personal info in your documents."
+    submit: "Redact now"
   result:
     title: "Conversion Result - DocPack"
     heading: "Conversion Result"

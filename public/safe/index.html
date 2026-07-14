@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F7F5EF">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>SafeFile — 문서 속 개인정보, 1분 안에 지우고 공유</title>
+<meta name="description" content="문서를 올리면 개인정보를 자동으로 찾아 원하는 만큼 가리고 새 문서로 만들어 드립니다. 무료, 회원가입 없음.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<style>
+:root{
+  --paper:#F7F5EF; --card:#FFFFFF; --ink:#17140F; --sub:#6B655A;
+  --line:#E6E1D4; --marker:#FFE066; --marker-soft:#FFF3BF;
+  --ok:#2F7D5B; --ok-bg:#E4F1EA; --half:#B97A17; --half-bg:#FBF0DC; --no:#B3402A; --no-bg:#F7E4DF;
+  --radius:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'IBM Plex Sans KR',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var(--paper);color:var(--ink);line-height:1.55;-webkit-text-size-adjust:100%}
+.mono{font-family:'IBM Plex Mono',monospace}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+@media(max-width:600px){.wrap{padding:0 14px}}
+
+/* ── Header ── */
+header{border-bottom:1px solid var(--line);background:var(--paper);position:sticky;top:0;z-index:50;padding-top:env(safe-area-inset-top)}
+.nav{display:flex;align-items:center;justify-content:space-between;height:56px;gap:10px}
+.logo{font-weight:700;font-size:18px;letter-spacing:-.02em;display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--ink);min-width:0}
+.logo .bar{display:inline-block;width:24px;height:12px;background:var(--ink);border-radius:3px;flex-shrink:0}
+.logo .family{font-size:12px;color:var(--sub);font-weight:400;white-space:nowrap}
+.nav .links{display:flex;gap:12px;font-size:13px;color:var(--sub);align-items:center;flex-shrink:0}
+.badge-free{font-size:11px;background:var(--marker);padding:3px 8px;border-radius:20px;font-weight:500;white-space:nowrap}
+.lang-btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 10px;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer}
+.lang-btn:hover{border-color:var(--ink)}
+@media(max-width:480px){.badge-free{display:none}}
+
+/* ── Hero ── */
+.hero{padding:44px 0 28px;text-align:center}
+.hero h1{font-size:clamp(23px,5vw,40px);font-weight:700;letter-spacing:-.03em;line-height:1.3}
+.redact-word{position:relative;display:inline-block;padding:0 6px;white-space:nowrap}
+.redact-word .bar{position:absolute;inset:6% -2% 4% -2%;background:var(--ink);border-radius:4px;transform-origin:left center;animation:sweep 3.6s ease-in-out infinite}
+@keyframes sweep{0%{transform:scaleX(0)}22%{transform:scaleX(1)}72%{transform:scaleX(1)}94%,100%{transform:scaleX(0);transform-origin:right center}}
+@media (prefers-reduced-motion:reduce){.redact-word .bar{animation:none;transform:scaleX(1);opacity:.92}}
+.hero p{margin-top:12px;color:var(--sub);font-size:15px}
+.hero .trust{margin-top:10px;font-size:12.5px;color:var(--sub);display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.hero .trust span::before{content:"✓ ";color:var(--ok)}
+@media(max-width:600px){.hero{padding:30px 0 18px}}
+
+/* ── Main grid ── */
+.stage{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:22px auto 30px}
+@media(max-width:860px){.stage{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);display:flex;flex-direction:column;min-height:460px;overflow:hidden}
+@media(max-width:860px){.panel{min-height:0}.panel.p1{min-height:320px}}
+.panel-head{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.panel-head h2{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
+.step-n{width:22px;height:22px;border-radius:6px;background:var(--ink);color:#fff;font-size:12px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
+.panel-body{flex:1;padding:14px 16px 16px;display:flex;flex-direction:column;min-height:0}
+
+/* Dropzone */
+.dropzone{flex:1;border:2px dashed var(--line);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:24px 16px;cursor:pointer;transition:.15s;min-height:210px}
+.dropzone:hover,.dropzone.drag{border-color:var(--ink);background:var(--marker-soft)}
+.dropzone .icon{font-size:32px}
+.dropzone strong{font-size:15px}
+.dropzone small{color:var(--sub);font-size:12.5px}
+.dz-actions{margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.btn{border:1px solid var(--ink);background:var(--ink);color:#fff;font-family:inherit;font-size:14px;font-weight:500;padding:10px 16px;border-radius:9px;cursor:pointer;transition:.15s;min-height:40px}
+.btn:hover{opacity:.85}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn.ghost:hover{background:var(--marker-soft);opacity:1}
+.btn.small{font-size:13px;padding:7px 12px;min-height:36px}
+.btn:focus-visible,.seg button:focus-visible,.lang-btn:focus-visible{outline:2px solid var(--half);outline-offset:2px}
+
+/* doc preview */
+.doc-view{flex:1;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:14px;font-size:13.5px;white-space:pre-wrap;word-break:break-word;background:#FDFCFA;min-height:0;max-height:52vh}
+.doc-view mark{background:var(--marker);padding:1px 3px;border-radius:3px}
+.doc-view .masked-half{background:var(--half-bg);color:var(--half);padding:1px 3px;border-radius:3px;font-weight:500}
+.doc-view .masked-full{background:var(--ink);color:var(--ink);border-radius:3px;padding:1px 3px;user-select:none}
+.file-meta{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px;color:var(--sub);flex-wrap:wrap}
+.file-meta .chip{background:var(--marker-soft);padding:2px 9px;border-radius:14px;color:var(--ink);font-weight:500;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Detection panel */
+.bulk{display:flex;gap:6px;flex-wrap:wrap}
+.bulk button{font-size:12px;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer;font-family:inherit;font-weight:500;min-height:32px}
+.bulk button:disabled{opacity:.4;cursor:not-allowed}
+.bulk .b-ok:hover:not(:disabled){background:var(--ok-bg);border-color:var(--ok)}
+.bulk .b-half:hover:not(:disabled){background:var(--half-bg);border-color:var(--half)}
+.bulk .b-no:hover:not(:disabled){background:var(--no-bg);border-color:var(--no)}
+.pii-list{flex:1;overflow:auto;display:flex;flex-direction:column;gap:6px;min-height:0}
+.cat-hint{font-size:12.5px;color:var(--sub);background:var(--marker-soft);border-radius:8px;padding:8px 12px;margin-bottom:10px}
+.cat-row{border:1px solid var(--line);border-radius:10px;background:#fff}
+.cat-head{display:flex;align-items:center;gap:8px;padding:8px 10px;flex-wrap:wrap}
+.cat-tgl{display:flex;align-items:center;gap:8px;flex:1;min-width:0;cursor:pointer;user-select:none}
+.cat-head input{width:17px;height:17px;accent-color:var(--ink);cursor:pointer;flex-shrink:0}
+.cat-head .cl{font-size:13.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cat-head .cnt{font-size:12px;color:var(--sub);flex-shrink:0}
+.cat-head .cnt.hit{background:var(--marker);color:var(--ink);padding:1px 8px;border-radius:12px;font-weight:700}
+.cat-row.off{opacity:.45}
+.cat-row.off .cat-items{display:none}
+.cat-row.off .seg{pointer-events:none}
+.cat-items{padding:0 10px 8px}
+.pii-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;background:#fff;flex-wrap:wrap}
+.pii-item .val{font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex-shrink:0}
+.seg button{border:none;background:#fff;font-family:inherit;font-size:12px;padding:7px 10px;cursor:pointer;color:var(--sub);border-left:1px solid var(--line);min-height:32px}
+.seg button:first-child{border-left:none}
+.seg button.on-ok{background:var(--ok-bg);color:var(--ok);font-weight:700}
+.seg button.on-half{background:var(--half-bg);color:var(--half);font-weight:700}
+.seg button.on-no{background:var(--no-bg);color:var(--no);font-weight:700}
+.more-cats{border:1px dashed var(--line);border-radius:10px;background:transparent;font-family:inherit;font-size:13px;color:var(--sub);padding:9px;cursor:pointer;width:100%}
+.more-cats:hover{border-color:var(--ink);color:var(--ink)}
+.ai-row{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ai-row small{color:var(--sub);font-size:12px;flex:1;min-width:170px}
+.spinner{width:15px;height:15px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;display:inline-block;vertical-align:-3px;margin-right:6px;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Make section */
+.make{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:36px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.make .info{flex:1;min-width:200px}
+.make .info strong{font-size:15px}
+.make .info small{display:block;color:var(--sub);font-size:13px;margin-top:2px}
+.make .fmt{display:flex;gap:6px;flex-wrap:wrap}
+.fmt label{border:1px solid var(--line);border-radius:8px;padding:8px 13px;font-size:13px;cursor:pointer;background:#fff;min-height:36px;display:inline-flex;align-items:center}
+.fmt input{display:none}
+.fmt input:checked + span{font-weight:700}
+.fmt label:has(input:checked){background:var(--marker-soft);border-color:var(--ink)}
+.btn-make{font-size:15px;padding:12px 24px;border-radius:10px}
+@media(max-width:600px){.make{position:sticky;bottom:10px;z-index:40;box-shadow:0 6px 24px rgba(23,20,15,.12)}.btn-make{width:100%}}
+
+/* Result */
+#result{display:none;margin-bottom:44px}
+.result-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.result-head{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.result-head h2{font-size:16px}
+.result-actions{display:flex;gap:8px;flex-wrap:wrap}
+#resultDoc{padding:20px;font-size:14px;white-space:pre-wrap;word-break:break-word;max-height:420px;overflow:auto;background:#FDFCFA}
+#resultDoc .rf{background:var(--ink);color:var(--ink);border-radius:3px;padding:1px 4px;user-select:none}
+#resultDoc .rh{background:var(--half-bg);border-radius:3px;padding:1px 2px}
+
+/* Partners */
+.partners{border-top:1px solid var(--line);padding:30px 0 16px}
+.partners h4{font-size:13px;color:var(--sub);text-align:center;margin-bottom:14px;font-weight:500}
+.partner-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:700px){.partner-grid{grid-template-columns:1fr}}
+.partner-card{border:1px solid var(--line);border-radius:12px;padding:15px;background:var(--card);text-decoration:none;color:var(--ink);transition:.15s;display:block}
+.partner-card:hover{border-color:var(--ink)}
+.partner-card strong{font-size:14px;display:block;margin-bottom:4px}
+.partner-card span{font-size:13px;color:var(--sub)}
+footer{padding:16px 0 44px;text-align:center;color:var(--sub);font-size:13px}
+footer a{color:var(--sub)}
+.privacy-note{max-width:640px;margin:0 auto 26px;text-align:center;font-size:12.5px;color:var(--sub);background:var(--marker-soft);border-radius:10px;padding:11px 15px}
+
+#toast{position:fixed;bottom:calc(24px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 20px;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:100;max-width:90vw;text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media print{
+  header,.hero,.stage,.make,.partners,footer,.privacy-note,.result-actions,#toast{display:none!important}
+  #result{display:block!important;margin:0}
+  .result-card{border:none}
+  #resultDoc{max-height:none;background:#fff}
+  #resultDoc .rf{background:#000;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="logo" href="https://slimfile.net"><span class="bar" aria-hidden="true"></span>SafeFile <span class="family">by SlimFile</span></a>
+    <div class="links">
+      <span class="badge-free" data-i18n="badge">무료 · 가입 없음</span>
+      <a href="https://slimfile.net" style="text-decoration:none;color:var(--sub)" data-i18n="navHome">← SlimFile</a>
+      <button class="lang-btn" id="langBtn" aria-label="Switch language">EN</button>
+    </div>
+  </div>
+</header>
+
+<section class="hero wrap">
+  <h1 id="heroH1"></h1>
+  <p data-i18n="heroP">문서를 올리면 개인정보를 자동으로 찾아 드립니다. 남길 것만 고르고, 나머지는 가려서 새 문서로.</p>
+  <div class="trust">
+    <span data-i18n="trust1">파일은 서버에 저장되지 않습니다</span>
+    <span data-i18n="trust2">회원가입 없음</span>
+    <span data-i18n="trust3">1분이면 충분</span>
+  </div>
+</section>
+
+<main class="wrap">
+  <div class="stage">
+    <!-- STEP 1 -->
+    <section class="panel p1" aria-label="Upload">
+      <div class="panel-head">
+        <h2><span class="step-n">1</span> <span data-i18n="s1">문서 올리기</span></h2>
+        <span id="scanStatus" style="font-size:12px;color:var(--sub)"></span>
+      </div>
+      <div class="panel-body">
+        <div class="dropzone" id="dropzone" role="button" tabindex="0">
+          <div class="icon">📄</div>
+          <strong data-i18n="dzTitle">파일을 끌어다 놓거나 클릭하세요</strong>
+          <small data-i18n="dzTypes">PDF · Word(docx) · 텍스트 · 이미지(JPG/PNG)</small>
+          <div class="dz-actions">
+            <button class="btn small" type="button" id="btnPick" data-i18n="btnPick">파일 선택</button>
+            <button class="btn ghost small" type="button" id="btnSample" data-i18n="btnSample">샘플 문서로 체험</button>
+            <button class="btn ghost small" type="button" id="btnPaste" data-i18n="btnPaste">텍스트 붙여넣기</button>
+          </div>
+        </div>
+        <textarea id="pasteArea" style="display:none;flex:1;border:1px solid var(--line);border-radius:10px;padding:14px;font-family:inherit;font-size:14px;resize:none;min-height:210px"></textarea>
+        <div id="pasteActions" style="display:none;margin-top:10px;gap:8px">
+          <button class="btn small" id="btnPasteScan" data-i18n="btnPasteScan">이 내용으로 검사</button>
+          <button class="btn ghost small" id="btnPasteCancel" data-i18n="btnCancel">취소</button>
+        </div>
+        <div id="docWrap" style="display:none;flex:1;min-height:0;flex-direction:column">
+          <div class="file-meta">
+            <span class="chip" id="fileName"></span>
+            <span id="fileInfo"></span>
+            <button class="btn ghost small" id="btnReset" style="margin-left:auto" data-i18n="btnReset">다른 문서</button>
+          </div>
+          <div class="doc-view" id="docView" aria-live="polite"></div>
+        </div>
+        <input type="file" id="fileInput" accept=".pdf,.docx,.txt,.md,.csv,image/*" hidden>
+      </div>
+    </section>
+
+    <!-- STEP 2 -->
+    <section class="panel" aria-label="Detected">
+      <div class="panel-head">
+        <h2><span class="step-n">2</span> <span data-i18n="s2">발견된 개인정보</span> <span id="piiCount" style="color:var(--sub);font-weight:400;font-size:13px"></span></h2>
+        <div class="bulk" id="bulkBtns">
+          <button class="b-ok" data-mode="ok" disabled data-i18n="bulkOk">전체 공개</button>
+          <button class="b-half" data-mode="half" disabled data-i18n="bulkHalf">전체 부분공개</button>
+          <button class="b-no" data-mode="no" disabled data-i18n="bulkNo">전체 비공개</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="cat-hint" id="catHint"></div>
+        <div class="pii-list" id="piiList"></div>
+        <div class="ai-row">
+          <small data-i18n="aiHint">이름·회사·주소처럼 패턴이 없는 정보는 AI가 문맥으로 찾아냅니다.</small>
+          <button class="btn small" id="btnAI" disabled>🤖 <span data-i18n="btnAI">AI 정밀 검사</span></button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="make" id="makeBar">
+    <div class="info">
+      <strong><span class="step-n" style="vertical-align:-4px;margin-right:6px">3</span><span data-i18n="s3">문서 만들기</span></strong>
+      <small data-i18n="s3sub">선택한 항목만 가려진 새 문서를 만듭니다.</small>
+    </div>
+    <div class="fmt" role="radiogroup">
+      <label><input type="radio" name="fmt" value="jpg" checked><span data-i18n="fmtJpg">이미지 (JPG)</span></label>
+      <label><input type="radio" name="fmt" value="png"><span data-i18n="fmtPng">이미지 (PNG)</span></label>
+      <label><input type="radio" name="fmt" value="pdf"><span data-i18n="fmtPdf">PDF</span></label>
+    </div>
+    <button class="btn btn-make" id="btnMake" disabled data-i18n="btnMake">문서 만들기</button>
+  </div>
+
+  <!-- Result -->
+  <section id="result">
+    <div class="result-card">
+      <div class="result-head">
+        <h2>✅ <span data-i18n="resTitle">완성된 문서</span></h2>
+        <div class="result-actions">
+          <button class="btn small" id="btnDownload" data-i18n="btnDl">다운로드</button>
+          <button class="btn ghost small" id="btnCopy" data-i18n="btnCopy">텍스트 복사</button>
+        </div>
+      </div>
+      <div id="resultDoc"></div>
+    </div>
+  </section>
+
+  <div class="privacy-note" data-i18n="privacy">🔒 모든 문서는 사용자의 브라우저 안에서만 처리됩니다. AI 정밀 검사를 선택한 경우에만 해당 텍스트가 AI 분석을 위해 전송되며, 저장되지 않습니다.</div>
+</main>
+
+<div class="partners">
+  <div class="wrap">
+    <!-- ▼ Google AdSense 자리: 승인 후 아래 주석을 실제 코드로 교체
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
+    <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-XXXXXXXXXXXXXXXX" data-ad-slot="XXXXXXXXXX" data-ad-format="auto" data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    ▲ 여기까지 -->
+    <h4 data-i18n="partners">SafeFile이 추천하는 서비스</h4>
+    <div class="partner-grid">
+      <a class="partner-card" href="https://slimfile.net" target="_blank" rel="noopener"><strong>🗜 SlimFile</strong><span data-i18n="pSlim">이미지 압축과 PDF 변환, 2MB 이하로 간단하게.</span></a>
+      <a class="partner-card" href="https://schooljob.site" target="_blank" rel="noopener"><strong>🎓 Schooljob</strong><span data-i18n="pSchool">선생님을 위한 채용 정보, 딱 맞는 학교 찾기.</span></a>
+      <a class="partner-card" href="https://hellokorean.org" target="_blank" rel="noopener"><strong>🌏 HelloKorean</strong><span data-i18n="pHello">한국어 배우기, 오늘부터 시작하세요.</span></a>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">SafeFile · <span data-i18n="footer">개인정보를 지키는 가장 빠른 방법</span> · <a href="https://slimfile.net">SlimFile</a></div>
+</footer>
+
+<div id="toast" role="status"></div>
+
+<script>
+/* ───────── i18n ───────── */
+const I18N = {
+ko:{
+  badge:'무료 · 가입 없음', navHome:'← SlimFile',
+  heroPre:'문서 속 ', heroPost:'만<br>골라서 지우고 공유하세요',
+  cycle:['주민등록번호','전화번호','집 주소','계좌번호','이름'],
+  heroP:'문서를 올리면 개인정보를 자동으로 찾아 드립니다. 남길 것만 고르고, 나머지는 가려서 새 문서로.',
+  trust1:'파일은 서버에 저장되지 않습니다', trust2:'회원가입 없음', trust3:'1분이면 충분',
+  s1:'문서 올리기', s2:'발견된 개인정보', s3:'문서 만들기', s3sub:'선택한 항목만 가려진 새 문서를 만듭니다.',
+  dzTitle:'파일을 끌어다 놓거나 클릭하세요', dzTypes:'PDF · Word(docx) · 텍스트 · 이미지(JPG/PNG)',
+  btnPick:'파일 선택', btnSample:'샘플 문서로 체험', btnPaste:'텍스트 붙여넣기',
+  btnPasteScan:'이 내용으로 검사', btnCancel:'취소', btnReset:'다른 문서',
+  pastePh:'여기에 문서 내용을 붙여넣은 뒤 아래 버튼을 누르세요',
+  bulkOk:'전체 공개', bulkHalf:'전체 부분공개', bulkNo:'전체 비공개',
+  segOk:'공개', segHalf:'부분', segNo:'비공개',
+  hintBefore:'각 항목의 기본 공개 수준을 미리 정해두세요. 문서에서 발견되면 그 설정대로 가려집니다.',
+  hintAfter:'발견된 항목입니다. 건마다 공개 수준을 바꿀 수 있어요.',
+  moreShow:n=>`발견되지 않은 항목 ${n}개 보기`, moreHide:'발견되지 않은 항목 접기',
+  aiHint:'이름·회사·주소처럼 패턴이 없는 정보는 AI가 문맥으로 찾아냅니다.', btnAI:'AI 정밀 검사',
+  aiBusy:'AI가 읽는 중…', aiDone:'AI 검사 완료',
+  fmtJpg:'이미지 (JPG)', fmtPng:'이미지 (PNG)', fmtPdf:'PDF', btnMake:'문서 만들기',
+  resTitle:'완성된 문서', btnDl:'다운로드', btnCopy:'텍스트 복사',
+  privacy:'🔒 모든 문서는 사용자의 브라우저 안에서만 처리됩니다. AI 정밀 검사를 선택한 경우에만 해당 텍스트가 AI 분석을 위해 전송되며, 저장되지 않습니다.',
+  partners:'SafeFile이 추천하는 서비스',
+  pSlim:'이미지 압축과 PDF 변환, 2MB 이하로 간단하게.', pSchool:'선생님을 위한 채용 정보, 딱 맞는 학교 찾기.', pHello:'한국어 배우기, 오늘부터 시작하세요.',
+  footer:'개인정보를 지키는 가장 빠른 방법',
+  cnt:n=>`${n}건`, cntUse:n=>`· ${n}건 사용`, scanDone:n=>`⚡ 즉시 검사 완료 — ${n}건 발견`, scanAI:n=>`🤖 AI 검사 포함 — 총 ${n}건`,
+  tPasteEmpty:'내용을 붙여넣어 주세요', tBulkOk:'모든 항목을 공개로 설정했어요', tBulkHalf:'모든 항목을 부분공개로 설정했어요', tBulkNo:'모든 항목을 비공개로 설정했어요',
+  tAIDone:'AI가 이름·회사 등 문맥 정보까지 찾았어요', tAIDup:'AI 검사는 이미 완료됐어요', tAIFail:'AI 검사에 실패했어요. 잠시 후 다시 시도해 주세요.',
+  tMade:n=>`완성! ${n}개 항목을 가렸어요`, tCopied:'클립보드에 복사했어요', tSaved:n=>`${n} 저장 완료`,
+  tReadFail:'파일을 읽지 못했어요. 텍스트 붙여넣기를 이용해 보세요.', tScanPdf:'스캔 PDF 같아요. 이미지로 올리면 AI가 읽어 드립니다.',
+  imgLoading:'이미지는 AI가 읽습니다…', pdfLoading:'PDF 읽는 중…', docxLoading:'Word 문서 읽는 중…',
+  imgPlaceholder:'(이미지 문서입니다. "AI 정밀 검사"가 이미지 속 텍스트와 개인정보를 찾는 중입니다.)',
+  pasted:'붙여넣은 텍스트', aiChars:n=>`${n}자 (AI 추출)`, chars:n=>`${n}자`,
+  types:{rrn:'주민등록번호',ssn:'SSN(미국)',passport:'여권번호',license:'운전면허번호',card:'카드번호',account:'계좌번호',phone:'전화번호',email:'이메일',birth:'생년월일',address:'주소',name:'이름',company:'회사·소속',title:'직책',ip:'IP 주소',url:'SNS·URL',health:'건강·민감정보',other:'기타'}
+},
+en:{
+  badge:'Free · No signup', navHome:'← SlimFile',
+  heroPre:'Redact only the ', heroPost:'<br>in your documents, then share',
+  cycle:['ID numbers','phone numbers','home address','account numbers','names'],
+  heroP:'Upload a document and we find the personal info automatically. Keep what you want, mask the rest, get a new file.',
+  trust1:'Files never leave your browser', trust2:'No signup', trust3:'Done in under a minute',
+  s1:'Upload document', s2:'Detected personal info', s3:'Create document', s3sub:'Creates a new document with only your selected items masked.',
+  dzTitle:'Drag & drop a file or click', dzTypes:'PDF · Word (docx) · Text · Image (JPG/PNG)',
+  btnPick:'Choose file', btnSample:'Try a sample', btnPaste:'Paste text',
+  btnPasteScan:'Scan this text', btnCancel:'Cancel', btnReset:'New document',
+  pastePh:'Paste your document text here, then press the button below',
+  bulkOk:'Show all', bulkHalf:'Partial all', bulkNo:'Hide all',
+  segOk:'Show', segHalf:'Partial', segNo:'Hide',
+  hintBefore:'Preset the default visibility for each category. When found in your document, items are masked accordingly.',
+  hintAfter:'Items found in your document. Adjust visibility per item.',
+  moreShow:n=>`Show ${n} other categories`, moreHide:'Hide other categories',
+  aiHint:'AI finds unpatterned info like names, companies, and addresses from context.', btnAI:'AI deep scan',
+  aiBusy:'AI reading…', aiDone:'AI scan complete',
+  fmtJpg:'Image (JPG)', fmtPng:'Image (PNG)', fmtPdf:'PDF', btnMake:'Create document',
+  resTitle:'Your safe document', btnDl:'Download', btnCopy:'Copy text',
+  privacy:'🔒 All documents are processed inside your browser. Only when you choose AI deep scan is the text sent for AI analysis — never stored.',
+  partners:'Recommended by SafeFile',
+  pSlim:'Image compression & PDF conversion, all under 2MB.', pSchool:'Teaching jobs — find the perfect school.', pHello:'Start learning Korean today.',
+  footer:'The fastest way to protect personal info',
+  cnt:n=>`${n}`, cntUse:n=>`· ${n} in use`, scanDone:n=>`⚡ Instant scan done — ${n} found`, scanAI:n=>`🤖 With AI scan — ${n} total`,
+  tPasteEmpty:'Please paste some text first', tBulkOk:'All items set to show', tBulkHalf:'All items set to partial', tBulkNo:'All items set to hidden',
+  tAIDone:'AI found contextual info like names & companies', tAIDup:'AI scan already done', tAIFail:'AI scan failed. Please try again shortly.',
+  tMade:n=>`Done! ${n} items masked`, tCopied:'Copied to clipboard', tSaved:n=>`Saved ${n}`,
+  tReadFail:"Couldn't read the file. Try pasting the text instead.", tScanPdf:'Looks like a scanned PDF. Upload it as an image and AI will read it.',
+  imgLoading:'AI is reading the image…', pdfLoading:'Reading PDF…', docxLoading:'Reading Word document…',
+  imgPlaceholder:'(Image document. AI deep scan is extracting the text and personal info.)',
+  pasted:'Pasted text', aiChars:n=>`${n} chars (AI extracted)`, chars:n=>`${n} chars`,
+  types:{rrn:'Korean RRN',ssn:'SSN (US)',passport:'Passport no.',license:"Driver's license",card:'Card number',account:'Bank account',phone:'Phone',email:'Email',birth:'Date of birth',address:'Address',name:'Name',company:'Company',title:'Job title',ip:'IP address',url:'Social · URL',health:'Health / sensitive',other:'Other'}
+}
+};
+let LANG = (navigator.language||'ko').toLowerCase().startsWith('ko') ? 'ko' : 'en';
+const T = () => I18N[LANG];
+
+/* ───────── state ───────── */
+let docText='', docTitle='', entities=[], aiDone=false, sourceImage=null, showAllCats=false;
+const catEnabled={}, catDefault={};
+const $=id=>document.getElementById(id);
+const toast=msg=>{const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._tm);t._tm=setTimeout(()=>t.classList.remove('show'),2600);};
+
+const TYPES = {
+  rrn:{icon:'🪪',risk:'no'}, ssn:{icon:'🪪',risk:'no'}, passport:{icon:'🛂',risk:'no'},
+  license:{icon:'🚗',risk:'no'}, card:{icon:'💳',risk:'no'}, account:{icon:'🏦',risk:'no'},
+  phone:{icon:'📞',risk:'half'}, email:{icon:'✉️',risk:'half'}, birth:{icon:'🎂',risk:'half'},
+  address:{icon:'📍',risk:'half'}, name:{icon:'👤',risk:'half'},
+  company:{icon:'🏢',risk:'ok'}, title:{icon:'💼',risk:'ok'},
+  ip:{icon:'🌐',risk:'no'}, url:{icon:'🔗',risk:'half'}, health:{icon:'🏥',risk:'no'}, other:{icon:'📌',risk:'half'}
+};
+Object.keys(TYPES).forEach(t=>{catEnabled[t]=true;catDefault[t]=TYPES[t].risk;});
+const isOn=e=>catEnabled[e.type]!==false;
+const tLabel=t=>T().types[t]||t;
+
+/* ───────── hero cycle ───────── */
+let cw=0;
+function renderHero(){
+  $('heroH1').innerHTML = T().heroPre + `<span class="redact-word"><span id="cycleWord">${T().cycle[cw]}</span><span class="bar" aria-hidden="true"></span></span>` + T().heroPost;
+}
+setInterval(()=>{cw=(cw+1)%T().cycle.length;const el=$('cycleWord');if(el)el.textContent=T().cycle[cw];},3600);
+
+/* ───────── apply language ───────── */
+function applyLang(){
+  document.documentElement.lang=LANG;
+  $('langBtn').textContent = LANG==='ko' ? 'EN' : '한국어';
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const k=el.dataset.i18n; const v=T()[k];
+    if(typeof v==='string') el.innerHTML=v;
+  });
+  $('pasteArea').placeholder=T().pastePh;
+  renderHero(); renderAll();
+}
+$('langBtn').addEventListener('click',()=>{LANG=LANG==='ko'?'en':'ko';applyLang();});
+
+/* ───────── regex detection ───────── */
+const REGEX_RULES=[
+  {type:'rrn',    re:/\d{6}[-‐ ]?[1-4]\d{6}/g},
+  {type:'ssn',    re:/\b\d{3}-\d{2}-\d{4}\b/g},
+  {type:'card',   re:/\b\d{4}[- ]\d{4}[- ]\d{4}[- ]\d{4}\b/g},
+  {type:'phone',  re:/\b(01[016789]|0[2-6]\d?)[-. ]?\d{3,4}[-. ]?\d{4}\b/g},
+  {type:'phone',  re:/\+\d{1,3}[-. ]?\d{2,4}[-. ]?\d{3,4}[-. ]?\d{3,4}\b/g},
+  {type:'email',  re:/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g},
+  {type:'passport',re:/\b[MSRODG]\d{8}\b/g},
+  {type:'license',re:/\b\d{2}-\d{2}-\d{6}-\d{2}\b/g},
+  {type:'account',re:/\b\d{3,6}-\d{2,6}-\d{3,6}\b/g},
+  {type:'ip',     re:/\b(?:\d{1,3}\.){3}\d{1,3}\b/g},
+  {type:'birth',  re:/\b(19|20)\d{2}[.\-\/년 ]\s?\d{1,2}[.\-\/월 ]\s?\d{1,2}일?\b/g},
+  {type:'address',re:/(서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충청?[북남]|전라?[북남]|경상?[북남]|제주)[^\n,()]{0,20}?(시|군|구)\s?[^\n,()]{0,25}?(로|길|대로)\s?\d+[^\n,()]{0,20}/g},
+  {type:'url',    re:/https?:\/\/[^\s)>\]]+|(?:instagram|facebook|linkedin|twitter|x)\.com\/[^\s)>\]]+/g},
+];
+function regexScan(text){
+  const found=[];
+  for(const rule of REGEX_RULES){
+    let m; const re=new RegExp(rule.re.source,rule.re.flags);
+    while((m=re.exec(text))!==null){
+      const v=m[0].trim();
+      if(rule.type==='birth' && found.some(f=>f.type==='rrn'&&f.value.includes(v))) continue;
+      if(rule.type==='phone' && /\d{6}[-‐ ]?[1-4]\d{6}/.test(v)) continue;
+      if((rule.type==='account'||rule.type==='ip'||rule.type==='phone') && found.some(f=>f.value.includes(v)||v.includes(f.value))) continue;
+      found.push({type:rule.type,value:v});
+    }
+  }
+  return found;
+}
+
+/* ───────── masking ───────── */
+const BLOCK='█';
+function maskHalf(type,v){
+  switch(type){
+    case 'name': return v.length<=1? v : v.length===2? v[0]+'*' : v[0]+'*'.repeat(v.length-2)+v[v.length-1];
+    case 'phone': { const parts=v.split(/[-. ]/); if(parts.length===3) return parts[0]+'-****-'+parts[2]; const d=v.replace(/\D/g,''); return d.length>=8? d.slice(0,3)+'-****-'+d.slice(-4) : v[0]+'***'; }
+    case 'email': { const [a,b]=v.split('@'); return (a[0]||'')+'***@'+(b||''); }
+    case 'rrn': case 'ssn': { const i=v.search(/[-‐ ]/); return i>0? v.slice(0,i+1)+'*'.repeat(v.length-i-1) : v.slice(0,6)+'*'.repeat(Math.max(v.length-6,0)); }
+    case 'card': return v.slice(0,4)+v.slice(4,-4).replace(/\d/g,'*')+v.slice(-4);
+    case 'account': return v.slice(0,3)+'*'.repeat(Math.max(v.length-6,2))+v.slice(-3);
+    case 'birth': return v.replace(/\d{1,2}([일.\-\/]?)\s*$/,'**$1');
+    case 'address': { const m=v.match(/^(.*?(?:시|군|구))/); return m? m[1]+' ***' : v.slice(0,4)+'***'; }
+    case 'company': case 'title': return v[0]+'*'.repeat(Math.max(v.length-1,1));
+    case 'ip': return v.replace(/\.\d{1,3}\.\d{1,3}$/,'.***.***');
+    case 'url': { try{const u=new URL(v.startsWith('http')?v:'https://'+v);return u.hostname+'/***';}catch(e){return v.slice(0,10)+'***';} }
+    default: return v.slice(0,Math.ceil(v.length/2))+'*'.repeat(Math.floor(v.length/2));
+  }
+}
+const maskFull=v=>BLOCK.repeat(Math.min(Math.max(Math.round(v.length*0.7),3),14));
+
+/* ───────── file handling ───────── */
+const dz=$('dropzone'), fi=$('fileInput');
+dz.addEventListener('click',e=>{if(e.target.closest('button'))return;fi.click();});
+dz.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fi.click();}});
+$('btnPick').addEventListener('click',()=>fi.click());
+['dragover','dragenter'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('drag');}));
+['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove('drag');}));
+dz.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)handleFile(f);});
+fi.addEventListener('change',()=>{if(fi.files[0])handleFile(fi.files[0]);fi.value='';});
+$('btnPaste').addEventListener('click',()=>{dz.style.display='none';$('pasteArea').style.display='block';$('pasteActions').style.display='flex';$('pasteArea').focus();});
+$('btnPasteCancel').addEventListener('click',()=>{$('pasteArea').style.display='none';$('pasteActions').style.display='none';dz.style.display='flex';});
+$('btnPasteScan').addEventListener('click',()=>{const t=$('pasteArea').value.trim();if(!t){toast(T().tPasteEmpty);return;}loadText(t,T().pasted);});
+$('btnReset').addEventListener('click',resetAll);
+
+const SAMPLE_KO=`재직증명서
+
+성명: 김민준
+주민등록번호: 900315-1234567
+생년월일: 1990년 3월 15일
+주소: 서울특별시 강남구 테헤란로 152, 1204호
+연락처: 010-2345-6789
+이메일: minjun.kim@hanmail.net
+
+위 사람은 주식회사 한빛테크 개발팀에서
+2019년 4월 1일부터 현재까지 선임연구원으로
+재직 중임을 증명합니다.
+
+급여계좌: 국민은행 123456-04-789012
+비상연락망: 김서연 (배우자) 010-9876-5432
+
+2026년 7월 15일
+주식회사 한빛테크 대표이사 박정호`;
+const SAMPLE_EN=`CERTIFICATE OF EMPLOYMENT
+
+Name: James Miller
+SSN: 123-45-6789
+Date of Birth: 1990-03-15
+Address: Seoul Gangnam-gu Teheran-ro 152
+Phone: 010-2345-6789
+Email: james.miller@gmail.com
+
+This certifies that the above person has been
+employed at Hanbit Tech Inc. as a Senior Researcher
+since April 1, 2019.
+
+Payroll account: 123456-04-789012
+Emergency contact: Sarah Miller 010-9876-5432`;
+$('btnSample').addEventListener('click',()=>loadText(LANG==='ko'?SAMPLE_KO:SAMPLE_EN, LANG==='ko'?'샘플_재직증명서.txt':'sample_certificate.txt'));
+
+async function handleFile(f){
+  docTitle=f.name;
+  const ext=f.name.split('.').pop().toLowerCase();
+  try{
+    if(f.type.startsWith('image/')){
+      $('scanStatus').textContent=T().imgLoading;
+      const b64=await fileToB64(f); sourceImage={data:b64.split(',')[1],media:f.type};
+      loadText(T().imgPlaceholder,f.name,true);
+      await runAI(); return;
+    }
+    if(ext==='pdf'){
+      $('scanStatus').textContent=T().pdfLoading;
+      const buf=await f.arrayBuffer();
+      pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+      let text='';
+      for(let p=1;p<=pdf.numPages;p++){
+        const page=await pdf.getPage(p); const tc=await page.getTextContent();
+        text+=tc.items.map(i=>i.str).join(' ')+'\n\n';
+      }
+      if(text.trim().length<10) toast(T().tScanPdf);
+      loadText(text.trim()||'( - )',f.name); return;
+    }
+    if(ext==='docx'){
+      $('scanStatus').textContent=T().docxLoading;
+      const buf=await f.arrayBuffer();
+      const r=await mammoth.extractRawText({arrayBuffer:buf});
+      loadText(r.value.trim(),f.name); return;
+    }
+    const text=await f.text();
+    loadText(text,f.name);
+  }catch(err){
+    console.error(err); toast(T().tReadFail); $('scanStatus').textContent='';
+  }
+}
+const fileToB64=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f);});
+
+function loadText(text,name,skipScan){
+  docText=text; docTitle=name||'doc'; entities=[]; aiDone=false; showAllCats=false;
+  if(!skipScan) sourceImage=null;
+  $('pasteArea').style.display='none'; $('pasteActions').style.display='none';
+  dz.style.display='none'; $('docWrap').style.display='flex';
+  $('fileName').textContent=docTitle;
+  $('fileInfo').textContent=T().chars(text.length.toLocaleString());
+  if(!skipScan){
+    const found=regexScan(text);
+    addEntities(found);
+    $('scanStatus').textContent=T().scanDone(found.length);
+  } else $('scanStatus').textContent='';
+  const ab=$('btnAI'); if(!aiDone){ab.disabled=false;}
+  renderAll();
+}
+function resetAll(){
+  docText=''; entities=[]; sourceImage=null; aiDone=false; showAllCats=false;
+  $('docWrap').style.display='none'; dz.style.display='flex';
+  $('scanStatus').textContent=''; $('result').style.display='none';
+  const ab=$('btnAI'); ab.disabled=true; ab.innerHTML='🤖 <span data-i18n="btnAI">'+T().btnAI+'</span>';
+  renderAll();
+}
+
+/* ───────── entities ───────── */
+function addEntities(list){
+  for(const e of list){
+    const v=(e.value||'').trim(); if(!v||v.length<2) continue;
+    if(entities.some(x=>x.value===v)) continue;
+    const type=TYPES[e.type]?e.type:'other';
+    entities.push({id:'e'+Math.random().toString(36).slice(2,8),type,value:v,mode:catDefault[type]});
+  }
+  entities.sort((a,b)=>Object.keys(TYPES).indexOf(a.type)-Object.keys(TYPES).indexOf(b.type));
+}
+function renderAll(){renderDoc();renderList();$('btnMake').disabled=!docText||!entities.filter(isOn).length;}
+function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function escapeRe(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
+
+function renderDoc(){
+  if(!docText){$('docView').innerHTML='';return;}
+  let html=escapeHtml(docText);
+  const sorted=[...entities].filter(isOn).sort((a,b)=>b.value.length-a.value.length);
+  for(const e of sorted){
+    const ev=escapeHtml(e.value);
+    const re=new RegExp(escapeRe(ev),'g');
+    let rep;
+    if(e.mode==='ok') rep=`<mark>${ev}</mark>`;
+    else if(e.mode==='half') rep=`<span class="masked-half">${escapeHtml(maskHalf(e.type,e.value))}</span>`;
+    else rep=`<span class="masked-full">${maskFull(e.value)}</span>`;
+    html=html.replace(re,rep);
+  }
+  $('docView').innerHTML=html;
+}
+
+function catRowHtml(type,items){
+  const on=catEnabled[type], d=catDefault[type], t=T();
+  return `
+  <div class="cat-row ${on?'':'off'}">
+    <div class="cat-head">
+      <label class="cat-tgl">
+        <input type="checkbox" data-cat="${type}" ${on?'checked':''}>
+        <span class="cl">${TYPES[type].icon} ${tLabel(type)}</span>
+      </label>
+      <span class="cnt ${items.length?'hit':''}">${items.length? t.cnt(items.length) : ''}</span>
+      <div class="seg" data-cat-seg="${type}" role="radiogroup">
+        <button class="${d==='ok'?'on-ok':''}" data-cmode="ok">${t.segOk}</button>
+        <button class="${d==='half'?'on-half':''}" data-cmode="half">${t.segHalf}</button>
+        <button class="${d==='no'?'on-no':''}" data-cmode="no">${t.segNo}</button>
+      </div>
+    </div>
+    ${items.length?`<div class="cat-items">${items.map(e=>`
+      <div class="pii-item">
+        <span class="val mono" title="${escapeHtml(e.value)}">${escapeHtml(e.value)}</span>
+        <div class="seg" role="radiogroup">
+          <button class="${e.mode==='ok'?'on-ok':''}" data-id="${e.id}" data-mode="ok">${t.segOk}</button>
+          <button class="${e.mode==='half'?'on-half':''}" data-id="${e.id}" data-mode="half">${t.segHalf}</button>
+          <button class="${e.mode==='no'?'on-no':''}" data-id="${e.id}" data-mode="no">${t.segNo}</button>
+        </div>
+      </div>`).join('')}</div>`:''}
+  </div>`;
+}
+
+function renderList(){
+  const list=$('piiList'), t=T();
+  const total=entities.filter(isOn).length;
+  $('piiCount').textContent= total? t.cntUse(total):'';
+  document.querySelectorAll('#bulkBtns button').forEach(b=>b.disabled=!total);
+  $('catHint').textContent = docText? t.hintAfter : t.hintBefore;
+  const groups={};
+  for(const e of entities){(groups[e.type]=groups[e.type]||[]).push(e);}
+  const all=Object.keys(TYPES);
+  if(!docText){
+    /* 업로드 전: 전체 카테고리 표시 (기본값 미리 설정용) */
+    list.innerHTML = all.map(ty=>catRowHtml(ty,[])).join('');
+    return;
+  }
+  /* 업로드 후: 발견된 카테고리만 + 나머지는 접기 */
+  const hits=all.filter(ty=>groups[ty]&&groups[ty].length);
+  const misses=all.filter(ty=>!groups[ty]||!groups[ty].length);
+  let html=hits.map(ty=>catRowHtml(ty,groups[ty])).join('');
+  if(misses.length){
+    html+=`<button class="more-cats" id="moreCats">${showAllCats? t.moreHide : t.moreShow(misses.length)}</button>`;
+    if(showAllCats) html+=misses.map(ty=>catRowHtml(ty,[])).join('');
+  }
+  list.innerHTML=html;
+}
+
+$('piiList').addEventListener('change',e=>{
+  const cb=e.target.closest('input[data-cat]'); if(!cb) return;
+  catEnabled[cb.dataset.cat]=cb.checked; renderAll();
+});
+$('piiList').addEventListener('click',e=>{
+  if(e.target.closest('#moreCats')){showAllCats=!showAllCats;renderList();return;}
+  const cm=e.target.closest('button[data-cmode]');
+  if(cm){
+    const type=cm.closest('[data-cat-seg]').dataset.catSeg;
+    catDefault[type]=cm.dataset.cmode;
+    entities.filter(x=>x.type===type).forEach(x=>x.mode=cm.dataset.cmode);
+    renderAll(); return;
+  }
+  const b=e.target.closest('button[data-id]'); if(!b) return;
+  const ent=entities.find(x=>x.id===b.dataset.id); if(!ent) return;
+  ent.mode=b.dataset.mode; renderAll();
+});
+$('bulkBtns').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-mode]'); if(!b||b.disabled) return;
+  entities.filter(isOn).forEach(x=>x.mode=b.dataset.mode); renderAll();
+  toast(b.dataset.mode==='ok'?T().tBulkOk:b.dataset.mode==='half'?T().tBulkHalf:T().tBulkNo);
+});
+
+/* ───────── AI scan ───────── */
+$('btnAI').addEventListener('click',runAI);
+async function runAI(){
+  if(aiDone){toast(T().tAIDup);return;}
+  const btn=$('btnAI');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>'+T().aiBusy;
+  try{
+    /* 프롬프트는 서버(/api/safe_scan)에서 조립. 여기선 데이터만 보낸다 */
+    const payload = sourceImage
+      ? {image:{data:sourceImage.data, media:sourceImage.media}}
+      : {text: docText.slice(0,6000)};
+    const res=await fetch('/api/safe_scan',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    const data=await res.json();
+    if(!res.ok||data.error) throw new Error(data.error||'scan_failed');
+    const raw=(data.raw||'').replace(/```json|```/g,'').trim();
+    if(sourceImage){
+      const obj=JSON.parse(raw);
+      docText=obj.text||docText;
+      $('fileInfo').textContent=T().aiChars(docText.length.toLocaleString());
+      addEntities(regexScan(docText));
+      addEntities(obj.entities||[]);
+    }else{
+      addEntities(JSON.parse(raw));
+    }
+    aiDone=true;
+    btn.innerHTML='✅ '+T().aiDone;
+    $('scanStatus').textContent=T().scanAI(entities.length);
+    renderAll();
+    toast(T().tAIDone);
+  }catch(err){
+    console.error(err);
+    btn.disabled=false; btn.innerHTML='🤖 <span data-i18n="btnAI">'+T().btnAI+'</span>';
+    toast(T().tAIFail);
+  }
+}
+
+/* ───────── build & download ───────── */
+function buildMasked(){
+  let out=docText;
+  const sorted=[...entities].filter(isOn).sort((a,b)=>b.value.length-a.value.length);
+  for(const e of sorted){
+    if(e.mode==='ok') continue;
+    const re=new RegExp(escapeRe(e.value),'g');
+    out=out.replace(re, e.mode==='half'? maskHalf(e.type,e.value) : maskFull(e.value));
+  }
+  return out;
+}
+function buildMaskedHtml(){
+  let html=escapeHtml(docText);
+  const sorted=[...entities].filter(isOn).sort((a,b)=>b.value.length-a.value.length);
+  for(const e of sorted){
+    if(e.mode==='ok') continue;
+    const re=new RegExp(escapeRe(escapeHtml(e.value)),'g');
+    const rep=e.mode==='half'? `<span class="rh">${escapeHtml(maskHalf(e.type,e.value))}</span>` : `<span class="rf">${maskFull(e.value)}</span>`;
+    html=html.replace(re,rep);
+  }
+  return html;
+}
+$('btnMake').addEventListener('click',()=>{
+  $('resultDoc').innerHTML=buildMaskedHtml();
+  $('result').style.display='block';
+  $('result').scrollIntoView({behavior:'smooth'});
+  const hidden=entities.filter(e=>isOn(e)&&e.mode!=='ok').length;
+  toast(T().tMade(hidden));
+});
+$('btnDownload').addEventListener('click',()=>{
+  const fmt=document.querySelector('input[name=fmt]:checked').value;
+  download(fmt);
+});
+$('btnCopy').addEventListener('click',async()=>{
+  await navigator.clipboard.writeText(buildMasked());
+  toast(T().tCopied);
+});
+
+function download(fmt){
+  const base=(docTitle||'doc').replace(/\.[^.]+$/,'')+'_safe';
+  if(fmt==='png'||fmt==='jpg'){
+    const text=buildMasked();
+    const scale=2, W=900, pad=50, LH=34, maxW=W-pad*2;
+    const cv=document.createElement('canvas');
+    const ctx=cv.getContext('2d');
+    ctx.font='17px "IBM Plex Sans KR","Apple SD Gothic Neo",sans-serif';
+    /* 실측 기반 줄바꿈 */
+    const lines=[];
+    for(const raw of text.split('\n')){
+      if(!raw){lines.push('');continue;}
+      let cur='';
+      for(const ch of raw){
+        if(ctx.measureText(cur+ch).width>maxW){lines.push(cur);cur=ch;}
+        else cur+=ch;
+      }
+      lines.push(cur);
+    }
+    const H=pad*2+lines.length*LH;
+    cv.width=W*scale; cv.height=H*scale;
+    const c2=cv.getContext('2d'); c2.scale(scale,scale);
+    c2.fillStyle='#FFFFFF'; c2.fillRect(0,0,W,H);
+    c2.fillStyle='#17140F'; c2.font='17px "IBM Plex Sans KR","Apple SD Gothic Neo",sans-serif'; c2.textBaseline='top';
+    lines.forEach((l,i)=>c2.fillText(l,pad,pad+i*LH));
+    if(fmt==='jpg') triggerDL(cv.toDataURL('image/jpeg',0.92), base+'.jpg');
+    else triggerDL(cv.toDataURL('image/png'), base+'.png');
+  } else {
+    window.print();
+  }
+}
+function triggerDL(url,name){const a=document.createElement('a');a.href=url;a.download=name;a.click();toast(T().tSaved(name));}
+
+/* ───────── init ───────── */
+applyLang();
+</script>
+</body>
+</html>

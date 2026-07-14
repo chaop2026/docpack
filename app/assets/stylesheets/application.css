@@ -33,6 +33,11 @@
   --social-light: #EDE9FE;
   --social-text: #4C1D95;
 
+  /* Service: SafeFile (Green) */
+  --safe: #15803D;
+  --safe-light: #DCFCE7;
+  --safe-text: #14532D;
+
   /* Radius */
   --r-card: 20px;
   --r-btn: 12px;
@@ -262,6 +267,10 @@ p {
 .feature-card--social .feature-card-icon { background: var(--social-light); color: var(--social); }
 .feature-card--social .feature-card-tag { background: var(--social-light); color: var(--social-text); }
 .feature-card--social .feature-card-btn { background: var(--social); }
+
+.feature-card--safe .feature-card-icon { background: var(--safe-light); color: var(--safe); }
+.feature-card--safe .feature-card-tag { background: var(--safe-light); color: var(--safe-text); }
+.feature-card--safe .feature-card-btn { background: var(--safe); }
 
 /* ── Page Header Accent ── */
 .page-header {

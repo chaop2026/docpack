@@ -6,3 +6,6 @@
 Rails.application.config.filter_parameters += [
   :passw, :email, :secret, :token, :_key, :crypt, :salt, :certificate, :otp, :ssn, :cvv, :cvc
 ]
+
+# SafeFile: 검사 대상 문서 본문(text)·이미지(image)는 개인정보를 담고 있으므로 로그에 기록하지 않는다.
+Rails.application.config.filter_parameters += [ /\Atext\z/, /\Aimage\z/ ]
