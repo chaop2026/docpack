@@ -143,7 +143,7 @@ All styles are in `app/assets/stylesheets/application.css` using CSS custom prop
 - **Auto-generate flow**: `AutoGenerateBlogPostJob` runs MWF midnight KST, picks random unused topic, generates via Claude API, schedules for next MWF 9am KST
 - **SolidQueue fix (2026-04-07)**: `SOLID_QUEUE_IN_PUMA` was `false` with no separate worker container → recurring jobs never ran. Changed to `true` so Puma runs SolidQueue scheduler/worker inline.
 - **SMTP fix (2026-04-07)**: `GMAIL_PASSWORD` was empty in production env → SMTPAuthenticationError 535-5.7.8. Fixed by adding Gmail credentials to `.env` and deploying with correct env vars.
-- **Deploy note**: Do NOT `source .env` before `kamal deploy` — `.env` has local dev `DB_PASSWORD=postgres`. Production uses `DB_PASSWORD=CurrencyRate2026!` from shell env. Set env vars explicitly: `DB_PASSWORD='CurrencyRate2026!' GMAIL_USERNAME=chaop2@gmail.com GMAIL_PASSWORD=udqjfhqerrnqwiwl kamal deploy`
+- **Deploy note**: Do NOT `source .env` before `kamal deploy` — `.env` has local dev `DB_PASSWORD=postgres`. Production secrets live in the untracked `.env.production.local` (never commit). Deploy with: `set -a; source .env.production.local; set +a; kamal deploy`
 - **Verification results (2026-04-04 01:39 UTC)**:
   - 100 blog topics seeded on production
   - Test post published: "reduce-pdf-file-size-without-losing-quality" (category: global)
