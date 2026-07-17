@@ -31,6 +31,7 @@ Rails.application.routes.draw do
       member do
         post :generate
         post :improve
+        post :publish
       end
       collection do
         post :auto_generate

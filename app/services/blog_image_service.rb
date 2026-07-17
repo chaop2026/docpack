@@ -4,7 +4,7 @@ require "uri"
 
 class BlogImageService
   CLAUDE_API_URL = "https://api.anthropic.com/v1/messages"
-  CLAUDE_MODEL = "claude-sonnet-4-20250514"
+  CLAUDE_MODEL = "claude-sonnet-4-6"
 
   # Claude가 문제 상황을 재현하는 고품질 SVG 히어로 이미지를 생성
   def generate_for_post(post)

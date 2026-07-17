@@ -4,7 +4,7 @@ require "uri"
 
 class BlogGeneratorService
   API_URL = "https://api.anthropic.com/v1/messages"
-  MODEL = "claude-sonnet-4-20250514"
+  MODEL = "claude-sonnet-4-6"
 
   SYSTEM_PROMPT = <<~SYSTEM.freeze
     당신은 파일 압축/변환 분야의 심리 마케팅 전문 블로그 작가입니다.

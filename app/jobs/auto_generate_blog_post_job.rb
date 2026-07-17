@@ -23,7 +23,7 @@ class AutoGenerateBlogPostJob < ApplicationJob
       **result.slice(:title_ko, :subtitle_ko, :body_ko, :meta_description_ko, :slug, :cover_svg,
                       :trust_bar, :pain_tag, :error_mockup, :recognition_text, :loss_items, :stats),
       category: topic.category,
-      status: "scheduled",
+      status: "draft",
       published_at: published_at
     )
 
@@ -35,7 +35,8 @@ class AutoGenerateBlogPostJob < ApplicationJob
     end
 
     topic.update!(used: true)
-    Rails.logger.info("AutoGenerateBlogPostJob: Created scheduled post '#{post.slug}' for #{published_at} (image: #{post.hero_image.attached?})")
+    BlogMailer.review_requested(post).deliver_later
+    Rails.logger.info("AutoGenerateBlogPostJob: Created draft post '#{post.slug}' (suggested publish: #{published_at}, image: #{post.hero_image.attached?}) — review email enqueued")
   end
 
   private

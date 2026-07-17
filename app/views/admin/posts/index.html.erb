@@ -59,6 +59,9 @@
           <div class="admin-btn-group">
             <a href="<%= edit_admin_post_path(post) %>" class="admin-btn admin-btn-sm">Edit</a>
             <a href="<%= blog_post_path(slug: post.slug) %>" class="admin-btn admin-btn-sm" target="_blank">View</a>
+            <% unless post.status == "published" %>
+              <%= button_to "Publish", publish_admin_post_path(post), method: :post, class: "admin-btn admin-btn-sm admin-btn-primary", data: { turbo_confirm: "Publish this post now?" } %>
+            <% end %>
             <%= button_to "Delete", admin_post_path(post), method: :delete, class: "admin-btn admin-btn-sm admin-btn-danger", data: { turbo_confirm: "Delete this post?" } %>
           </div>
         </td>

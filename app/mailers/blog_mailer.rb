@@ -9,4 +9,14 @@ class BlogMailer < ApplicationMailer
       subject: "[SlimFile 블로그] 새 글 발행: #{post.title_ko}"
     )
   end
+
+  def review_requested(post)
+    @post = post
+    @remaining_topics = BlogTopic.where(used: false).count
+
+    mail(
+      to: "chaop2@gmail.com",
+      subject: "[SlimFile 블로그] 검토 요청: #{post.title_ko}"
+    )
+  end
 end

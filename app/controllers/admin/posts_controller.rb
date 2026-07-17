@@ -1,6 +1,6 @@
 module Admin
   class PostsController < BaseController
-    before_action :set_post, only: [:edit, :update, :destroy, :generate, :improve]
+    before_action :set_post, only: [:edit, :update, :destroy, :generate, :improve, :publish]
 
     def index
       @posts = Post.recent
@@ -35,6 +35,12 @@ module Admin
     def destroy
       @post.destroy
       redirect_to admin_posts_path, notice: "Post deleted."
+    end
+
+    def publish
+      published_at = params[:published_at].presence&.then { |t| Time.zone.parse(t) } || Time.current
+      @post.update!(status: "published", published_at: published_at)
+      redirect_back fallback_location: admin_posts_path, notice: "Post published (#{published_at.strftime('%Y-%m-%d %H:%M')})."
     end
 
     def generate
