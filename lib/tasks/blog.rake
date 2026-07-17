@@ -57,6 +57,11 @@ namespace :blog do
     load Rails.root.join("db/seeds/blog_topics.rb")
   end
 
+  desc "Seed SafeFile guide posts (static pages) into blog index from db/seeds/safefile_posts.rb"
+  task seed_safefile_posts: :environment do
+    load Rails.root.join("db/seeds/safefile_posts.rb")
+  end
+
   desc "Generate and immediately publish 1 test post from unused topic"
   task publish_test: :environment do
     # Seed topics if none exist
