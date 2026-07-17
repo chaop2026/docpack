@@ -13,6 +13,8 @@ en:
     pdf: "PDF Conversion"
     social: "Social Presets"
     safe: "SafeFile"
+    footer_privacy: "Privacy Policy"
+    footer_blog: "Blog"
   compress:
     title: "Image Compression - DocPack"
     heading: "Image Compression"

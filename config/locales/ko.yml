@@ -13,6 +13,8 @@ ko:
     pdf: "PDF 변환"
     social: "소셜 미디어 프리셋"
     safe: "SafeFile"
+    footer_privacy: "개인정보처리방침"
+    footer_blog: "블로그"
   compress:
     title: "이미지 압축 - DocPack"
     heading: "이미지 압축"
