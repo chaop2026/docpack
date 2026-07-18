@@ -96,6 +96,42 @@ body {
   background: var(--compress-light);
 }
 
+/* Language dropdown (native <details>, no JS) */
+.lang-dropdown {
+  position: relative;
+}
+.lang-dropdown > summary {
+  list-style: none;
+  display: inline-block;
+}
+.lang-dropdown > summary::-webkit-details-marker { display: none; }
+.lang-dropdown > summary::marker { content: ""; }
+.lang-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  min-width: 120px;
+  background: var(--card-bg);
+  border: var(--card-border);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  z-index: 100;
+}
+.lang-menu li { margin: 0; }
+.lang-menu-item {
+  display: block;
+  padding: 0.4rem 0.7rem;
+  font-size: 13px;
+  color: var(--text-sub);
+  text-decoration: none;
+  border-radius: 8px;
+}
+.lang-menu-item:hover { background: var(--bg); color: var(--compress); }
+.lang-menu-item.is-active { color: var(--compress); font-weight: 600; }
+
 /* ── Bookmark Banner ── */
 .bookmark-banner {
   display: flex;

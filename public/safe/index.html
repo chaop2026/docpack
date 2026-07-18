@@ -175,7 +175,12 @@ footer a{color:var(--sub)}
     <div class="links">
       <span class="badge-free" data-i18n="badge">무료 · 가입 없음</span>
       <a href="https://slimfile.net" style="text-decoration:none;color:var(--sub)" data-i18n="navHome">← SlimFile</a>
-      <button class="lang-btn" id="langBtn" aria-label="Switch language">EN</button>
+      <select class="lang-btn" id="langSel" aria-label="Select language">
+        <option value="ko">한국어</option>
+        <option value="en">English</option>
+        <option value="ja">日本語</option>
+        <option value="es">Español</option>
+      </select>
     </div>
   </div>
 </header>
@@ -370,9 +375,84 @@ en:{
   imgPlaceholder:'(Image document. AI deep scan is extracting the text and personal info.)',
   pasted:'Pasted text', aiChars:n=>`${n} chars (AI extracted)`, chars:n=>`${n} chars`,
   types:{rrn:'Korean RRN',ssn:'SSN (US)',passport:'Passport no.',license:"Driver's license",card:'Card number',account:'Bank account',phone:'Phone',email:'Email',birth:'Date of birth',address:'Address',name:'Name',company:'Company',title:'Job title',ip:'IP address',url:'Social · URL',health:'Health / sensitive',other:'Other'}
+},
+ja:{
+  badge:'無料 · 登録不要', navHome:'← SlimFile',
+  heroPre:'文書内の', heroPost:'だけ<br>選んで消して共有しましょう',
+  cycle:['身分証番号','電話番号','自宅住所','口座番号','氏名'],
+  heroP:'文書をアップロードすると個人情報を自動で見つけます。残すものだけ選び、あとは隠して新しい文書に。',
+  trust1:'ファイルはサーバーに保存されません', trust2:'登録不要', trust3:'1分もあれば完了',
+  s1:'文書をアップロード', s2:'検出された個人情報', s3:'文書を作成', s3sub:'選択した項目だけを隠した新しい文書を作成します。',
+  dzTitle:'ファイルをドラッグ＆ドロップ、またはクリック', dzTypes:'PDF · Word(docx) · テキスト · 画像(JPG/PNG)',
+  btnPick:'ファイルを選択', btnSample:'サンプル文書で試す', btnPaste:'テキストを貼り付け',
+  btnPasteScan:'この内容で検査', btnCancel:'キャンセル', btnReset:'別の文書',
+  pastePh:'ここに文書の内容を貼り付けて、下のボタンを押してください',
+  bulkOk:'すべて公開', bulkHalf:'すべて部分公開', bulkNo:'すべて非公開',
+  segOk:'公開', segHalf:'部分', segNo:'非公開',
+  hintBefore:'各項目の初期公開レベルを設定しておきましょう。文書内で見つかると、その設定どおりに隠されます。',
+  hintAfter:'文書内で見つかった項目です。項目ごとに公開レベルを変更できます。',
+  moreShow:n=>`検出されなかった項目 ${n}件を表示`, moreHide:'検出されなかった項目を隠す',
+  aiHint:'氏名・会社・住所のようにパターンのない情報は、AIが文脈から見つけます。', btnAI:'AI精密検査',
+  aiBusy:'AIが読み取り中…', aiDone:'AI検査完了',
+  fmtJpg:'画像 (JPG)', fmtPng:'画像 (PNG)', fmtPdf:'PDF', btnMake:'文書を作成',
+  resTitle:'完成した文書', btnDl:'ダウンロード', btnCopy:'テキストをコピー',
+  privacy:'🔒 すべての文書はお使いのブラウザ内でのみ処理されます。AI精密検査を選んだ場合のみ、そのテキストがAI分析のために送信され、保存されることはありません。',
+  partners:'SafeFileのおすすめサービス',
+  pSlim:'画像圧縮とPDF変換を、2MB以下で手軽に。', pSchool:'先生のための求人情報、ぴったりの学校探し。', pHello:'韓国語学習を今日から始めましょう。',
+  footer:'個人情報を守る、いちばん速い方法', footPrivacy:'プライバシーポリシー', footBlog:'ブログ',
+  cnt:n=>`${n}件`, cntUse:n=>`· ${n}件使用中`, scanDone:n=>`⚡ 即時検査完了 — ${n}件検出`, scanAI:n=>`🤖 AI検査を含む — 合計${n}件`,
+  tPasteEmpty:'内容を貼り付けてください', tBulkOk:'すべての項目を公開に設定しました', tBulkHalf:'すべての項目を部分公開に設定しました', tBulkNo:'すべての項目を非公開に設定しました',
+  tAIDone:'AIが氏名・会社などの文脈情報まで見つけました', tAIDup:'AI検査はすでに完了しています', tAIFail:'AI検査に失敗しました。しばらくしてからもう一度お試しください。',
+  tMade:n=>`完成！ ${n}件の項目を隠しました`, tCopied:'クリップボードにコピーしました', tSaved:n=>`${n} を保存しました`,
+  tReadFail:'ファイルを読み取れませんでした。テキストの貼り付けをお試しください。', tScanPdf:'スキャンされたPDFのようです。画像としてアップロードすればAIが読み取ります。',
+  imgLoading:'AIが画像を読み取っています…', pdfLoading:'PDFを読み取り中…', docxLoading:'Word文書を読み取り中…',
+  imgPlaceholder:'（画像文書です。「AI精密検査」が画像内のテキストと個人情報を検出しています。）',
+  pasted:'貼り付けたテキスト', aiChars:n=>`${n}文字（AI抽出）`, chars:n=>`${n}文字`,
+  types:{rrn:'住民登録番号(韓国)',ssn:'SSN(米国)',passport:'パスポート番号',license:'運転免許番号',card:'カード番号',account:'口座番号',phone:'電話番号',email:'メール',birth:'生年月日',address:'住所',name:'氏名',company:'会社・所属',title:'役職',ip:'IPアドレス',url:'SNS・URL',health:'健康・センシティブ情報',other:'その他'}
+},
+es:{
+  badge:'Gratis · Sin registro', navHome:'← SlimFile',
+  heroPre:'Oculta solo los ', heroPost:'<br>de tus documentos y compártelos',
+  cycle:['datos de identidad','números de teléfono','domicilio','números de cuenta','nombres'],
+  heroP:'Sube un documento y encontramos los datos personales automáticamente. Conserva lo que quieras, oculta el resto y descarga un archivo nuevo.',
+  trust1:'Los archivos nunca salen de tu navegador', trust2:'Sin registro', trust3:'Listo en menos de un minuto',
+  s1:'Subir documento', s2:'Datos personales detectados', s3:'Crear documento', s3sub:'Crea un documento nuevo con solo los elementos que elijas ocultos.',
+  dzTitle:'Arrastra y suelta un archivo o haz clic', dzTypes:'PDF · Word (docx) · Texto · Imagen (JPG/PNG)',
+  btnPick:'Elegir archivo', btnSample:'Probar con un ejemplo', btnPaste:'Pegar texto',
+  btnPasteScan:'Analizar este texto', btnCancel:'Cancelar', btnReset:'Nuevo documento',
+  pastePh:'Pega aquí el texto de tu documento y pulsa el botón de abajo',
+  bulkOk:'Mostrar todo', bulkHalf:'Todo parcial', bulkNo:'Ocultar todo',
+  segOk:'Mostrar', segHalf:'Parcial', segNo:'Ocultar',
+  hintBefore:'Define el nivel de visibilidad por defecto de cada categoría. Cuando se encuentren en tu documento, se ocultarán según esa configuración.',
+  hintAfter:'Elementos encontrados en tu documento. Ajusta la visibilidad de cada uno.',
+  moreShow:n=>`Mostrar ${n} categorías más`, moreHide:'Ocultar otras categorías',
+  aiHint:'La IA encuentra datos sin patrón fijo, como nombres, empresas y direcciones, a partir del contexto.', btnAI:'Análisis con IA',
+  aiBusy:'La IA está leyendo…', aiDone:'Análisis con IA completado',
+  fmtJpg:'Imagen (JPG)', fmtPng:'Imagen (PNG)', fmtPdf:'PDF', btnMake:'Crear documento',
+  resTitle:'Tu documento seguro', btnDl:'Descargar', btnCopy:'Copiar texto',
+  privacy:'🔒 Todos los documentos se procesan dentro de tu navegador. Solo cuando eliges el análisis con IA se envía el texto para su análisis, y nunca se almacena.',
+  partners:'Recomendado por SafeFile',
+  pSlim:'Compresión de imágenes y conversión a PDF, todo por debajo de 2 MB.', pSchool:'Empleo docente: encuentra el colegio perfecto.', pHello:'Empieza a aprender coreano hoy.',
+  footer:'La forma más rápida de proteger tus datos personales', footPrivacy:'Política de privacidad', footBlog:'Blog',
+  cnt:n=>`${n}`, cntUse:n=>`· ${n} en uso`, scanDone:n=>`⚡ Análisis instantáneo listo — ${n} encontrados`, scanAI:n=>`🤖 Con análisis de IA — ${n} en total`,
+  tPasteEmpty:'Primero pega algún texto', tBulkOk:'Todos los elementos configurados como visibles', tBulkHalf:'Todos los elementos configurados como parciales', tBulkNo:'Todos los elementos configurados como ocultos',
+  tAIDone:'La IA encontró datos contextuales como nombres y empresas', tAIDup:'El análisis con IA ya está hecho', tAIFail:'El análisis con IA falló. Inténtalo de nuevo en un momento.',
+  tMade:n=>`¡Listo! ${n} elementos ocultados`, tCopied:'Copiado al portapapeles', tSaved:n=>`${n} guardado`,
+  tReadFail:'No se pudo leer el archivo. Prueba a pegar el texto.', tScanPdf:'Parece un PDF escaneado. Súbelo como imagen y la IA lo leerá.',
+  imgLoading:'La IA está leyendo la imagen…', pdfLoading:'Leyendo PDF…', docxLoading:'Leyendo documento de Word…',
+  imgPlaceholder:'(Documento de imagen. El análisis con IA está extrayendo el texto y los datos personales.)',
+  pasted:'Texto pegado', aiChars:n=>`${n} caracteres (extraído por IA)`, chars:n=>`${n} caracteres`,
+  types:{rrn:'RRN de Corea',ssn:'SSN (EE. UU.)',passport:'N.º de pasaporte',license:'Permiso de conducir',card:'N.º de tarjeta',account:'Cuenta bancaria',phone:'Teléfono',email:'Correo',birth:'Fecha de nacimiento',address:'Dirección',name:'Nombre',company:'Empresa',title:'Cargo',ip:'Dirección IP',url:'Redes · URL',health:'Salud / sensible',other:'Otro'}
 }
 };
-let LANG = (navigator.language||'ko').toLowerCase().startsWith('ko') ? 'ko' : 'en';
+const LANGS = ['ko','en','ja','es'];
+function detectLang(){
+  try { const s = localStorage.getItem('safefile_lang'); if (s && LANGS.includes(s)) return s; } catch(e){}
+  const n = (navigator.language||'ko').toLowerCase();
+  for (const l of LANGS) if (n.startsWith(l)) return l;
+  return 'ko';
+}
+let LANG = detectLang();
 const T = () => I18N[LANG];
 
 /* ───────── state ───────── */
@@ -403,7 +483,8 @@ setInterval(()=>{cw=(cw+1)%T().cycle.length;const el=$('cycleWord');if(el)el.tex
 /* ───────── apply language ───────── */
 function applyLang(){
   document.documentElement.lang=LANG;
-  $('langBtn').textContent = LANG==='ko' ? 'EN' : '한국어';
+  try { localStorage.setItem('safefile_lang', LANG); } catch(e){}
+  const sel=$('langSel'); if(sel) sel.value=LANG;
   document.querySelectorAll('[data-i18n]').forEach(el=>{
     const k=el.dataset.i18n; const v=T()[k];
     if(typeof v==='string') el.innerHTML=v;
@@ -411,7 +492,7 @@ function applyLang(){
   $('pasteArea').placeholder=T().pastePh;
   renderHero(); renderAll();
 }
-$('langBtn').addEventListener('click',()=>{LANG=LANG==='ko'?'en':'ko';applyLang();});
+$('langSel').addEventListener('change',e=>{LANG=e.target.value;applyLang();});
 
 /* ───────── regex detection ───────── */
 const REGEX_RULES=[

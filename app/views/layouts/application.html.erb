@@ -22,13 +22,21 @@
 
     <link rel="canonical" href="<%= content_for(:meta_url) || "#{base_url}#{request.path}" %>">
 
+    <% hreflang_alternates.each do |loc, href| %>
+    <link rel="alternate" hreflang="<%= loc %>" href="<%= href %>">
+    <% end %>
+    <link rel="alternate" hreflang="x-default" href="<%= "#{base_url}#{localized_path(I18n.default_locale)}" %>">
+
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="SlimFile">
     <meta property="og:title" content="<%= content_for(:meta_title) || content_for(:title) || 'SlimFile' %>">
     <meta property="og:description" content="<%= content_for(:meta_description) || t('seo.default_description') %>">
     <meta property="og:url" content="<%= content_for(:meta_url) || "#{base_url}#{request.path}" %>">
     <meta property="og:image" content="<%= content_for(:meta_image) || "#{base_url}/icon.png?v=2" %>">
-    <meta property="og:locale" content="<%= I18n.locale == :ko ? 'ko_KR' : 'en_US' %>">
+    <meta property="og:locale" content="<%= og_locale %>">
+    <% (I18n.available_locales - [I18n.locale]).each do |loc| %>
+    <meta property="og:locale:alternate" content="<%= og_locale(loc) %>">
+    <% end %>
 
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="<%= content_for(:meta_title) || content_for(:title) || 'SlimFile' %>">
@@ -82,7 +90,18 @@
         <%= link_to "SlimFile", root_path, class: "top-bar-logo" %>
         <div class="top-bar-right">
           <%= link_to t("nav_blog"), blog_path, class: "top-bar-nav-link" %>
-          <%= button_to t("lang_label"), toggle_locale_path, method: :post, class: "btn-lang" %>
+          <details class="lang-dropdown">
+            <summary class="btn-lang" aria-label="Select language"><%= locale_name(I18n.locale) %></summary>
+            <ul class="lang-menu">
+              <% I18n.available_locales.each do |loc| %>
+                <li>
+                  <%= link_to locale_name(loc), localized_url_path(loc),
+                        class: "lang-menu-item#{' is-active' if loc == I18n.locale}",
+                        hreflang: loc, rel: (loc == I18n.locale ? nil : "alternate") %>
+                </li>
+              <% end %>
+            </ul>
+          </details>
         </div>
       </div>
     </header>

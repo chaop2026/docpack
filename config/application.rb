@@ -16,6 +16,11 @@ module Docpack
     # Common ones are `templates`, `generators`, or `middleware`, for example.
     config.autoload_lib(ignore: %w[assets tasks])
 
+    # i18n — 4 locales, Korean is default (no URL prefix)
+    config.i18n.available_locales = %i[ko en ja es]
+    config.i18n.default_locale = :ko
+    config.i18n.fallbacks = [:ko]
+
     # Configuration for the application, engines, and railties goes here.
     #
     # These settings can be overridden in specific environments using the files
