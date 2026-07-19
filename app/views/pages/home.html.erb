@@ -32,7 +32,10 @@
       <span class="feature-card-btn"><%= t("social.submit") %></span>
     <% end %>
 
-    <%= link_to "/safe/", class: "feature-card feature-card--safe" do %>
+    <%# ?v busts the browser cache for returning visitors who previously cached
+        /safe/ under the old 1-year Cache-Control (a new URL = new cache key, so
+        it bypasses the poisoned entry and picks up the new no-cache header). %>
+    <%= link_to "/safe/?v=20260719", class: "feature-card feature-card--safe" do %>
       <div class="feature-card-icon">🔒</div>
       <span class="feature-card-tag">PRIVACY</span>
       <div class="feature-card-title"><%= t("home.safe") %></div>
