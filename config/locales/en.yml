@@ -76,7 +76,9 @@ en:
     description: "Tips and guides for image compression, PDF conversion, and file optimization."
     meta_description: "Practical tips and guides for image compression, PDF conversion, and file management. Free online tools and best practices."
     all: "All"
+    view_all: "View all posts"
     categories:
+      privacy: "Privacy"
       image: "Image"
       pdf: "PDF"
       office: "Office"

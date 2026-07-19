@@ -76,7 +76,9 @@ ko:
     description: "이미지 압축, PDF 변환, 파일 최적화에 대한 실용적인 팁과 가이드."
     meta_description: "이미지 압축, PDF 변환, 파일 관리에 대한 실용적인 팁과 가이드. 무료 온라인 도구와 모범 사례."
     all: "전체"
+    view_all: "전체 글 보기"
     categories:
+      privacy: "개인정보"
       image: "이미지"
       pdf: "PDF"
       office: "오피스"

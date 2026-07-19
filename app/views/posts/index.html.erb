@@ -11,7 +11,7 @@
 
   <div class="blog-categories">
     <%= link_to t("blog.all"), blog_path, class: "blog-cat-chip #{params[:category].blank? ? 'blog-cat-chip--active' : ''}" %>
-    <% %w[image pdf office student freelancer global].each do |cat| %>
+    <% %w[privacy image pdf office student freelancer global].each do |cat| %>
       <%= link_to t("blog.categories.#{cat}"), blog_path(category: cat), class: "blog-cat-chip #{params[:category] == cat ? 'blog-cat-chip--active' : ''}" %>
     <% end %>
   </div>
@@ -39,6 +39,12 @@
   <% else %>
     <div class="blog-empty">
       <p><%= t("blog.empty") %></p>
+    </div>
+  <% end %>
+
+  <% if params[:category].present? %>
+    <div class="blog-back-to-all">
+      <%= link_to "#{t('blog.view_all')} →".html_safe, blog_path, class: "blog-back-to-all-link" %>
     </div>
   <% end %>
 </div>

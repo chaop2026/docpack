@@ -76,7 +76,9 @@ ja:
     description: "画像圧縮、PDF変換、ファイル最適化に関する実用的なヒントとガイド。"
     meta_description: "画像圧縮、PDF変換、ファイル管理に関する実用的なヒントとガイド。無料オンラインツールとベストプラクティス。"
     all: "すべて"
+    view_all: "すべての記事を見る"
     categories:
+      privacy: "個人情報"
       image: "画像"
       pdf: "PDF"
       office: "オフィス"

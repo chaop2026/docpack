@@ -76,7 +76,9 @@ es:
     description: "Consejos y guías para comprimir imágenes, convertir a PDF y optimizar archivos."
     meta_description: "Consejos y guías prácticas para comprimir imágenes, convertir a PDF y gestionar archivos. Herramientas online gratuitas y buenas prácticas."
     all: "Todo"
+    view_all: "Ver todas las publicaciones"
     categories:
+      privacy: "Privacidad"
       image: "Imagen"
       pdf: "PDF"
       office: "Oficina"

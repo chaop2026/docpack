@@ -803,6 +803,19 @@ p {
   border-color: var(--compress);
 }
 
+/* "View all posts" back-link on filtered category listings (avoids orphans) */
+.blog-back-to-all {
+  text-align: center;
+  margin: 2rem 0 0.5rem;
+}
+.blog-back-to-all-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--compress);
+  text-decoration: none;
+}
+.blog-back-to-all-link:hover { text-decoration: underline; }
+
 .blog-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));

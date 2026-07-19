@@ -31,6 +31,22 @@
   </url>
   <% end %>
 <% end %>
+<%# Category listing pages — currently privacy (SafeFile guides). 4 UI locales. %>
+<% category_pages = %w[privacy] %>
+<% category_pages.each do |cat| %>
+  <% ui_locales.each do |loc| %>
+  <url>
+    <loc><%= @base_url %><%= prefix.(loc, "/blog") %>?category=<%= cat %></loc>
+    <lastmod><%= Date.today.iso8601 %></lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+    <% ui_locales.each do |alt| %>
+    <xhtml:link rel="alternate" hreflang="<%= alt %>" href="<%= @base_url %><%= prefix.(alt, "/blog") %>?category=<%= cat %>"/>
+    <% end %>
+    <xhtml:link rel="alternate" hreflang="x-default" href="<%= @base_url %><%= prefix.(default, "/blog") %>?category=<%= cat %>"/>
+  </url>
+  <% end %>
+<% end %>
 <% Post.published.recent.each do |post| %>
   <% lastmod = (post.updated_at || post.published_at)&.to_date&.iso8601 %>
   <%# Only emit locales the post is actually translated into — untranslated
