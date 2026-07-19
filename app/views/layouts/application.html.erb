@@ -98,7 +98,7 @@
             <ul class="lang-menu">
               <% I18n.available_locales.each do |loc| %>
                 <li>
-                  <%= link_to locale_name(loc), localized_url_path(loc),
+                  <%= link_to locale_name(loc), locale_switch_path(loc),
                         class: "lang-menu-item#{' is-active' if loc == I18n.locale}",
                         hreflang: loc, rel: (loc == I18n.locale ? nil : "alternate") %>
                 </li>

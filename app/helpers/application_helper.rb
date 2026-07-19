@@ -50,6 +50,19 @@ module ApplicationHelper
     request.query_string.present? ? "#{path}?#{request.query_string}" : path
   end
 
+  # Path used by the language switcher. The default (Korean) locale has no URL
+  # prefix, so a bare path is ambiguous with a stale `locale` cookie and
+  # set_locale would keep the previous language. Make the choice explicit with
+  # ?locale=ko (read with top priority by set_locale, which then persists it).
+  # Non-default locales are unambiguous via their prefix; we only carry over any
+  # existing non-locale query (e.g. ?category=privacy).
+  def locale_switch_path(locale)
+    base = localized_path(locale)
+    query = request.query_parameters.except("locale")
+    query["locale"] = locale if locale.to_sym == I18n.default_locale
+    query.present? ? "#{base}?#{query.to_query}" : base
+  end
+
   # [[locale, absolute_url], ...] for hreflang alternates (canonical, no query).
   def hreflang_alternates
     I18n.available_locales.map { |loc| [loc, "#{base_url}#{localized_path(loc)}"] }
