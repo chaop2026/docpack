@@ -53,6 +53,16 @@
       "phone_format": {"+91 9599320477": "+91 95****0477"},
       "name_bar": "Aarav Sharma",
       "dark_bg_value": "aarav.sharma@gmail.com"
+    },
+    {
+      "doc": "8_resume_2col.pdf", "type": "pdf", "ocr": false, "min_auto": 2,
+      "_note": "Regression for 2 real-résumé defects: (1) a 3-token name in a 2-column layout whose surname renders slightly smaller must stay whole and be fully maskable (surname included) — activate_name turns the name candidate on, then must_mask asserts every token incl. the surname is covered; (2) a merged 'Korea (Koreaz Contest)' line must not be proposed as an address candidate.",
+      "activate_name": "Ishan Rohit Malhotra",
+      "must_mask": ["Ishan Rohit Malhotra", "Malhotra", "+91 9599320477", "ishan.malhotra@gmail.com"],
+      "must_not_mask": ["Software Engineer", "Delhi University", "Maharaja Agrasen College"],
+      "should_candidate": [],
+      "never_candidate": ["Korea (Koreaz Contest)", "Korea", "Maharaja Agrasen College", "Delhi University"],
+      "phone_format": {"+91 9599320477": "+91 95****0477"}
     }
   ],
 
@@ -74,7 +84,18 @@
       {"label": "lone country labelled as address", "entity": {"type": "address", "value": "Korea"}, "expect": "dropped"},
       {"label": "lone country labelled as name", "entity": {"type": "name", "value": "India"}, "expect": "dropped"},
       {"label": "country adjective labelled as name", "entity": {"type": "name", "value": "Indian"}, "expect": "dropped"},
+      {"label": "country+parenthetical labelled as address", "entity": {"type": "address", "value": "Korea (Koreaz Contest)"}, "expect": "dropped"},
       {"label": "genuine body name (positive control)", "entity": {"type": "name", "value": "Rohan Mehta"}, "expect": "masked"}
     ]
+  },
+
+  "ai_cat_state": {
+    "_doc": "7_resume_dark.pdf",
+    "_note": "After an AI deep-scan injects name/company labels, the category ACTIVE state (checkbox) must stay ON — a disabled name category would silently leave names unmasked when the user trusts the AI and just builds. Asserts catEnabled stays true and the rendered checkbox stays checked.",
+    "labels": [
+      {"type": "name", "value": "Rohan Mehta"},
+      {"type": "company", "value": "Globex Solutions Pvt Ltd"}
+    ],
+    "assert_enabled": ["name", "company"]
   }
 }

@@ -122,6 +122,17 @@ async function checkDoc(page, spec) {
   const autoCount = snap.filter(e => e.kind === 'auto').length;
   if (spec.min_auto != null) rec(doc, 'REGRESSION', `auto>=${spec.min_auto}`, `>=${spec.min_auto}`, String(autoCount), autoCount >= spec.min_auto);
 
+  // Turn a name candidate ON (hide → solid) so must_mask can assert the whole
+  // name — surname included — is geometrically covered once the user activates it.
+  if (spec.activate_name) {
+    const ok = await page.evaluate(v => {
+      const e = entities.find(x => x.value === v && x.type === 'name');
+      if (!e) return false;
+      e.mode = 'no'; renderAll(); return true;
+    }, spec.activate_name);
+    rec(doc, 'NAME_WHOLE', spec.activate_name, 'detected-whole', ok ? 'detected' : 'MISSING/truncated', ok);
+  }
+
   for (const v of spec.must_mask || []) {
     const masked = await page.evaluate(x => window.__isMasked(x), v);
     rec(doc, 'MUST_MASK', v, 'masked', masked ? 'masked' : 'NOT masked', masked);
@@ -215,6 +226,28 @@ async function checkAiInject(page) {
   }
 }
 
+async function checkAiCatState(page) {
+  const cs = SPECS.ai_cat_state; if (!cs) return;
+  await loadDoc(page, cs._doc, false);
+  const res = await page.evaluate(({ labels, want }) => {
+    // record active state BEFORE the AI merge, then inject AI labels
+    const before = {}; for (const t of want) before[t] = catEnabled[t] !== false;
+    addEntities(labels); renderAll();
+    const after = {}, boxChecked = {};
+    for (const t of want) {
+      after[t] = catEnabled[t] !== false;
+      const cb = document.querySelector(`#piiList input[data-cat="${t}"]`);
+      boxChecked[t] = cb ? cb.checked : null; // null = row not rendered (still a fail signal)
+    }
+    return { before, after, boxChecked };
+  }, { labels: cs.labels, want: cs.assert_enabled });
+  for (const t of cs.assert_enabled) {
+    const pass = res.after[t] === true && res.boxChecked[t] === true;
+    rec(cs._doc, 'AI_CAT_STATE', `${t} stays enabled`, 'on+checked',
+      `enabled=${res.after[t]} checked=${res.boxChecked[t]}`, pass);
+  }
+}
+
 function printTable() {
   const pad = (s, n) => { s = String(s); return s.length > n ? s.slice(0, n - 1) + '…' : s.padEnd(n); };
   let lastDoc = '';
@@ -262,6 +295,7 @@ function printTable() {
   }
   if (!onlyArg || onlyArg === '(units)') await checkPhoneUnits(page);
   if (!onlyArg || onlyArg === '7_resume_dark.pdf') { process.stderr.write('… ai_inject\n'); await checkAiInject(page); }
+  if (!onlyArg || onlyArg === '7_resume_dark.pdf') { process.stderr.write('… ai_cat_state\n'); await checkAiCatState(page); }
 
   const failCount = printTable();
   if (consoleErrors.length) { console.log('\n  ⚠ console errors:'); consoleErrors.slice(0, 10).forEach(e => console.log('    ' + e)); }
