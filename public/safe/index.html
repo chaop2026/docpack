@@ -8,7 +8,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>SafeFile — 문서 속 개인정보, 1분 안에 지우고 공유</title>
-<meta name="description" content="문서를 올리면 개인정보를 자동으로 찾아 원하는 만큼 가리고 새 문서로 만들어 드립니다. 무료, 회원가입 없음.">
+<meta name="description" content="문서를 올리면 원본 모습 그대로 두고 개인정보 위치에만 검은 바를 덮어 새 문서로 만들어 드립니다. 무료, 회원가입 없음.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -62,11 +62,12 @@ header{border-bottom:1px solid var(--line);background:var(--paper);position:stic
 .panel-body{flex:1;padding:14px 16px 16px;display:flex;flex-direction:column;min-height:0}
 
 /* Dropzone */
-.dropzone{flex:1;border:2px dashed var(--line);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:24px 16px;cursor:pointer;transition:.15s;min-height:210px}
+.dropzone{flex:1;border:2px dashed var(--line);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:24px 16px;cursor:pointer;transition:.15s;min-height:210px}
 .dropzone:hover,.dropzone.drag{border-color:var(--ink);background:var(--marker-soft)}
 .dropzone .icon{font-size:32px}
 .dropzone strong{font-size:15px}
 .dropzone small{color:var(--sub);font-size:12.5px}
+.dropzone .dz-limit{font-size:11.5px;color:var(--sub);opacity:.85}
 .dz-actions{margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 .btn{border:1px solid var(--ink);background:var(--ink);color:#fff;font-family:inherit;font-size:14px;font-weight:500;padding:10px 16px;border-radius:9px;cursor:pointer;transition:.15s;min-height:40px}
 .btn:hover{opacity:.85}
@@ -76,11 +77,14 @@ header{border-bottom:1px solid var(--line);background:var(--paper);position:stic
 .btn.small{font-size:13px;padding:7px 12px;min-height:36px}
 .btn:focus-visible,.seg button:focus-visible,.lang-btn:focus-visible{outline:2px solid var(--half);outline-offset:2px}
 
-/* doc preview */
-.doc-view{flex:1;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:14px;font-size:13.5px;white-space:pre-wrap;word-break:break-word;background:#FDFCFA;min-height:0;max-height:52vh}
-.doc-view mark{background:var(--marker);padding:1px 3px;border-radius:3px}
-.doc-view .masked-half{background:var(--half-bg);color:var(--half);padding:1px 3px;border-radius:3px;font-weight:500}
-.doc-view .masked-full{background:var(--ink);color:var(--ink);border-radius:3px;padding:1px 3px;user-select:none}
+/* progress bar */
+.prog{height:5px;background:var(--line);border-radius:5px;overflow:hidden;margin-top:10px;display:none}
+.prog.on{display:block}
+.prog i{display:block;height:100%;background:var(--marker);width:0;transition:width .2s}
+
+/* rendered-page preview */
+.preview{flex:1;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:12px;background:#FDFCFA;min-height:0;max-height:56vh;display:flex;flex-direction:column;gap:12px;align-items:center}
+.preview canvas.pg{width:100%;max-width:660px;border:1px solid var(--line);border-radius:6px;background:#fff;box-shadow:0 1px 5px rgba(23,20,15,.10);display:block}
 .file-meta{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px;color:var(--sub);flex-wrap:wrap}
 .file-meta .chip{background:var(--marker-soft);padding:2px 9px;border-radius:14px;color:var(--ink);font-weight:500;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
@@ -106,6 +110,8 @@ header{border-bottom:1px solid var(--line);background:var(--paper);position:stic
 .cat-items{padding:0 10px 8px}
 .pii-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;background:#fff;flex-wrap:wrap}
 .pii-item .val{font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.pii-item.nolocate .val{opacity:.6}
+.pii-item .nl{font-size:10px;font-weight:600;color:var(--half);background:var(--half-bg);border-radius:10px;padding:1px 6px;flex-shrink:0}
 .seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex-shrink:0}
 .seg button{border:none;background:#fff;font-family:inherit;font-size:12px;padding:7px 10px;cursor:pointer;color:var(--sub);border-left:1px solid var(--line);min-height:32px}
 .seg button:first-child{border-left:none}
@@ -120,7 +126,8 @@ header{border-bottom:1px solid var(--line);background:var(--paper);position:stic
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* Make section */
-.make{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:36px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.make{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:36px}
+.make .make-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .make .info{flex:1;min-width:200px}
 .make .info strong{font-size:15px}
 .make .info small{display:block;color:var(--sub);font-size:13px;margin-top:2px}
@@ -130,6 +137,16 @@ header{border-bottom:1px solid var(--line);background:var(--paper);position:stic
 .fmt input:checked + span{font-weight:700}
 .fmt label:has(input:checked){background:var(--marker-soft);border-color:var(--ink)}
 .btn-make{font-size:15px;padding:12px 24px;border-radius:10px}
+/* watermark */
+.wm{margin-top:14px;padding-top:14px;border-top:1px dashed var(--line)}
+.wm-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.wm-head label{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:500;cursor:pointer;user-select:none}
+.wm-head input[type=checkbox]{width:17px;height:17px;accent-color:var(--ink);cursor:pointer}
+.wm-body{display:none;margin-top:10px;gap:8px;flex-wrap:wrap;align-items:center}
+.wm-body.on{display:flex}
+.wm-body select,.wm-body input[type=text]{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff;min-height:38px}
+.wm-body input[type=text]{flex:1;min-width:180px}
+.wm-note{width:100%;font-size:11.5px;color:var(--half);background:var(--half-bg);border-radius:8px;padding:7px 11px;margin-top:2px}
 @media(max-width:600px){.make{position:sticky;bottom:10px;z-index:40;box-shadow:0 6px 24px rgba(23,20,15,.12)}.btn-make{width:100%}}
 
 /* Result */
@@ -138,9 +155,9 @@ header{border-bottom:1px solid var(--line);background:var(--paper);position:stic
 .result-head{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .result-head h2{font-size:16px}
 .result-actions{display:flex;gap:8px;flex-wrap:wrap}
-#resultDoc{padding:20px;font-size:14px;white-space:pre-wrap;word-break:break-word;max-height:420px;overflow:auto;background:#FDFCFA}
-#resultDoc .rf{background:var(--ink);color:var(--ink);border-radius:3px;padding:1px 4px;user-select:none}
-#resultDoc .rh{background:var(--half-bg);border-radius:3px;padding:1px 2px}
+#resultDoc{padding:16px;background:#FDFCFA;max-height:520px;overflow:auto;display:flex;flex-direction:column;gap:12px;align-items:center}
+#resultDoc img{max-width:100%;width:auto;border:1px solid var(--line);border-radius:6px;box-shadow:0 1px 5px rgba(23,20,15,.10)}
+.result-flat{font-size:12px;color:var(--sub);text-align:center;padding:0 16px 14px}
 
 /* Partners */
 .partners{border-top:1px solid var(--line);padding:30px 0 16px}
@@ -157,13 +174,6 @@ footer a{color:var(--sub)}
 
 #toast{position:fixed;bottom:calc(24px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 20px;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:100;max-width:90vw;text-align:center}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-@media print{
-  header,.hero,.stage,.make,.partners,footer,.privacy-note,.result-actions,#toast{display:none!important}
-  #result{display:block!important;margin:0}
-  .result-card{border:none}
-  #resultDoc{max-height:none;background:#fff}
-  #resultDoc .rf{background:#000;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-}
 </style>
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9747637096324982" crossorigin="anonymous"></script>
 </head>
@@ -187,11 +197,11 @@ footer a{color:var(--sub)}
 
 <section class="hero wrap">
   <h1 id="heroH1"></h1>
-  <p data-i18n="heroP">문서를 올리면 개인정보를 자동으로 찾아 드립니다. 남길 것만 고르고, 나머지는 가려서 새 문서로.</p>
+  <p data-i18n="heroP">문서를 올리면 원본 모습은 그대로, 개인정보 위치에만 검은 바를 덮어 드립니다. 남길 것만 고르세요.</p>
   <div class="trust">
     <span data-i18n="trust1">파일은 서버에 저장되지 않습니다</span>
     <span data-i18n="trust2">회원가입 없음</span>
-    <span data-i18n="trust3">1분이면 충분</span>
+    <span data-i18n="trust3">원본 레이아웃 그대로</span>
   </div>
 </section>
 
@@ -207,7 +217,8 @@ footer a{color:var(--sub)}
         <div class="dropzone" id="dropzone" role="button" tabindex="0">
           <div class="icon">📄</div>
           <strong data-i18n="dzTitle">파일을 끌어다 놓거나 클릭하세요</strong>
-          <small data-i18n="dzTypes">PDF · Word(docx) · 텍스트 · 이미지(JPG/PNG)</small>
+          <small data-i18n="dzTypes">PDF · 이미지(JPG/PNG/WEBP/HEIC) · Word(docx) · 텍스트</small>
+          <small class="dz-limit" data-i18n="dzLimit">최대 20MB · 30페이지 · 브라우저 안에서만 처리</small>
           <div class="dz-actions">
             <button class="btn small" type="button" id="btnPick" data-i18n="btnPick">파일 선택</button>
             <button class="btn ghost small" type="button" id="btnSample" data-i18n="btnSample">샘플 문서로 체험</button>
@@ -219,15 +230,16 @@ footer a{color:var(--sub)}
           <button class="btn small" id="btnPasteScan" data-i18n="btnPasteScan">이 내용으로 검사</button>
           <button class="btn ghost small" id="btnPasteCancel" data-i18n="btnCancel">취소</button>
         </div>
+        <div class="prog" id="prog"><i id="progBar"></i></div>
         <div id="docWrap" style="display:none;flex:1;min-height:0;flex-direction:column">
           <div class="file-meta">
             <span class="chip" id="fileName"></span>
             <span id="fileInfo"></span>
             <button class="btn ghost small" id="btnReset" style="margin-left:auto" data-i18n="btnReset">다른 문서</button>
           </div>
-          <div class="doc-view" id="docView" aria-live="polite"></div>
+          <div class="preview" id="preview" aria-live="polite"></div>
         </div>
-        <input type="file" id="fileInput" accept=".pdf,.docx,.txt,.md,.csv,image/*" hidden>
+        <input type="file" id="fileInput" accept=".pdf,.docx,.txt,.md,.csv,image/*,.heic,.heif,.webp" hidden>
       </div>
     </section>
 
@@ -254,16 +266,28 @@ footer a{color:var(--sub)}
 
   <!-- STEP 3 -->
   <div class="make" id="makeBar">
-    <div class="info">
-      <strong><span class="step-n" style="vertical-align:-4px;margin-right:6px">3</span><span data-i18n="s3">문서 만들기</span></strong>
-      <small data-i18n="s3sub">선택한 항목만 가려진 새 문서를 만듭니다.</small>
+    <div class="make-top">
+      <div class="info">
+        <strong><span class="step-n" style="vertical-align:-4px;margin-right:6px">3</span><span data-i18n="s3">문서 만들기</span></strong>
+        <small data-i18n="s3sub">원본 위에 마스킹을 합성해 새 문서를 만듭니다. 검은 박스 밑 원문은 복사되지 않습니다.</small>
+      </div>
+      <div class="fmt" role="radiogroup">
+        <label><input type="radio" name="fmt" value="jpg" checked><span data-i18n="fmtJpg">이미지 (JPG)</span></label>
+        <label><input type="radio" name="fmt" value="png"><span data-i18n="fmtPng">이미지 (PNG)</span></label>
+        <label><input type="radio" name="fmt" value="pdf"><span data-i18n="fmtPdf">PDF</span></label>
+      </div>
+      <button class="btn btn-make" id="btnMake" disabled data-i18n="btnMake">문서 만들기</button>
     </div>
-    <div class="fmt" role="radiogroup">
-      <label><input type="radio" name="fmt" value="jpg" checked><span data-i18n="fmtJpg">이미지 (JPG)</span></label>
-      <label><input type="radio" name="fmt" value="png"><span data-i18n="fmtPng">이미지 (PNG)</span></label>
-      <label><input type="radio" name="fmt" value="pdf"><span data-i18n="fmtPdf">PDF</span></label>
+    <div class="wm">
+      <div class="wm-head">
+        <label><input type="checkbox" id="wmOn"><span data-i18n="wmToggle">워터마크 넣기 (선택)</span></label>
+      </div>
+      <div class="wm-body" id="wmBody">
+        <select id="wmPreset" aria-label="watermark preset"></select>
+        <input type="text" id="wmText" data-i18n-ph="wmPlaceholder">
+        <div class="wm-note" data-i18n="wmQR">⚠ 워터마크가 QR코드·바코드·도장을 가리지 않았는지 결과 미리보기에서 꼭 확인하세요. (하단 여백은 자동으로 비웁니다)</div>
+      </div>
     </div>
-    <button class="btn btn-make" id="btnMake" disabled data-i18n="btnMake">문서 만들기</button>
   </div>
 
   <!-- Result -->
@@ -277,10 +301,11 @@ footer a{color:var(--sub)}
         </div>
       </div>
       <div id="resultDoc"></div>
+      <div class="result-flat" data-i18n="resFlat">🔒 이 파일은 이미지로 평탄화(플래튼)되어 검은 박스 아래 원문이 남아 있지 않습니다.</div>
     </div>
   </section>
 
-  <div class="privacy-note" data-i18n="privacy">🔒 모든 문서는 사용자의 브라우저 안에서만 처리됩니다. AI 정밀 검사를 선택한 경우에만 해당 텍스트가 AI 분석을 위해 전송되며, 저장되지 않습니다.</div>
+  <div class="privacy-note" data-i18n="privacy">🔒 모든 문서는 사용자의 브라우저 안에서만 처리됩니다. AI 정밀 검사를 선택한 경우에만 추출된 텍스트가 AI 분석을 위해 전송되며, 저장되지 않습니다.</div>
 </main>
 
 <div class="partners">
@@ -310,138 +335,166 @@ footer a{color:var(--sub)}
 const I18N = {
 ko:{
   badge:'무료 · 가입 없음', navHome:'← SlimFile',
-  heroPre:'문서 속 ', heroPost:'만<br>골라서 지우고 공유하세요',
+  heroPre:'문서 속 ', heroPost:'만<br>가리고 원본 그대로 공유하세요',
   cycle:['주민등록번호','전화번호','집 주소','계좌번호','이름'],
-  heroP:'문서를 올리면 개인정보를 자동으로 찾아 드립니다. 남길 것만 고르고, 나머지는 가려서 새 문서로.',
-  trust1:'파일은 서버에 저장되지 않습니다', trust2:'회원가입 없음', trust3:'1분이면 충분',
-  s1:'문서 올리기', s2:'발견된 개인정보', s3:'문서 만들기', s3sub:'선택한 항목만 가려진 새 문서를 만듭니다.',
-  dzTitle:'파일을 끌어다 놓거나 클릭하세요', dzTypes:'PDF · Word(docx) · 텍스트 · 이미지(JPG/PNG)',
+  heroP:'문서를 올리면 원본 모습은 그대로, 개인정보 위치에만 검은 바를 덮어 드립니다. 남길 것만 고르세요.',
+  trust1:'파일은 서버에 저장되지 않습니다', trust2:'회원가입 없음', trust3:'원본 레이아웃 그대로',
+  s1:'문서 올리기', s2:'발견된 개인정보', s3:'문서 만들기', s3sub:'원본 위에 마스킹을 합성해 새 문서를 만듭니다. 검은 박스 밑 원문은 복사되지 않습니다.',
+  dzTitle:'파일을 끌어다 놓거나 클릭하세요', dzTypes:'PDF · 이미지(JPG/PNG/WEBP/HEIC) · Word(docx) · 텍스트',
+  dzLimit:'최대 20MB · 30페이지 · 브라우저 안에서만 처리',
   btnPick:'파일 선택', btnSample:'샘플 문서로 체험', btnPaste:'텍스트 붙여넣기',
   btnPasteScan:'이 내용으로 검사', btnCancel:'취소', btnReset:'다른 문서',
   pastePh:'여기에 문서 내용을 붙여넣은 뒤 아래 버튼을 누르세요',
   bulkOk:'전체 공개', bulkHalf:'전체 부분공개', bulkNo:'전체 비공개',
   segOk:'공개', segHalf:'부분', segNo:'비공개',
   hintBefore:'각 항목의 기본 공개 수준을 미리 정해두세요. 문서에서 발견되면 그 설정대로 가려집니다.',
-  hintAfter:'발견된 항목입니다. 건마다 공개 수준을 바꿀 수 있어요.',
+  hintAfter:'발견된 항목입니다. 건마다 공개 수준을 바꾸면 미리보기에 바로 반영됩니다.',
   moreShow:n=>`발견되지 않은 항목 ${n}개 보기`, moreHide:'발견되지 않은 항목 접기',
   aiHint:'이름·회사·주소처럼 패턴이 없는 정보는 AI가 문맥으로 찾아냅니다.', btnAI:'AI 정밀 검사',
   aiBusy:'AI가 읽는 중…', aiDone:'AI 검사 완료',
   fmtJpg:'이미지 (JPG)', fmtPng:'이미지 (PNG)', fmtPdf:'PDF', btnMake:'문서 만들기',
   resTitle:'완성된 문서', btnDl:'다운로드', btnCopy:'텍스트 복사',
-  privacy:'🔒 모든 문서는 사용자의 브라우저 안에서만 처리됩니다. AI 정밀 검사를 선택한 경우에만 해당 텍스트가 AI 분석을 위해 전송되며, 저장되지 않습니다.',
+  resFlat:'🔒 이 파일은 이미지로 평탄화(플래튼)되어 검은 박스 아래 원문이 남아 있지 않습니다.',
+  privacy:'🔒 모든 문서는 사용자의 브라우저 안에서만 처리됩니다. AI 정밀 검사를 선택한 경우에만 추출된 텍스트가 AI 분석을 위해 전송되며, 저장되지 않습니다.',
   partners:'SafeFile이 추천하는 서비스',
   pSlim:'이미지 압축과 PDF 변환, 2MB 이하로 간단하게.', pSchool:'선생님을 위한 채용 정보, 딱 맞는 학교 찾기.', pHello:'한국어 배우기, 오늘부터 시작하세요.',
   footer:'개인정보를 지키는 가장 빠른 방법', footPrivacy:'개인정보처리방침', footBlog:'블로그',
   cnt:n=>`${n}건`, cntUse:n=>`· ${n}건 사용`, scanDone:n=>`⚡ 즉시 검사 완료 — ${n}건 발견`, scanAI:n=>`🤖 AI 검사 포함 — 총 ${n}건`,
   tPasteEmpty:'내용을 붙여넣어 주세요', tBulkOk:'모든 항목을 공개로 설정했어요', tBulkHalf:'모든 항목을 부분공개로 설정했어요', tBulkNo:'모든 항목을 비공개로 설정했어요',
   tAIDone:'AI가 이름·회사 등 문맥 정보까지 찾았어요', tAIDup:'AI 검사는 이미 완료됐어요', tAIFail:'AI 검사에 실패했어요. 잠시 후 다시 시도해 주세요.',
-  tMade:n=>`완성! ${n}개 항목을 가렸어요`, tCopied:'클립보드에 복사했어요', tSaved:n=>`${n} 저장 완료`,
-  tReadFail:'파일을 읽지 못했어요. 텍스트 붙여넣기를 이용해 보세요.', tScanPdf:'스캔 PDF 같아요. 이미지로 올리면 AI가 읽어 드립니다.',
-  imgLoading:'이미지는 AI가 읽습니다…', pdfLoading:'PDF 읽는 중…', docxLoading:'Word 문서 읽는 중…',
-  imgPlaceholder:'(이미지 문서입니다. "AI 정밀 검사"가 이미지 속 텍스트와 개인정보를 찾는 중입니다.)',
-  pasted:'붙여넣은 텍스트', aiChars:n=>`${n}자 (AI 추출)`, chars:n=>`${n}자`,
+  tMade:n=>`완성! ${n}곳을 가렸어요`, tMadeWM:'완성! 워터마크를 적용했어요', tCopied:'클립보드에 복사했어요', tSaved:n=>`${n} 저장 완료`,
+  tReadFail:'파일을 읽지 못했어요. 텍스트 붙여넣기를 이용해 보세요.',
+  tTooBig:'파일이 너무 큽니다 (최대 20MB).', tPageCap:n=>`페이지가 많아 앞 ${n}페이지만 처리했어요.`, tUnsupported:e=>`지원하지 않는 형식이에요 (.${e}). PDF·이미지·Word·텍스트만 됩니다.`,
+  renderProg:(p,n)=>`페이지 렌더링 중… (${p}/${n})`, ocrStart:'글자 위치 인식 준비 중…', ocrProg:p=>`글자 인식(OCR) 중… ${p}%`,
+  scanOcr:'스캔 문서 같아요 — 글자 위치를 OCR로 인식 중…', heicConv:'HEIC 이미지 변환 중…', building:'문서 만드는 중…',
+  notLocated:'위치 못 찾음',
+  wmToggle:'워터마크 넣기 (선택)', wmPlaceholder:'워터마크 문구 (직접 입력 가능)', wmCustom:'직접 입력…',
+  wmPresets:['○○ 제출용','부동산 임대용','구직 지원용','YYYY-MM-DD ○○에 제출'],
+  wmQR:'⚠ 워터마크가 QR코드·바코드·도장을 가리지 않았는지 결과 미리보기에서 꼭 확인하세요. (하단 여백은 자동으로 비웁니다)',
+  pasted:'붙여넣은 텍스트', aiChars:n=>`${n}자 (AI 추출)`, chars:n=>`${n}자`, pages:n=>`${n}페이지`,
   types:{rrn:'주민등록번호',ssn:'SSN(미국)',passport:'여권번호',license:'운전면허번호',card:'카드번호',account:'계좌번호',phone:'전화번호',email:'이메일',birth:'생년월일',address:'주소',name:'이름',company:'회사·소속',title:'직책',ip:'IP 주소',url:'SNS·URL',health:'건강·민감정보',other:'기타'}
 },
 en:{
   badge:'Free · No signup', navHome:'← SlimFile',
-  heroPre:'Redact only the ', heroPost:'<br>in your documents, then share',
+  heroPre:'Redact only the ', heroPost:'<br>and share your document as-is',
   cycle:['ID numbers','phone numbers','home address','account numbers','names'],
-  heroP:'Upload a document and we find the personal info automatically. Keep what you want, mask the rest, get a new file.',
-  trust1:'Files never leave your browser', trust2:'No signup', trust3:'Done in under a minute',
-  s1:'Upload document', s2:'Detected personal info', s3:'Create document', s3sub:'Creates a new document with only your selected items masked.',
-  dzTitle:'Drag & drop a file or click', dzTypes:'PDF · Word (docx) · Text · Image (JPG/PNG)',
+  heroP:'Upload a document — we keep the original look and lay black bars only over the personal info. Keep what you want.',
+  trust1:'Files never leave your browser', trust2:'No signup', trust3:'Original layout preserved',
+  s1:'Upload document', s2:'Detected personal info', s3:'Create document', s3sub:'Composites the masking over your original. Text under the black boxes is not copied.',
+  dzTitle:'Drag & drop a file or click', dzTypes:'PDF · Image (JPG/PNG/WEBP/HEIC) · Word (docx) · Text',
+  dzLimit:'Up to 20MB · 30 pages · processed only in your browser',
   btnPick:'Choose file', btnSample:'Try a sample', btnPaste:'Paste text',
   btnPasteScan:'Scan this text', btnCancel:'Cancel', btnReset:'New document',
   pastePh:'Paste your document text here, then press the button below',
   bulkOk:'Show all', bulkHalf:'Partial all', bulkNo:'Hide all',
   segOk:'Show', segHalf:'Partial', segNo:'Hide',
   hintBefore:'Preset the default visibility for each category. When found in your document, items are masked accordingly.',
-  hintAfter:'Items found in your document. Adjust visibility per item.',
+  hintAfter:'Items found in your document. Change visibility per item — the preview updates instantly.',
   moreShow:n=>`Show ${n} other categories`, moreHide:'Hide other categories',
   aiHint:'AI finds unpatterned info like names, companies, and addresses from context.', btnAI:'AI deep scan',
   aiBusy:'AI reading…', aiDone:'AI scan complete',
   fmtJpg:'Image (JPG)', fmtPng:'Image (PNG)', fmtPdf:'PDF', btnMake:'Create document',
   resTitle:'Your safe document', btnDl:'Download', btnCopy:'Copy text',
-  privacy:'🔒 All documents are processed inside your browser. Only when you choose AI deep scan is the text sent for AI analysis — never stored.',
+  resFlat:'🔒 This file is flattened to an image — no original text remains under the black boxes.',
+  privacy:'🔒 All documents are processed inside your browser. Only when you choose AI deep scan is the extracted text sent for analysis — never stored.',
   partners:'Recommended by SafeFile',
   pSlim:'Image compression & PDF conversion, all under 2MB.', pSchool:'Teaching jobs — find the perfect school.', pHello:'Start learning Korean today.',
   footer:'The fastest way to protect personal info', footPrivacy:'Privacy Policy', footBlog:'Blog',
   cnt:n=>`${n}`, cntUse:n=>`· ${n} in use`, scanDone:n=>`⚡ Instant scan done — ${n} found`, scanAI:n=>`🤖 With AI scan — ${n} total`,
   tPasteEmpty:'Please paste some text first', tBulkOk:'All items set to show', tBulkHalf:'All items set to partial', tBulkNo:'All items set to hidden',
   tAIDone:'AI found contextual info like names & companies', tAIDup:'AI scan already done', tAIFail:'AI scan failed. Please try again shortly.',
-  tMade:n=>`Done! ${n} items masked`, tCopied:'Copied to clipboard', tSaved:n=>`Saved ${n}`,
-  tReadFail:"Couldn't read the file. Try pasting the text instead.", tScanPdf:'Looks like a scanned PDF. Upload it as an image and AI will read it.',
-  imgLoading:'AI is reading the image…', pdfLoading:'Reading PDF…', docxLoading:'Reading Word document…',
-  imgPlaceholder:'(Image document. AI deep scan is extracting the text and personal info.)',
-  pasted:'Pasted text', aiChars:n=>`${n} chars (AI extracted)`, chars:n=>`${n} chars`,
+  tMade:n=>`Done! ${n} spots masked`, tMadeWM:'Done! Watermark applied', tCopied:'Copied to clipboard', tSaved:n=>`Saved ${n}`,
+  tReadFail:"Couldn't read the file. Try pasting the text instead.",
+  tTooBig:'File is too large (max 20MB).', tPageCap:n=>`Many pages — processed only the first ${n}.`, tUnsupported:e=>`Unsupported format (.${e}). Only PDF, image, Word, or text.`,
+  renderProg:(p,n)=>`Rendering pages… (${p}/${n})`, ocrStart:'Preparing text recognition…', ocrProg:p=>`Recognizing text (OCR)… ${p}%`,
+  scanOcr:'Looks like a scan — recognizing text positions with OCR…', heicConv:'Converting HEIC image…', building:'Building document…',
+  notLocated:'not located',
+  wmToggle:'Add watermark (optional)', wmPlaceholder:'Watermark text (editable)', wmCustom:'Custom…',
+  wmPresets:['For submission to ○○','For property rental','For job application','Submitted to ○○ on YYYY-MM-DD'],
+  wmQR:'⚠ Check the result preview to ensure the watermark does not cover any QR code, barcode, or stamp. (The bottom margin is kept clear automatically.)',
+  pasted:'Pasted text', aiChars:n=>`${n} chars (AI extracted)`, chars:n=>`${n} chars`, pages:n=>`${n} pages`,
   types:{rrn:'Korean RRN',ssn:'SSN (US)',passport:'Passport no.',license:"Driver's license",card:'Card number',account:'Bank account',phone:'Phone',email:'Email',birth:'Date of birth',address:'Address',name:'Name',company:'Company',title:'Job title',ip:'IP address',url:'Social · URL',health:'Health / sensitive',other:'Other'}
 },
 ja:{
   badge:'無料 · 登録不要', navHome:'← SlimFile',
-  heroPre:'文書内の', heroPost:'だけ<br>選んで消して共有しましょう',
+  heroPre:'文書内の', heroPost:'だけ隠して<br>元の見た目のまま共有',
   cycle:['身分証番号','電話番号','自宅住所','口座番号','氏名'],
-  heroP:'文書をアップロードすると個人情報を自動で見つけます。残すものだけ選び、あとは隠して新しい文書に。',
-  trust1:'ファイルはサーバーに保存されません', trust2:'登録不要', trust3:'1分もあれば完了',
-  s1:'文書をアップロード', s2:'検出された個人情報', s3:'文書を作成', s3sub:'選択した項目だけを隠した新しい文書を作成します。',
-  dzTitle:'ファイルをドラッグ＆ドロップ、またはクリック', dzTypes:'PDF · Word(docx) · テキスト · 画像(JPG/PNG)',
+  heroP:'文書をアップロードすると、元の見た目はそのままに個人情報の位置だけ黒いバーで隠します。残すものだけ選んでください。',
+  trust1:'ファイルはサーバーに保存されません', trust2:'登録不要', trust3:'元のレイアウトそのまま',
+  s1:'文書をアップロード', s2:'検出された個人情報', s3:'文書を作成', s3sub:'元の文書の上にマスキングを合成して新しい文書を作ります。黒いボックスの下の原文はコピーされません。',
+  dzTitle:'ファイルをドラッグ＆ドロップ、またはクリック', dzTypes:'PDF · 画像(JPG/PNG/WEBP/HEIC) · Word(docx) · テキスト',
+  dzLimit:'最大20MB · 30ページ · ブラウザ内でのみ処理',
   btnPick:'ファイルを選択', btnSample:'サンプル文書で試す', btnPaste:'テキストを貼り付け',
   btnPasteScan:'この内容で検査', btnCancel:'キャンセル', btnReset:'別の文書',
   pastePh:'ここに文書の内容を貼り付けて、下のボタンを押してください',
   bulkOk:'すべて公開', bulkHalf:'すべて部分公開', bulkNo:'すべて非公開',
   segOk:'公開', segHalf:'部分', segNo:'非公開',
   hintBefore:'各項目の初期公開レベルを設定しておきましょう。文書内で見つかると、その設定どおりに隠されます。',
-  hintAfter:'文書内で見つかった項目です。項目ごとに公開レベルを変更できます。',
+  hintAfter:'文書内で見つかった項目です。項目ごとに公開レベルを変えると、プレビューにすぐ反映されます。',
   moreShow:n=>`検出されなかった項目 ${n}件を表示`, moreHide:'検出されなかった項目を隠す',
   aiHint:'氏名・会社・住所のようにパターンのない情報は、AIが文脈から見つけます。', btnAI:'AI精密検査',
   aiBusy:'AIが読み取り中…', aiDone:'AI検査完了',
   fmtJpg:'画像 (JPG)', fmtPng:'画像 (PNG)', fmtPdf:'PDF', btnMake:'文書を作成',
   resTitle:'完成した文書', btnDl:'ダウンロード', btnCopy:'テキストをコピー',
-  privacy:'🔒 すべての文書はお使いのブラウザ内でのみ処理されます。AI精密検査を選んだ場合のみ、そのテキストがAI分析のために送信され、保存されることはありません。',
+  resFlat:'🔒 このファイルは画像に平坦化（フラット化）され、黒いボックスの下に原文は残りません。',
+  privacy:'🔒 すべての文書はお使いのブラウザ内でのみ処理されます。AI精密検査を選んだ場合のみ、抽出テキストがAI分析のため送信され、保存されることはありません。',
   partners:'SafeFileのおすすめサービス',
   pSlim:'画像圧縮とPDF変換を、2MB以下で手軽に。', pSchool:'先生のための求人情報、ぴったりの学校探し。', pHello:'韓国語学習を今日から始めましょう。',
   footer:'個人情報を守る、いちばん速い方法', footPrivacy:'プライバシーポリシー', footBlog:'ブログ',
   cnt:n=>`${n}件`, cntUse:n=>`· ${n}件使用中`, scanDone:n=>`⚡ 即時検査完了 — ${n}件検出`, scanAI:n=>`🤖 AI検査を含む — 合計${n}件`,
   tPasteEmpty:'内容を貼り付けてください', tBulkOk:'すべての項目を公開に設定しました', tBulkHalf:'すべての項目を部分公開に設定しました', tBulkNo:'すべての項目を非公開に設定しました',
   tAIDone:'AIが氏名・会社などの文脈情報まで見つけました', tAIDup:'AI検査はすでに完了しています', tAIFail:'AI検査に失敗しました。しばらくしてからもう一度お試しください。',
-  tMade:n=>`完成！ ${n}件の項目を隠しました`, tCopied:'クリップボードにコピーしました', tSaved:n=>`${n} を保存しました`,
-  tReadFail:'ファイルを読み取れませんでした。テキストの貼り付けをお試しください。', tScanPdf:'スキャンされたPDFのようです。画像としてアップロードすればAIが読み取ります。',
-  imgLoading:'AIが画像を読み取っています…', pdfLoading:'PDFを読み取り中…', docxLoading:'Word文書を読み取り中…',
-  imgPlaceholder:'（画像文書です。「AI精密検査」が画像内のテキストと個人情報を検出しています。）',
-  pasted:'貼り付けたテキスト', aiChars:n=>`${n}文字（AI抽出）`, chars:n=>`${n}文字`,
+  tMade:n=>`完成！ ${n}か所を隠しました`, tMadeWM:'完成！ ウォーターマークを適用しました', tCopied:'クリップボードにコピーしました', tSaved:n=>`${n} を保存しました`,
+  tReadFail:'ファイルを読み取れませんでした。テキストの貼り付けをお試しください。',
+  tTooBig:'ファイルが大きすぎます（最大20MB）。', tPageCap:n=>`ページが多いため、先頭${n}ページのみ処理しました。`, tUnsupported:e=>`対応していない形式です（.${e}）。PDF・画像・Word・テキストのみ対応します。`,
+  renderProg:(p,n)=>`ページをレンダリング中… (${p}/${n})`, ocrStart:'文字位置の認識を準備中…', ocrProg:p=>`文字認識(OCR)中… ${p}%`,
+  scanOcr:'スキャン文書のようです — OCRで文字位置を認識中…', heicConv:'HEIC画像を変換中…', building:'文書を作成中…',
+  notLocated:'位置不明',
+  wmToggle:'ウォーターマークを入れる（任意）', wmPlaceholder:'ウォーターマーク文言（自由入力可）', wmCustom:'自由入力…',
+  wmPresets:['○○ 提出用','不動産賃貸用','求職応募用','YYYY-MM-DD ○○ に提出'],
+  wmQR:'⚠ ウォーターマークがQRコード・バーコード・印鑑を隠していないか、結果プレビューで必ずご確認ください。（下部の余白は自動で空けます）',
+  pasted:'貼り付けたテキスト', aiChars:n=>`${n}文字（AI抽出）`, chars:n=>`${n}文字`, pages:n=>`${n}ページ`,
   types:{rrn:'住民登録番号(韓国)',ssn:'SSN(米国)',passport:'パスポート番号',license:'運転免許番号',card:'カード番号',account:'口座番号',phone:'電話番号',email:'メール',birth:'生年月日',address:'住所',name:'氏名',company:'会社・所属',title:'役職',ip:'IPアドレス',url:'SNS・URL',health:'健康・センシティブ情報',other:'その他'}
 },
 es:{
   badge:'Gratis · Sin registro', navHome:'← SlimFile',
-  heroPre:'Oculta solo los ', heroPost:'<br>de tus documentos y compártelos',
+  heroPre:'Oculta solo los ', heroPost:'<br>y comparte el documento tal cual',
   cycle:['datos de identidad','números de teléfono','domicilio','números de cuenta','nombres'],
-  heroP:'Sube un documento y encontramos los datos personales automáticamente. Conserva lo que quieras, oculta el resto y descarga un archivo nuevo.',
-  trust1:'Los archivos nunca salen de tu navegador', trust2:'Sin registro', trust3:'Listo en menos de un minuto',
-  s1:'Subir documento', s2:'Datos personales detectados', s3:'Crear documento', s3sub:'Crea un documento nuevo con solo los elementos que elijas ocultos.',
-  dzTitle:'Arrastra y suelta un archivo o haz clic', dzTypes:'PDF · Word (docx) · Texto · Imagen (JPG/PNG)',
+  heroP:'Sube un documento: mantenemos su aspecto original y colocamos barras negras solo sobre los datos personales. Conserva lo que quieras.',
+  trust1:'Los archivos nunca salen de tu navegador', trust2:'Sin registro', trust3:'Diseño original intacto',
+  s1:'Subir documento', s2:'Datos personales detectados', s3:'Crear documento', s3sub:'Superpone el enmascarado sobre tu original. El texto bajo las cajas negras no se copia.',
+  dzTitle:'Arrastra y suelta un archivo o haz clic', dzTypes:'PDF · Imagen (JPG/PNG/WEBP/HEIC) · Word (docx) · Texto',
+  dzLimit:'Hasta 20MB · 30 páginas · procesado solo en tu navegador',
   btnPick:'Elegir archivo', btnSample:'Probar con un ejemplo', btnPaste:'Pegar texto',
   btnPasteScan:'Analizar este texto', btnCancel:'Cancelar', btnReset:'Nuevo documento',
   pastePh:'Pega aquí el texto de tu documento y pulsa el botón de abajo',
   bulkOk:'Mostrar todo', bulkHalf:'Todo parcial', bulkNo:'Ocultar todo',
   segOk:'Mostrar', segHalf:'Parcial', segNo:'Ocultar',
   hintBefore:'Define el nivel de visibilidad por defecto de cada categoría. Cuando se encuentren en tu documento, se ocultarán según esa configuración.',
-  hintAfter:'Elementos encontrados en tu documento. Ajusta la visibilidad de cada uno.',
+  hintAfter:'Elementos encontrados en tu documento. Cambia la visibilidad de cada uno: la vista previa se actualiza al instante.',
   moreShow:n=>`Mostrar ${n} categorías más`, moreHide:'Ocultar otras categorías',
   aiHint:'La IA encuentra datos sin patrón fijo, como nombres, empresas y direcciones, a partir del contexto.', btnAI:'Análisis con IA',
   aiBusy:'La IA está leyendo…', aiDone:'Análisis con IA completado',
   fmtJpg:'Imagen (JPG)', fmtPng:'Imagen (PNG)', fmtPdf:'PDF', btnMake:'Crear documento',
   resTitle:'Tu documento seguro', btnDl:'Descargar', btnCopy:'Copiar texto',
-  privacy:'🔒 Todos los documentos se procesan dentro de tu navegador. Solo cuando eliges el análisis con IA se envía el texto para su análisis, y nunca se almacena.',
+  resFlat:'🔒 Este archivo está aplanado a imagen: no queda texto original bajo las cajas negras.',
+  privacy:'🔒 Todos los documentos se procesan dentro de tu navegador. Solo cuando eliges el análisis con IA se envía el texto extraído para su análisis, y nunca se almacena.',
   partners:'Recomendado por SafeFile',
   pSlim:'Compresión de imágenes y conversión a PDF, todo por debajo de 2 MB.', pSchool:'Empleo docente: encuentra el colegio perfecto.', pHello:'Empieza a aprender coreano hoy.',
   footer:'La forma más rápida de proteger tus datos personales', footPrivacy:'Política de privacidad', footBlog:'Blog',
   cnt:n=>`${n}`, cntUse:n=>`· ${n} en uso`, scanDone:n=>`⚡ Análisis instantáneo listo — ${n} encontrados`, scanAI:n=>`🤖 Con análisis de IA — ${n} en total`,
   tPasteEmpty:'Primero pega algún texto', tBulkOk:'Todos los elementos configurados como visibles', tBulkHalf:'Todos los elementos configurados como parciales', tBulkNo:'Todos los elementos configurados como ocultos',
   tAIDone:'La IA encontró datos contextuales como nombres y empresas', tAIDup:'El análisis con IA ya está hecho', tAIFail:'El análisis con IA falló. Inténtalo de nuevo en un momento.',
-  tMade:n=>`¡Listo! ${n} elementos ocultados`, tCopied:'Copiado al portapapeles', tSaved:n=>`${n} guardado`,
-  tReadFail:'No se pudo leer el archivo. Prueba a pegar el texto.', tScanPdf:'Parece un PDF escaneado. Súbelo como imagen y la IA lo leerá.',
-  imgLoading:'La IA está leyendo la imagen…', pdfLoading:'Leyendo PDF…', docxLoading:'Leyendo documento de Word…',
-  imgPlaceholder:'(Documento de imagen. El análisis con IA está extrayendo el texto y los datos personales.)',
-  pasted:'Texto pegado', aiChars:n=>`${n} caracteres (extraído por IA)`, chars:n=>`${n} caracteres`,
+  tMade:n=>`¡Listo! ${n} zonas ocultadas`, tMadeWM:'¡Listo! Marca de agua aplicada', tCopied:'Copiado al portapapeles', tSaved:n=>`${n} guardado`,
+  tReadFail:'No se pudo leer el archivo. Prueba a pegar el texto.',
+  tTooBig:'El archivo es demasiado grande (máx. 20MB).', tPageCap:n=>`Muchas páginas: solo se procesaron las primeras ${n}.`, tUnsupported:e=>`Formato no admitido (.${e}). Solo PDF, imagen, Word o texto.`,
+  renderProg:(p,n)=>`Renderizando páginas… (${p}/${n})`, ocrStart:'Preparando el reconocimiento de texto…', ocrProg:p=>`Reconociendo texto (OCR)… ${p}%`,
+  scanOcr:'Parece un escaneo: reconociendo posiciones de texto con OCR…', heicConv:'Convirtiendo imagen HEIC…', building:'Creando documento…',
+  notLocated:'sin ubicar',
+  wmToggle:'Añadir marca de agua (opcional)', wmPlaceholder:'Texto de la marca de agua (editable)', wmCustom:'Personalizado…',
+  wmPresets:['Para presentar a ○○','Para alquiler','Para solicitud de empleo','Presentado a ○○ el YYYY-MM-DD'],
+  wmQR:'⚠ Revisa la vista previa del resultado para que la marca de agua no cubra ningún código QR, de barras o sello. (El margen inferior se deja libre automáticamente.)',
+  pasted:'Texto pegado', aiChars:n=>`${n} caracteres (extraído por IA)`, chars:n=>`${n} caracteres`, pages:n=>`${n} páginas`,
   types:{rrn:'RRN de Corea',ssn:'SSN (EE. UU.)',passport:'N.º de pasaporte',license:'Permiso de conducir',card:'N.º de tarjeta',account:'Cuenta bancaria',phone:'Teléfono',email:'Correo',birth:'Fecha de nacimiento',address:'Dirección',name:'Nombre',company:'Empresa',title:'Cargo',ip:'Dirección IP',url:'Redes · URL',health:'Salud / sensible',other:'Otro'}
 }
 };
@@ -454,12 +507,25 @@ function detectLang(){
 }
 let LANG = detectLang();
 const T = () => I18N[LANG];
+const INK = '#17140F', PAPER = '#F7F5EF';
+
+/* ───────── constants ───────── */
+const MAX_BYTES = 20*1024*1024;
+const MAX_PAGES = 30;
+const PDF_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const CDN_TESSERACT = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+const CDN_HEIC = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
+const CDN_JSPDF = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
 
 /* ───────── state ───────── */
-let docText='', docTitle='', entities=[], aiDone=false, sourceImage=null, showAllCats=false;
+// pages: [{canvas, w, h, ptW, ptH, items:[{str,x,y,w,h}]}]  (x,y,w,h in canvas px, top-left origin)
+let pages=[], docText='', docTitle='', entities=[], aiDone=false, showAllCats=false;
+let previewCanvases=[], lastOut=null; // lastOut: {fmt, dataUrl, pdf}
 const catEnabled={}, catDefault={};
 const $=id=>document.getElementById(id);
 const toast=msg=>{const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._tm);t._tm=setTimeout(()=>t.classList.remove('show'),2600);};
+const setStatus=s=>{$('scanStatus').textContent=s||'';};
+const setProg=(v)=>{const p=$('prog');if(v==null||v<=0){p.classList.remove('on');$('progBar').style.width='0';}else{p.classList.add('on');$('progBar').style.width=Math.round(Math.min(1,v)*100)+'%';}};
 
 const TYPES = {
   rrn:{icon:'🪪',risk:'no'}, ssn:{icon:'🪪',risk:'no'}, passport:{icon:'🛂',risk:'no'},
@@ -472,6 +538,14 @@ const TYPES = {
 Object.keys(TYPES).forEach(t=>{catEnabled[t]=true;catDefault[t]=TYPES[t].risk;});
 const isOn=e=>catEnabled[e.type]!==false;
 const tLabel=t=>T().types[t]||t;
+
+/* ───────── lazy library loaders ───────── */
+const _scripts={};
+function loadScript(src){return _scripts[src]||(_scripts[src]=new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.async=true;s.onload=res;s.onerror=()=>rej(new Error('load fail '+src));document.head.appendChild(s);}));}
+async function ensureTesseract(){ if(!window.Tesseract) await loadScript(CDN_TESSERACT); return window.Tesseract; }
+async function ensureHeic(){ if(!window.heic2any) await loadScript(CDN_HEIC); return window.heic2any; }
+async function ensureJsPDF(){ if(!(window.jspdf&&window.jspdf.jsPDF)) await loadScript(CDN_JSPDF); return window.jspdf; }
+function OCR_LANGS(){ return ({ko:'kor+eng',en:'eng',ja:'jpn+eng',es:'spa+eng'})[LANG]||'eng'; }
 
 /* ───────── hero cycle ───────── */
 let cw=0;
@@ -489,8 +563,10 @@ function applyLang(){
     const k=el.dataset.i18n; const v=T()[k];
     if(typeof v==='string') el.innerHTML=v;
   });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>{const v=T()[el.dataset.i18nPh];if(typeof v==='string')el.placeholder=v;});
   $('pasteArea').placeholder=T().pastePh;
-  renderHero(); renderAll();
+  buildWmPresets();
+  renderHero(); renderList(); buildPreview();
 }
 $('langSel').addEventListener('change',e=>{LANG=e.target.value;applyLang();});
 
@@ -525,8 +601,7 @@ function regexScan(text){
   return found;
 }
 
-/* ───────── masking ───────── */
-const BLOCK='█';
+/* ───────── text masking (for partial rendering, list display, copy) ───────── */
 function maskHalf(type,v){
   switch(type){
     case 'name': return v.length<=1? v : v.length===2? v[0]+'*' : v[0]+'*'.repeat(v.length-2)+v[v.length-1];
@@ -543,9 +618,65 @@ function maskHalf(type,v){
     default: return v.slice(0,Math.ceil(v.length/2))+'*'.repeat(Math.floor(v.length/2));
   }
 }
-const maskFull=v=>BLOCK.repeat(Math.min(Math.max(Math.round(v.length*0.7),3),14));
+const maskBlockText=v=>'■'.repeat(Math.min(Math.max(Math.round(v.replace(/\s/g,'').length*0.8),3),12));
+// live value shown next to the toggle
+function displayValue(e){ if(e.mode==='ok') return e.value; if(e.mode==='half') return maskHalf(e.type,e.value); return maskBlockText(e.value); }
 
-/* ───────── file handling ───────── */
+/* ───────── coordinate index & box matching ───────── */
+function buildIndex(page){
+  if(page._idx) return;
+  let s='', map=[];
+  page.items.forEach((it,i)=>{ const str=it.str||''; for(let c=0;c<str.length;c++){ s+=str[c]; map.push([i,c]); } s+=' '; map.push(null); });
+  page._text=s; page._map=map;
+  // spaceless index (fallback for values whose spacing differs from source)
+  let ss='', smap=[];
+  page.items.forEach((it,i)=>{ const str=it.str||''; for(let c=0;c<str.length;c++){ const ch=str[c]; if(/\s/.test(ch))continue; ss+=ch; smap.push([i,c]); } });
+  page._stext=ss; page._smap=smap;
+  page._idx=true;
+}
+function boxesFromRange(page,pi,map,a,b,out){
+  const byItem={};
+  for(let k=a;k<b;k++){ const m=map[k]; if(!m)continue; const [i,c]=m; (byItem[i]=byItem[i]||[]).push(c); }
+  for(const i in byItem){
+    const cs=byItem[i], it=page.items[i], len=(it.str||'').length||1;
+    const cMin=Math.min(...cs), cMax=Math.max(...cs);
+    const x=it.x+it.w*(cMin/len), w=it.w*((cMax+1-cMin)/len);
+    const box={page:pi,x:x-2,y:it.y-2,w:w+4,h:it.h+4};
+    box.bg=sampleBg(page,box);
+    out.push(box);
+  }
+}
+function boxesForValue(value){
+  const out=[];
+  if(!value || value.replace(/\s/g,'').length<2) return out;
+  pages.forEach((page,pi)=>{
+    buildIndex(page);
+    let from=0, at;
+    while((at=page._text.indexOf(value,from))>=0){ boxesFromRange(page,pi,page._map,at,at+value.length,out); from=at+value.length; }
+  });
+  if(out.length) return out;
+  const tgt=value.replace(/\s/g,'');
+  pages.forEach((page,pi)=>{
+    let from=0, at;
+    while((at=page._stext.indexOf(tgt,from))>=0){ boxesFromRange(page,pi,page._smap,at,at+tgt.length,out); from=at+tgt.length; }
+  });
+  return out;
+}
+function sampleBg(page,b){
+  try{
+    const ctx=page.canvas.getContext('2d');
+    const px=Math.max(0,Math.min(page.canvas.width-1,Math.round(b.x-3)));
+    const py=Math.max(0,Math.min(page.canvas.height-1,Math.round(b.y+b.h/2)));
+    const d=ctx.getImageData(px,py,1,1).data;
+    if(d[3]<200) return '#FFFFFF';
+    return `rgb(${d[0]},${d[1]},${d[2]})`;
+  }catch(e){ return '#FFFFFF'; }
+}
+
+/* ───────── canvas helpers ───────── */
+function canvasEl(w,h){ const c=document.createElement('canvas'); c.width=Math.max(1,Math.round(w)); c.height=Math.max(1,Math.round(h)); return c; }
+
+/* ───────── file loading ───────── */
 const dz=$('dropzone'), fi=$('fileInput');
 dz.addEventListener('click',e=>{if(e.target.closest('button'))return;fi.click();});
 dz.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fi.click();}});
@@ -556,7 +687,7 @@ dz.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)handleFile(f
 fi.addEventListener('change',()=>{if(fi.files[0])handleFile(fi.files[0]);fi.value='';});
 $('btnPaste').addEventListener('click',()=>{dz.style.display='none';$('pasteArea').style.display='block';$('pasteActions').style.display='flex';$('pasteArea').focus();});
 $('btnPasteCancel').addEventListener('click',()=>{$('pasteArea').style.display='none';$('pasteActions').style.display='none';dz.style.display='flex';});
-$('btnPasteScan').addEventListener('click',()=>{const t=$('pasteArea').value.trim();if(!t){toast(T().tPasteEmpty);return;}loadText(t,T().pasted);});
+$('btnPasteScan').addEventListener('click',()=>{const t=$('pasteArea').value.trim();if(!t){toast(T().tPasteEmpty);return;}loadFromText(t,T().pasted);});
 $('btnReset').addEventListener('click',resetAll);
 
 const SAMPLE_KO=`재직증명서
@@ -592,64 +723,143 @@ since April 1, 2019.
 
 Payroll account: 123456-04-789012
 Emergency contact: Sarah Miller 010-9876-5432`;
-$('btnSample').addEventListener('click',()=>loadText(LANG==='ko'?SAMPLE_KO:SAMPLE_EN, LANG==='ko'?'샘플_재직증명서.txt':'sample_certificate.txt'));
+$('btnSample').addEventListener('click',()=>loadFromText(LANG==='ko'?SAMPLE_KO:SAMPLE_EN, LANG==='ko'?'샘플_재직증명서.txt':'sample_certificate.txt'));
 
 async function handleFile(f){
-  docTitle=f.name;
-  const ext=f.name.split('.').pop().toLowerCase();
+  resetResult();
+  if(f.size>MAX_BYTES){ toast(T().tTooBig); return; }
+  const ext=(f.name.split('.').pop()||'').toLowerCase();
+  const isImg = f.type.startsWith('image/') || ['heic','heif','webp','jpg','jpeg','png','gif','bmp','tif','tiff'].includes(ext);
   try{
-    if(f.type.startsWith('image/')){
-      $('scanStatus').textContent=T().imgLoading;
-      const b64=await fileToB64(f); sourceImage={data:b64.split(',')[1],media:f.type};
-      loadText(T().imgPlaceholder,f.name,true);
-      await runAI(); return;
-    }
-    if(ext==='pdf'){
-      $('scanStatus').textContent=T().pdfLoading;
-      const buf=await f.arrayBuffer();
-      pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      const pdf=await pdfjsLib.getDocument({data:buf}).promise;
-      let text='';
-      for(let p=1;p<=pdf.numPages;p++){
-        const page=await pdf.getPage(p); const tc=await page.getTextContent();
-        text+=tc.items.map(i=>i.str).join(' ')+'\n\n';
-      }
-      if(text.trim().length<10) toast(T().tScanPdf);
-      loadText(text.trim()||'( - )',f.name); return;
-    }
-    if(ext==='docx'){
-      $('scanStatus').textContent=T().docxLoading;
-      const buf=await f.arrayBuffer();
-      const r=await mammoth.extractRawText({arrayBuffer:buf});
-      loadText(r.value.trim(),f.name); return;
-    }
-    const text=await f.text();
-    loadText(text,f.name);
-  }catch(err){
-    console.error(err); toast(T().tReadFail); $('scanStatus').textContent='';
-  }
+    setProg(0.02);
+    if(isImg){ await loadImage(f,ext); }
+    else if(ext==='pdf'){ await loadPdf(f); }
+    else if(ext==='docx'){ setStatus('Word…'); const buf=await f.arrayBuffer(); const r=await mammoth.extractRawText({arrayBuffer:buf}); await renderTextPages(r.value.trim()||'( - )', f.name); }
+    else if(['txt','md','csv','text','log','json'].includes(ext) || f.type.startsWith('text/')){ const t=await f.text(); await renderTextPages(t, f.name); }
+    else { toast(T().tUnsupported(ext)); setProg(0); return; }
+    docTitle=f.name;
+    afterLoad(false);
+  }catch(err){ console.error(err); toast(T().tReadFail); setProg(0); setStatus(''); }
 }
-const fileToB64=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f);});
 
-function loadText(text,name,skipScan){
-  docText=text; docTitle=name||'doc'; entities=[]; aiDone=false; showAllCats=false;
-  if(!skipScan) sourceImage=null;
+async function loadFromText(text,name){
+  resetResult();
+  try{ setProg(0.05); await renderTextPages(text,name); docTitle=name||'doc'; afterLoad(false); }
+  catch(err){ console.error(err); toast(T().tReadFail); setProg(0); }
+}
+
+/* PDF: render each page + text-layer boxes; OCR fallback for scanned pages */
+async function loadPdf(f){
+  pdfjsLib.GlobalWorkerOptions.workerSrc=PDF_WORKER;
+  const buf=await f.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  const n=Math.min(pdf.numPages, MAX_PAGES);
+  if(pdf.numPages>MAX_PAGES) toast(T().tPageCap(MAX_PAGES));
+  pages=[];
+  for(let p=1;p<=n;p++){
+    setStatus(T().renderProg(p,n)); setProg((p-1)/n);
+    const page=await pdf.getPage(p);
+    const vp1=page.getViewport({scale:1});
+    const scale=Math.min(2.2, 1500/vp1.width);
+    const vp=page.getViewport({scale});
+    const cv=canvasEl(vp.width, vp.height);
+    await page.render({canvasContext:cv.getContext('2d',{willReadFrequently:true}), viewport:vp}).promise;
+    const tc=await page.getTextContent();
+    let items=tc.items.filter(it=>it.str && it.str.trim()).map(it=>{
+      const tx=pdfjsLib.Util.transform(vp.transform, it.transform);
+      const h=Math.hypot(tx[2],tx[3])|| (it.height*scale) || 12;
+      const w=(it.width*scale) || (it.str.length*h*0.5);
+      return {str:it.str, x:tx[4], y:tx[5]-h, w, h};
+    });
+    const pageObj={canvas:cv,w:cv.width,h:cv.height,ptW:vp1.width,ptH:vp1.height,items};
+    const textLen=items.reduce((s,i)=>s+i.str.trim().length,0);
+    if(textLen<8){ setStatus(T().scanOcr); pageObj.items=await ocrCanvas(cv); }
+    pages.push(pageObj);
+  }
+  setProg(0);
+}
+
+/* Image: draw to canvas, OCR for text boxes */
+async function loadImage(f,ext){
+  let blob=f;
+  if(ext==='heic'||ext==='heif'||f.type==='image/heic'||f.type==='image/heif'){
+    setStatus(T().heicConv);
+    await ensureHeic();
+    blob=await window.heic2any({blob:f,toType:'image/png',quality:0.92});
+    if(Array.isArray(blob)) blob=blob[0];
+  }
+  const url=URL.createObjectURL(blob);
+  const img=await new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>rej(new Error('img'));im.src=url;});
+  URL.revokeObjectURL(url);
+  const maxDim=2400, iw=img.naturalWidth||img.width, ih=img.naturalHeight||img.height;
+  const sc=Math.min(1, maxDim/Math.max(iw,ih));
+  const cv=canvasEl(iw*sc, ih*sc);
+  cv.getContext('2d',{willReadFrequently:true}).drawImage(img,0,0,cv.width,cv.height);
+  setStatus(T().ocrStart);
+  const items=await ocrCanvas(cv);
+  pages=[{canvas:cv,w:cv.width,h:cv.height,ptW:cv.width*0.75,ptH:cv.height*0.75,items}];
+  setProg(0);
+}
+
+async function ocrCanvas(cv){
+  const Te=await ensureTesseract();
+  const { data } = await Te.recognize(cv, OCR_LANGS(), { logger:m=>{
+    if(m.status && m.status.indexOf('recogniz')>=0){ setProg(0.1+m.progress*0.9); setStatus(T().ocrProg(Math.round(m.progress*100))); }
+    else { setStatus(T().ocrStart); }
+  }});
+  const words=(data && data.words) ? data.words : [];
+  return words.filter(w=>w.text && w.text.trim()).map(w=>({
+    str:w.text, x:w.bbox.x0, y:w.bbox.y0, w:w.bbox.x1-w.bbox.x0, h:w.bbox.y1-w.bbox.y0
+  }));
+}
+
+/* Text (docx/txt/paste/sample) → rendered white pages with word boxes */
+async function renderTextPages(text,name){
+  try{ await document.fonts.ready; }catch(e){}
+  text=(text||'').replace(/\r/g,'');
+  const W=1240, pad=64, fs=24, LH=Math.round(fs*1.62), maxW=W-pad*2, pageH=Math.round(W*1.414);
+  const meas=canvasEl(10,10).getContext('2d'); meas.font=fs+'px "IBM Plex Sans KR",sans-serif';
+  const spaceW=meas.measureText(' ').width;
+  pages=[];
+  let cur=null, y=0;
+  function newPage(){ const c=canvasEl(W,pageH); const ctx=c.getContext('2d',{willReadFrequently:true}); ctx.fillStyle='#FFFFFF'; ctx.fillRect(0,0,W,pageH); ctx.fillStyle=INK; ctx.font=fs+'px "IBM Plex Sans KR",sans-serif'; ctx.textBaseline='alphabetic'; cur={canvas:c,w:W,h:pageH,ptW:W*0.75,ptH:pageH*0.75,items:[],ctx}; y=pad+fs; }
+  function push(){ if(cur){ delete cur.ctx; pages.push(cur); } }
+  function nl(){ y+=LH; if(y>pageH-pad){ push(); newPage(); } }
+  newPage();
+  for(const line of text.split('\n')){
+    if(line.trim()===''){ nl(); continue; }
+    let x=pad;
+    for(const word of line.split(/\s+/).filter(Boolean)){
+      const ww=meas.measureText(word).width;
+      if(x!==pad && x+ww>maxW+pad){ nl(); x=pad; }
+      cur.ctx.fillText(word, x, y);
+      cur.items.push({str:word, x, y:y-fs*0.86, w:ww, h:fs*1.16});
+      x+=ww+spaceW;
+    }
+    nl();
+  }
+  push();
+}
+
+function afterLoad(keepEntities){
+  docText=pages.map(p=>p.items.map(i=>i.str).join(' ')).join('\n\n');
   $('pasteArea').style.display='none'; $('pasteActions').style.display='none';
   dz.style.display='none'; $('docWrap').style.display='flex';
-  $('fileName').textContent=docTitle;
-  $('fileInfo').textContent=T().chars(text.length.toLocaleString());
-  if(!skipScan){
-    const found=regexScan(text);
-    addEntities(found);
-    $('scanStatus').textContent=T().scanDone(found.length);
-  } else $('scanStatus').textContent='';
-  const ab=$('btnAI'); if(!aiDone){ab.disabled=false;}
-  renderAll();
+  $('fileName').textContent=docTitle||'doc';
+  $('fileInfo').textContent=T().pages(pages.length);
+  if(!keepEntities){
+    entities=[]; aiDone=false; showAllCats=false;
+    addEntities(regexScan(docText));
+    setStatus(T().scanDone(entities.length)); setProg(0);
+  }
+  const ab=$('btnAI'); if(!aiDone){ ab.disabled=false; }
+  buildPreview(); renderAll();
 }
+function resetResult(){ $('result').style.display='none'; lastOut=null; }
 function resetAll(){
-  docText=''; entities=[]; sourceImage=null; aiDone=false; showAllCats=false;
-  $('docWrap').style.display='none'; dz.style.display='flex';
-  $('scanStatus').textContent=''; $('result').style.display='none';
+  pages=[]; docText=''; entities=[]; aiDone=false; showAllCats=false; previewCanvases=[];
+  $('docWrap').style.display='none'; dz.style.display='flex'; $('preview').innerHTML='';
+  setStatus(''); setProg(0); resetResult();
   const ab=$('btnAI'); ab.disabled=true; ab.innerHTML='🤖 <span data-i18n="btnAI">'+T().btnAI+'</span>';
   renderAll();
 }
@@ -657,33 +867,84 @@ function resetAll(){
 /* ───────── entities ───────── */
 function addEntities(list){
   for(const e of list){
-    const v=(e.value||'').trim(); if(!v||v.length<2) continue;
+    const v=(e.value||'').trim(); if(!v||v.replace(/\s/g,'').length<2) continue;
     if(entities.some(x=>x.value===v)) continue;
     const type=TYPES[e.type]?e.type:'other';
-    entities.push({id:'e'+Math.random().toString(36).slice(2,8),type,value:v,mode:catDefault[type]});
+    const ent={id:'e'+Math.random().toString(36).slice(2,8),type,value:v,mode:catDefault[type],boxes:[]};
+    ent.boxes=boxesForValue(v);
+    entities.push(ent);
   }
   entities.sort((a,b)=>Object.keys(TYPES).indexOf(a.type)-Object.keys(TYPES).indexOf(b.type));
 }
-function renderAll(){renderDoc();renderList();$('btnMake').disabled=!docText||!entities.filter(isOn).length;}
-function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function escapeRe(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
+function recomputeBoxes(){ entities.forEach(e=>{ e.boxes=boxesForValue(e.value); }); }
+const located=e=>e.boxes&&e.boxes.length>0;
 
-function renderDoc(){
-  if(!docText){$('docView').innerHTML='';return;}
-  let html=escapeHtml(docText);
-  const sorted=[...entities].filter(isOn).sort((a,b)=>b.value.length-a.value.length);
-  for(const e of sorted){
-    const ev=escapeHtml(e.value);
-    const re=new RegExp(escapeRe(ev),'g');
-    let rep;
-    if(e.mode==='ok') rep=`<mark>${ev}</mark>`;
-    else if(e.mode==='half') rep=`<span class="masked-half">${escapeHtml(maskHalf(e.type,e.value))}</span>`;
-    else rep=`<span class="masked-full">${maskFull(e.value)}</span>`;
-    html=html.replace(re,rep);
+function renderAll(){ renderList(); drawPreview(); updateMake(); }
+function updateMake(){ $('btnMake').disabled = !pages.length || !( entities.some(e=>isOn(e)&&e.mode!=='ok'&&located(e)) || wmEnabled() ); }
+function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+/* ───────── preview (rendered page + live redaction overlay) ───────── */
+function buildPreview(){
+  const host=$('preview'); host.innerHTML=''; previewCanvases=[];
+  if(!pages.length) return;
+  const dispW=Math.min(host.clientWidth-24||600, 660);
+  pages.forEach((page,pi)=>{
+    const scale=dispW/page.w;
+    const cv=canvasEl(dispW, page.h*scale); cv.className='pg';
+    cv.dataset.pi=pi; cv.dataset.scale=scale;
+    host.appendChild(cv); previewCanvases.push(cv);
+  });
+  drawPreview();
+}
+function drawPreview(){
+  previewCanvases.forEach(cv=>{
+    const pi=+cv.dataset.pi, scale=+cv.dataset.scale, page=pages[pi];
+    if(!page) return;
+    const ctx=cv.getContext('2d');
+    ctx.clearRect(0,0,cv.width,cv.height);
+    ctx.drawImage(page.canvas,0,0,cv.width,cv.height);
+    drawRedactions(ctx,pi,scale);
+    if(wmEnabled()) drawWatermark(ctx,cv.width,cv.height,wmText());
+  });
+}
+function drawRedactions(ctx,pi,scale){
+  for(const e of entities){
+    if(!isOn(e)||e.mode==='ok') continue;
+    for(const b of e.boxes){
+      if(b.page!==pi) continue;
+      const x=b.x*scale,y=b.y*scale,w=b.w*scale,h=b.h*scale;
+      if(e.mode==='no'){ ctx.fillStyle=INK; ctx.fillRect(x,y,w,h); }
+      else { ctx.fillStyle=b.bg||'#FFFFFF'; ctx.fillRect(x,y,w,h); drawFitText(ctx,x,y,w,h,maskHalf(e.type,e.value)); }
+    }
   }
-  $('docView').innerHTML=html;
+}
+function drawFitText(ctx,x,y,w,h,text){
+  ctx.save();
+  ctx.beginPath(); ctx.rect(x-1,y-1,w+2,h+2); ctx.clip();
+  let fsz=h*0.78;
+  ctx.font=fsz+'px "IBM Plex Sans KR",sans-serif';
+  while(ctx.measureText(text).width>w && fsz>6){ fsz-=1; ctx.font=fsz+'px "IBM Plex Sans KR",sans-serif'; }
+  ctx.fillStyle=INK; ctx.textBaseline='middle'; ctx.textAlign='left';
+  ctx.fillText(text, x+1, y+h/2);
+  ctx.restore();
+}
+function drawWatermark(ctx,W,H,text){
+  if(!text) return;
+  ctx.save();
+  // keep bottom margin clear (QR/stamp/signature area) + small top margin
+  ctx.beginPath(); ctx.rect(0, H*0.05, W, H*0.81); ctx.clip();
+  ctx.globalAlpha=0.10; ctx.fillStyle=INK;
+  const fs=Math.max(16, W*0.028);
+  ctx.font='700 '+fs+'px "IBM Plex Sans KR",sans-serif';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.translate(W/2,H/2); ctx.rotate(-Math.PI/6);
+  const tw=ctx.measureText(text).width;
+  const stepX=tw+fs*3.5, stepY=fs*4.2, diag=Math.hypot(W,H);
+  for(let yy=-diag; yy<diag; yy+=stepY) for(let xx=-diag; xx<diag; xx+=stepX) ctx.fillText(text,xx,yy);
+  ctx.restore();
 }
 
+/* ───────── detection list (live value next to toggle) ───────── */
 function catRowHtml(type,items){
   const on=catEnabled[type], d=catDefault[type], t=T();
   return `
@@ -701,8 +962,9 @@ function catRowHtml(type,items){
       </div>
     </div>
     ${items.length?`<div class="cat-items">${items.map(e=>`
-      <div class="pii-item">
-        <span class="val mono" title="${escapeHtml(e.value)}">${escapeHtml(e.value)}</span>
+      <div class="pii-item${located(e)?'':' nolocate'}">
+        <span class="val mono" title="${escapeHtml(e.value)}">${escapeHtml(displayValue(e))}</span>
+        ${located(e)?'':`<span class="nl">${t.notLocated}</span>`}
         <div class="seg" role="radiogroup">
           <button class="${e.mode==='ok'?'on-ok':''}" data-id="${e.id}" data-mode="ok">${t.segOk}</button>
           <button class="${e.mode==='half'?'on-half':''}" data-id="${e.id}" data-mode="half">${t.segHalf}</button>
@@ -711,22 +973,19 @@ function catRowHtml(type,items){
       </div>`).join('')}</div>`:''}
   </div>`;
 }
-
 function renderList(){
   const list=$('piiList'), t=T();
   const total=entities.filter(isOn).length;
   $('piiCount').textContent= total? t.cntUse(total):'';
   document.querySelectorAll('#bulkBtns button').forEach(b=>b.disabled=!total);
-  $('catHint').textContent = docText? t.hintAfter : t.hintBefore;
+  $('catHint').textContent = pages.length? t.hintAfter : t.hintBefore;
   const groups={};
   for(const e of entities){(groups[e.type]=groups[e.type]||[]).push(e);}
   const all=Object.keys(TYPES);
-  if(!docText){
-    /* 업로드 전: 전체 카테고리 표시 (기본값 미리 설정용) */
+  if(!pages.length){
     list.innerHTML = all.map(ty=>catRowHtml(ty,[])).join('');
     return;
   }
-  /* 업로드 후: 발견된 카테고리만 + 나머지는 접기 */
   const hits=all.filter(ty=>groups[ty]&&groups[ty].length);
   const misses=all.filter(ty=>!groups[ty]||!groups[ty].length);
   let html=hits.map(ty=>catRowHtml(ty,groups[ty])).join('');
@@ -736,7 +995,6 @@ function renderList(){
   }
   list.innerHTML=html;
 }
-
 $('piiList').addEventListener('change',e=>{
   const cb=e.target.closest('input[data-cat]'); if(!cb) return;
   catEnabled[cb.dataset.cat]=cb.checked; renderAll();
@@ -760,36 +1018,25 @@ $('bulkBtns').addEventListener('click',e=>{
   toast(b.dataset.mode==='ok'?T().tBulkOk:b.dataset.mode==='half'?T().tBulkHalf:T().tBulkNo);
 });
 
-/* ───────── AI scan ───────── */
+/* ───────── AI scan (text-only; maps found strings back to boxes) ───────── */
 $('btnAI').addEventListener('click',runAI);
 async function runAI(){
   if(aiDone){toast(T().tAIDup);return;}
+  if(!docText){return;}
   const btn=$('btnAI');
   btn.disabled=true; btn.innerHTML='<span class="spinner"></span>'+T().aiBusy;
   try{
-    /* 프롬프트는 서버(/api/safe_scan)에서 조립. 여기선 데이터만 보낸다 */
-    const payload = sourceImage
-      ? {image:{data:sourceImage.data, media:sourceImage.media}}
-      : {text: docText.slice(0,6000)};
     const res=await fetch('/api/safe_scan',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(payload)
+      body:JSON.stringify({text: docText.slice(0,6000)})
     });
     const data=await res.json();
     if(!res.ok||data.error) throw new Error(data.error||'scan_failed');
     const raw=(data.raw||'').replace(/```json|```/g,'').trim();
-    if(sourceImage){
-      const obj=JSON.parse(raw);
-      docText=obj.text||docText;
-      $('fileInfo').textContent=T().aiChars(docText.length.toLocaleString());
-      addEntities(regexScan(docText));
-      addEntities(obj.entities||[]);
-    }else{
-      addEntities(JSON.parse(raw));
-    }
+    addEntities(JSON.parse(raw));
     aiDone=true;
     btn.innerHTML='✅ '+T().aiDone;
-    $('scanStatus').textContent=T().scanAI(entities.length);
+    setStatus(T().scanAI(entities.length));
     renderAll();
     toast(T().tAIDone);
   }catch(err){
@@ -799,79 +1046,95 @@ async function runAI(){
   }
 }
 
-/* ───────── build & download ───────── */
-function buildMasked(){
+/* ───────── watermark controls ───────── */
+function buildWmPresets(){
+  const sel=$('wmPreset'); if(!sel) return;
+  const prev=sel.value;
+  const t=T();
+  sel.innerHTML = t.wmPresets.map((p,i)=>`<option value="p${i}">${escapeHtml(p)}</option>`).join('') + `<option value="custom">${t.wmCustom}</option>`;
+  // keep prior selection if still valid
+  if(prev && [...sel.options].some(o=>o.value===prev)) sel.value=prev; else sel.value='p0';
+  if($('wmText') && !$('wmText').value) $('wmText').value=t.wmPresets[0];
+}
+$('wmOn').addEventListener('change',()=>{ $('wmBody').classList.toggle('on',$('wmOn').checked); drawPreview(); updateMake(); });
+$('wmPreset').addEventListener('change',()=>{ const v=$('wmPreset').value; if(v!=='custom'){ const i=+v.slice(1); $('wmText').value=T().wmPresets[i]; } else { $('wmText').focus(); } drawPreview(); updateMake(); });
+$('wmText').addEventListener('input',()=>{ drawPreview(); updateMake(); });
+const wmEnabled=()=>$('wmOn').checked && $('wmText').value.trim().length>0;
+const wmText=()=>$('wmText').value.trim();
+
+/* ───────── build & download (flattened raster) ───────── */
+function buildMaskedText(){
   let out=docText;
   const sorted=[...entities].filter(isOn).sort((a,b)=>b.value.length-a.value.length);
   for(const e of sorted){
     if(e.mode==='ok') continue;
-    const re=new RegExp(escapeRe(e.value),'g');
-    out=out.replace(re, e.mode==='half'? maskHalf(e.type,e.value) : maskFull(e.value));
+    const re=new RegExp(e.value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g');
+    out=out.replace(re, e.mode==='half'? maskHalf(e.type,e.value) : maskBlockText(e.value));
   }
   return out;
 }
-function buildMaskedHtml(){
-  let html=escapeHtml(docText);
-  const sorted=[...entities].filter(isOn).sort((a,b)=>b.value.length-a.value.length);
-  for(const e of sorted){
-    if(e.mode==='ok') continue;
-    const re=new RegExp(escapeRe(escapeHtml(e.value)),'g');
-    const rep=e.mode==='half'? `<span class="rh">${escapeHtml(maskHalf(e.type,e.value))}</span>` : `<span class="rf">${maskFull(e.value)}</span>`;
-    html=html.replace(re,rep);
-  }
-  return html;
+function composePage(pi){
+  const page=pages[pi];
+  const cv=canvasEl(page.w,page.h);
+  const ctx=cv.getContext('2d');
+  ctx.drawImage(page.canvas,0,0);
+  drawRedactions(ctx,pi,1);
+  if(wmEnabled()) drawWatermark(ctx,cv.width,cv.height,wmText());
+  return cv;
 }
-$('btnMake').addEventListener('click',()=>{
-  $('resultDoc').innerHTML=buildMaskedHtml();
+$('btnMake').addEventListener('click',async()=>{
+  const btn=$('btnMake'); btn.disabled=true;
+  setStatus(T().building);
+  try{
+    const outs=pages.map((_,pi)=>composePage(pi));
+    const fmt=document.querySelector('input[name=fmt]:checked').value;
+    const base=(docTitle||'doc').replace(/\.[^.]+$/,'')+'_safe';
+    if(fmt==='pdf'){
+      const {jsPDF}=await ensureJsPDF();
+      let doc;
+      outs.forEach((cv,i)=>{
+        const wpt=pages[i].ptW, hpt=pages[i].ptH, o=wpt>hpt?'l':'p';
+        if(i===0) doc=new jsPDF({unit:'pt',format:[wpt,hpt],orientation:o});
+        else doc.addPage([wpt,hpt], o);
+        doc.addImage(cv.toDataURL('image/jpeg',0.92),'JPEG',0,0,wpt,hpt);
+      });
+      lastOut={fmt:'pdf', pdf:doc, name:base+'.pdf'};
+      showResult(outs.map(cv=>cv.toDataURL('image/jpeg',0.92)));
+    } else {
+      const type=fmt==='jpg'?'image/jpeg':'image/png';
+      const dataUrls=outs.map(cv=>cv.toDataURL(type,0.92));
+      lastOut={fmt, dataUrls, name:base+'.'+fmt};
+      showResult(dataUrls);
+    }
+    const hidden=entities.filter(e=>isOn(e)&&e.mode!=='ok'&&located(e)).reduce((s,e)=>s+e.boxes.length,0);
+    toast(hidden? T().tMade(hidden) : T().tMadeWM);
+  }catch(err){ console.error(err); toast(T().tReadFail); }
+  finally{ setStatus(''); btn.disabled=false; }
+});
+function showResult(imgUrls){
+  const host=$('resultDoc'); host.innerHTML='';
+  imgUrls.forEach(u=>{ const im=new Image(); im.src=u; host.appendChild(im); });
   $('result').style.display='block';
   $('result').scrollIntoView({behavior:'smooth'});
-  const hidden=entities.filter(e=>isOn(e)&&e.mode!=='ok').length;
-  toast(T().tMade(hidden));
-});
+}
 $('btnDownload').addEventListener('click',()=>{
-  const fmt=document.querySelector('input[name=fmt]:checked').value;
-  download(fmt);
+  if(!lastOut) return;
+  if(lastOut.fmt==='pdf'){ lastOut.pdf.save(lastOut.name); toast(T().tSaved(lastOut.name)); return; }
+  // image: if multipage, download each page
+  if(lastOut.dataUrls.length===1){ triggerDL(lastOut.dataUrls[0], lastOut.name); }
+  else lastOut.dataUrls.forEach((u,i)=>triggerDL(u, lastOut.name.replace(/(\.[^.]+)$/, `_${i+1}$1`)));
 });
 $('btnCopy').addEventListener('click',async()=>{
-  await navigator.clipboard.writeText(buildMasked());
-  toast(T().tCopied);
+  try{ await navigator.clipboard.writeText(buildMaskedText()); toast(T().tCopied); }catch(e){ toast(T().tReadFail); }
 });
+function triggerDL(url,name){const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();toast(T().tSaved(name));}
 
-function download(fmt){
-  const base=(docTitle||'doc').replace(/\.[^.]+$/,'')+'_safe';
-  if(fmt==='png'||fmt==='jpg'){
-    const text=buildMasked();
-    const scale=2, W=900, pad=50, LH=34, maxW=W-pad*2;
-    const cv=document.createElement('canvas');
-    const ctx=cv.getContext('2d');
-    ctx.font='17px "IBM Plex Sans KR","Apple SD Gothic Neo",sans-serif';
-    /* 실측 기반 줄바꿈 */
-    const lines=[];
-    for(const raw of text.split('\n')){
-      if(!raw){lines.push('');continue;}
-      let cur='';
-      for(const ch of raw){
-        if(ctx.measureText(cur+ch).width>maxW){lines.push(cur);cur=ch;}
-        else cur+=ch;
-      }
-      lines.push(cur);
-    }
-    const H=pad*2+lines.length*LH;
-    cv.width=W*scale; cv.height=H*scale;
-    const c2=cv.getContext('2d'); c2.scale(scale,scale);
-    c2.fillStyle='#FFFFFF'; c2.fillRect(0,0,W,H);
-    c2.fillStyle='#17140F'; c2.font='17px "IBM Plex Sans KR","Apple SD Gothic Neo",sans-serif'; c2.textBaseline='top';
-    lines.forEach((l,i)=>c2.fillText(l,pad,pad+i*LH));
-    if(fmt==='jpg') triggerDL(cv.toDataURL('image/jpeg',0.92), base+'.jpg');
-    else triggerDL(cv.toDataURL('image/png'), base+'.png');
-  } else {
-    window.print();
-  }
-}
-function triggerDL(url,name){const a=document.createElement('a');a.href=url;a.download=name;a.click();toast(T().tSaved(name));}
+/* re-fit preview widths on resize */
+let _rz; window.addEventListener('resize',()=>{ clearTimeout(_rz); _rz=setTimeout(()=>{ if(pages.length) buildPreview(); },250); });
 
 /* ───────── init ───────── */
 applyLang();
+renderList();
 </script>
 </body>
 </html>

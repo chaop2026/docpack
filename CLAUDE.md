@@ -218,6 +218,27 @@ All blog posts use structured JSON generation with psychological marketing hooks
 - **Seed**: `db/seeds/blog_styles.rb` — default strategy with loss aversion, social proof, urgency patterns
 - **Nav**: "글쓰기 전략" link in admin sidebar
 
+## SafeFile Pipeline (v2 — coordinate-based redaction, 2026-07-19)
+
+- **File**: single static `public/safe/index.html` (served directly by Rails, language-independent single URL `/safe/`).
+- **Core model change**: previously extracted text → re-typed masked text onto a blank canvas (lost original layout). **Now**: render the *original page* to canvas → detect PII bounding boxes → overlay black bars / partial-value fills on the coordinates → flatten. Original tables/stamps/signatures/layout are preserved.
+- **Input routing** (`handleFile`):
+  - **PDF**: pdf.js renders each page to canvas + text-layer items give per-item boxes (`pdfjsLib.Util.transform`). Multi-page. If a page has <8 text chars → **scanned page**, falls through to OCR.
+  - **Image (JPG/PNG/WEBP/HEIC)**: drawn to canvas (capped 2400px); HEIC converted via lazy `heic2any`. OCR via lazy **Tesseract.js**.
+  - **docx/txt/paste/sample**: no visual original → `renderTextPages()` lays text onto white A4-ratio canvases recording exact word boxes. (User decision 2026-07-19: keep these, don't drop.)
+- **Coordinate matching** (`boxesForValue`): per page a char→item index map (`buildIndex`); exact `indexOf` then spaceless fallback; sub-item boxes via proportional char width. Entities with no match get a "위치 못 찾음 / not located" chip and are excluded from the maskable count.
+- **Live toggle** (problem #2 fix): the value shown next to each toggle is `displayValue(e)` — `ok`→original, `half`→`maskHalf()`, `no`→`■` blocks. Every toggle (bulk/category/individual) calls `renderAll()` → list + `drawPreview()` redraw instantly.
+- **Redaction rendering** (`drawRedactions`): `no`→solid ink rect (covers original); `half`→sampled-bg rect + partial value drawn on top (`drawFitText`, clipped). Original pixels are always covered — never shown through.
+- **Output** (`composePage` → flatten): each page composited (original + redactions + watermark) to a **raster** canvas. JPG/PNG single-page = one image, multi-page = per-page downloads. PDF = jsPDF embedding per-page JPEG at original pt size → **no text layer, page count + size preserved**. Verified: output PDFs have 0 extractable text, 0 PII leak (pymupdf).
+- **Watermark**: optional diagonal repeated semi-transparent text (`drawWatermark`, opacity 0.10). 4-lang presets + free text. **Bottom 14% + top 5% kept clear** (QR/barcode/stamp margin rule — user decision: margin only, no auto QR detection; 4-lang notice warns the user to check). Watermark-only (no masking) supported — make button enables when watermark on even with 0 masked.
+- **Lazy CDN libs**: Tesseract.js (`@5.1.1`, langs `kor+eng`/`eng`/`jpn+eng`/`spa+eng` by UI lang), heic2any (`@0.0.4`), jsPDF (`cdnjs 2.5.1` — note: 2.5.2 is 404 on cdnjs). pdf.js + mammoth loaded eagerly (existing).
+- **Progress**: `#prog` bar + `#scanStatus` text for page render (`renderProg`), OCR (`ocrProg` %), HEIC convert, build.
+- **Privacy unchanged**: all processing in-browser; only AI deep scan (`/api/safe_scan`) sends extracted text (now text-only, never image) — controller unchanged.
+- **i18n**: `I18N` dict in-file, ko/en/ja/es. New keys added for limits/OCR/watermark/render progress/errors.
+- **Known limitations** (detection recall, not redaction mechanics): names/companies need AI deep scan (server, `ANTHROPIC_API_KEY`); Korean OCR recall is imperfect on low-quality scans; address regex captures approximate spans. Boxes that *are* found are placed accurately.
+- **Design tokens unchanged**: `--paper #F7F5EF / --ink #17140F / --marker #FFE066`, IBM Plex.
+- **Local verification** (2026-07-19, Playwright + system Chrome, 5 docs): text PDF / scanned-image PDF / JPG photo / table PDF / multi-page PDF — all passed layout preservation, mask positioning, 0 text-leak, live toggle, watermark, 4-lang switch.
+
 ## SEO & Sitemap
 
 - Domain: `https://slimfile.net` (default `BASE_URL` in `app/helpers/application_helper.rb`)
