@@ -1,4 +1,11 @@
 Rails.application.routes.draw do
+  # Permanent slug renames for the static SafeFile guide posts. These must come
+  # before the "/blog/:slug" route below so they win; after the folder rename the
+  # old paths no longer resolve as static files and fall through to here.
+  # 301 (redirect default) — never reverse.
+  get "/blog/rrn-masking",        to: redirect("/blog/resident-number-masking/")
+  get "/blog/contract-checklist", to: redirect("/blog/contract-sharing-checklist/")
+
   # Locale-prefixed public pages. Korean (default) uses bare paths; the
   # constraint only matches en/ja/es, so /ko/... never resolves here.
   scope "(:locale)", locale: /en|ja|es/ do
