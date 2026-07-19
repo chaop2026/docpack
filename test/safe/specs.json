@@ -1,0 +1,80 @@
+{
+  "_readme": "Golden specification for the SafeFile PII pipeline. Each doc lists values that MUST be masked, MUST NOT be masked (geometrically covered), and values that should surface only as review CANDIDATES. Checked headlessly by run.mjs against the live detection in public/safe/index.html. never_candidate = value must not be proposed as a candidate at all. ai_inject = adversarial AI-label cases fed to addEntities (reproduces the real-doc name/country/org false positives without a live API).",
+
+  "docs": [
+    {
+      "doc": "1_text.pdf", "type": "pdf", "ocr": false, "min_auto": 5,
+      "must_mask": ["900315-1234567", "010-2345-6789", "minjun.kim@hanmail.net", "010-9876-5432", "123456-04-789012"],
+      "must_not_mask": ["한빛테크"],
+      "should_candidate": [],
+      "never_candidate": ["한빛테크"]
+    },
+    {
+      "doc": "2_scanned.pdf", "type": "pdf", "ocr": true, "min_auto": 3,
+      "must_mask": [], "must_not_mask": [], "should_candidate": [], "never_candidate": []
+    },
+    {
+      "doc": "3_photo.jpg", "type": "image", "ocr": true, "min_auto": 3,
+      "must_mask": [], "must_not_mask": [], "should_candidate": [], "never_candidate": []
+    },
+    {
+      "doc": "4_table.pdf", "type": "pdf", "ocr": false, "min_auto": 4,
+      "must_mask": ["870915-1234567", "010-3456-7890", "daeho@corp.com", "110-234-567890"],
+      "must_not_mask": [], "should_candidate": [], "never_candidate": []
+    },
+    {
+      "doc": "5_multipage.pdf", "type": "pdf", "ocr": false, "min_auto": 9,
+      "must_mask": ["900315-1234567", "920820-2345678", "880505-1234567", "minjun@a.com", "seoyeon@b.com", "doyoon@c.com"],
+      "must_not_mask": [], "should_candidate": [], "never_candidate": []
+    },
+    {
+      "doc": "6_resume_light.pdf", "type": "pdf", "ocr": false, "min_auto": 3,
+      "must_mask": ["+91 9599320477", "aarav.sharma@gmail.com"],
+      "_note_ai_only": "English street addresses (e.g. 'Signature Global Mall, Sector 84') are detected only by the AI deep-scan path, not the deterministic regex path this harness exercises.",
+      "must_not_mask": ["Delhi University", "Maharaja Agrasen College", "Saket", "Imphal"],
+      "should_candidate": ["Aarav Sharma"],
+      "never_candidate": ["Delhi University", "Maharaja Agrasen College"],
+      "phone_format": {"+91 9599320477": "+91 95****0477"},
+      "name_bar": "Aarav Sharma"
+    },
+    {
+      "doc": "7_resume_dark.pdf", "type": "pdf", "ocr": false, "min_auto": 2,
+      "must_mask": ["+91 9599320477", "aarav.sharma@gmail.com"],
+      "must_not_mask": [
+        "Delhi University", "Maharaja Agrasen College", "Vidya Niketan School",
+        "King Sejong Institute", "Concern India Foundation", "Korea",
+        "Koreaz Contest", "Imphal", "Saket", "India"
+      ],
+      "should_candidate": ["Aarav Sharma", "Signature Global"],
+      "never_candidate": [
+        "Korea", "Maharaja Agrasen College", "Vidya Niketan School",
+        "King Sejong Institute", "Concern India Foundation", "Delhi University", "Imphal"
+      ],
+      "phone_format": {"+91 9599320477": "+91 95****0477"},
+      "name_bar": "Aarav Sharma",
+      "dark_bg_value": "aarav.sharma@gmail.com"
+    }
+  ],
+
+  "phone_format_units": {
+    "+91 9599320477": "+91 95****0477",
+    "010-2345-6789": "010-2***-6789",
+    "011-2345-6789": "011-2***-6789",
+    "+82 10-1234-5678": "+82 10-****-5678",
+    "(415) 555-2671": "(41*) ***-2671",
+    "+62 812-3456-7890": "+62 81*-****-7890"
+  },
+
+  "ai_inject": {
+    "_doc": "7_resume_dark.pdf",
+    "cases": [
+      {"label": "college labelled as person name", "entity": {"type": "name", "value": "Maharaja Agrasen College"}, "expect": "not_masked"},
+      {"label": "foundation labelled as person name", "entity": {"type": "name", "value": "Concern India Foundation"}, "expect": "not_masked"},
+      {"label": "institute labelled as name", "entity": {"type": "name", "value": "King Sejong Institute"}, "expect": "not_masked"},
+      {"label": "lone country labelled as address", "entity": {"type": "address", "value": "Korea"}, "expect": "dropped"},
+      {"label": "lone country labelled as name", "entity": {"type": "name", "value": "India"}, "expect": "dropped"},
+      {"label": "country adjective labelled as name", "entity": {"type": "name", "value": "Indian"}, "expect": "dropped"},
+      {"label": "genuine body name (positive control)", "entity": {"type": "name", "value": "Rohan Mehta"}, "expect": "masked"}
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "safefile-golden-tests",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Headless golden-fixture tests for the SafeFile PII detection/redaction pipeline",
+  "scripts": {
+    "test": "node run.mjs",
+    "fixtures": "python3 generate_fixtures.py"
+  },
+  "dependencies": {
+    "playwright": "^1.61.1"
+  }
+}

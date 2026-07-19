@@ -669,9 +669,25 @@ const ORG_RE=/\b(foundation|trust|ngo|organi[sz]ation|association|federation|cou
 const COUNTRY_RE=/\b(india|indonesia|korea|japan|brazil|brasil|spain|espa[nñ]a|mexico|m[eé]xico|usa|u\.s\.a\.?|united states|u\.k\.?|united kingdom|england|canada|australia|singapore|philippines|vietnam|thailand|malaysia|germany|france|italy|netherlands|nepal|bangladesh|pakistan|sri lanka|china|taiwan|uae|dubai|qatar)\b/i;
 const ADDR_KEYWORD_RE=/\b(road|rd|street|st|avenue|ave|lane|ln|nagar|sector|colony|society|apartment|apartments|apt|flat|block|marg|enclave|vihar|puram|layout|phase|cross|extension|residency|towers?|heights?|villa|plot|gali|chowk|mohalla|bagh|ganj)\b|[가-힣]{2,}(로|길|동|읍|면|리)\b|丁目|区|市/i;
 const isOrgName=v=>INSTITUTION_RE.test(v)||ORG_RE.test(v);
+// Country names and nationality adjectives are NEVER personal info — a lone
+// "Korea"/"India"/"Indian" must be excluded outright (not masked, not a
+// candidate), no matter which path (regex, candidate, or AI) proposes it.
+const COUNTRY_ADJ_RE=/^(korean|indian|japanese|chinese|american|british|english|spanish|mexican|brazilian|canadian|australian|french|german|italian|dutch|nepali|nepalese|bangladeshi|pakistani|filipino|filipina|vietnamese|thai|malaysian|singaporean|taiwanese|emirati|qatari|russian|swiss|swedish|norwegian|danish|finnish|polish|turkish|greek|portuguese|indonesian)$/i;
+const DIRWORD_RE=/^(south|north|east|west|republic|of|the)$/i;
+function isCountryOrAdj(v){
+  const t=(v||'').trim().replace(/^[.,()'"’]+|[.,()'"’]+$/g,'');
+  if(!t) return false;
+  if(COUNTRY_ADJ_RE.test(t)) return true;                 // "Indian"
+  const words=t.split(/\s+/);
+  if(words.length<=2 && COUNTRY_RE.test(t) && !/\d/.test(t) && !isOrgName(t)
+     && words.every(w=>{const c=w.replace(/[.,]/g,''); return DIRWORD_RE.test(c)||COUNTRY_RE.test(c);}))
+    return true;                                           // "Korea", "South Korea"
+  return false;
+}
 function classifyAddress(v){
   if(/\d/.test(v)) return 'address';        // (1) number → confirmed, auto-mask
   if(isOrgName(v)) return 'company';         // (3) org/institution → visible, not address
+  if(isCountryOrAdj(v)) return 'drop';       // (3) lone country/nationality → not PII
   const words=v.trim().split(/\s+/);
   if(words.length<=1) return 'drop';         // (3) lone place token (e.g. "Imphal")
   if(COUNTRY_RE.test(v)||ADDR_KEYWORD_RE.test(v)) return 'candidate'; // (2)
@@ -686,6 +702,7 @@ function isLikelyName(text){
   if(!text||text.length<2||text.length>40) return false;
   if(/[\d@]|https?:|www\./i.test(text)) return false;
   if(DOC_TITLE_RE.test(text.trim())||NON_NAME_RE.test(text)) return false;
+  if(isOrgName(text)||isCountryOrAdj(text)) return false;  // schools/orgs/countries are not names
   if(text.split(/\s+/).length>4) return false;
   const compact=text.replace(/\s/g,'');
   const letters=(text.match(/[A-Za-zÀ-ɏ가-힣぀-ヿ一-鿿]/g)||[]).length;
@@ -745,9 +762,11 @@ function addressCandidates(){
     if(t.length<4||t.length>80) return;
     if(/\d/.test(t)) return;                   // numbered → confirmed path handles it
     if(isOrgName(t)) return;                    // (3) org/institution excluded
+    if(isCountryOrAdj(t)) return;               // (3) lone country/nationality excluded
     const words=t.split(/\s+/);
     if(words.length>9) return;                  // long body sentence
     const hasCountry=COUNTRY_RE.test(t), hasKw=ADDR_KEYWORD_RE.test(t);
+    if(!hasKw && hasCountry && words.length<=2) return;  // "Gurgaon, India" — country tail, no street signal
     if(!hasCountry && !hasKw) return;
     const page=pages[ln.page];
     const region = ln.y < page.h*0.20 ? 'header' : ln.y > page.h*0.80 ? 'footer' : 'body';
@@ -764,10 +783,24 @@ function addressCandidates(){
 }
 
 /* ───────── text masking (for partial rendering, list display, copy) ───────── */
+// Format-preserving partial phone mask: keep every non-digit character (+, spaces,
+// dashes, parens) exactly where it is, reveal the leading group + last 4 digits,
+// and replace only the middle digits with '*'. Never re-assembles into a fixed
+// (Korean) layout. "+91 9599320477" → "+91 95****0477", "010-2345-6789" → "010-2***-6789".
+function maskPhone(v){
+  const digitIdx=[]; for(let i=0;i<v.length;i++) if(/\d/.test(v[i])) digitIdx.push(i);
+  const n=digitIdx.length;
+  if(n<6) return v.length? v[0]+'*'.repeat(Math.max(v.length-1,2)) : v;
+  const back=4, front=n>=11?4:2;
+  const maskFrom=front, maskTo=n-back;              // mask digit positions [maskFrom, maskTo)
+  const out=v.split('');
+  for(let k=maskFrom;k<maskTo;k++) out[digitIdx[k]]='*';
+  return out.join('');
+}
 function maskHalf(type,v){
   switch(type){
     case 'name': return v.length<=1? v : v.length===2? v[0]+'*' : v[0]+'*'.repeat(v.length-2)+v[v.length-1];
-    case 'phone': { const parts=v.split(/[-. ]/); if(parts.length===3) return parts[0]+'-****-'+parts[2]; const d=v.replace(/\D/g,''); return d.length>=8? d.slice(0,3)+'-****-'+d.slice(-4) : v[0]+'***'; }
+    case 'phone': return maskPhone(v);
     case 'email': { const [a,b]=v.split('@'); return (a[0]||'')+'***@'+(b||''); }
     case 'rrn': case 'ssn': { const i=v.search(/[-‐ ]/); return i>0? v.slice(0,i+1)+'*'.repeat(v.length-i-1) : v.slice(0,6)+'*'.repeat(Math.max(v.length-6,0)); }
     case 'card': return v.slice(0,4)+v.slice(4,-4).replace(/\d/g,'*')+v.slice(-4);
@@ -1067,6 +1100,13 @@ function addEntities(list){
     const v=(e.value||'').trim(); if(!v||v.replace(/\s/g,'').length<2) continue;
     let type=TYPES[e.type]?e.type:'other';
     let kind=e.kind||'auto', reason=e.reason||null;
+    // Country / nationality is never PII — drop it regardless of proposed type
+    // (fixes AI mislabelling "Korea"/"India"/"Indian" as name/address/company).
+    if(isCountryOrAdj(v)) continue;
+    // An organisation/institution mislabelled as a person's name (a common AI
+    // error, e.g. "Maharaja Agrasen College", "Concern India Foundation") is
+    // demoted to a visible company, never masked as a name.
+    if((type==='name'||type==='title') && isOrgName(v)){ type='company'; kind='auto'; reason=null; }
     if(type==='address' && kind!=='candidate'){       // classify auto/AI addresses into the 3 tiers
       const d=classifyAddress(v);
       if(d==='drop') continue;
@@ -1138,6 +1178,16 @@ function pageMedH(page){
   const hs=page.items.map(i=>i.h).filter(h=>h>0).sort((a,b)=>a-b);
   return (page._medH = hs.length? hs[hs.length>>1] : 16);
 }
+// Tighten a large solid bar (e.g. a 44pt name) to hug the glyph band so it does
+// not tower over the original text. The source box carries edge padding (added
+// for partial-mask remnant safety); a big bar doesn't need it.
+function largeBarRect(l){
+  // Trim only the ascent whitespace above the cap line (reliably ink-free) so the
+  // bar hugs the letters instead of towering over them. Full width + full descent
+  // are kept so no glyph ink is ever exposed.
+  const top=l.h*0.15;
+  return {x:l.x, y:l.y+top, w:l.w, h:l.h-top};
+}
 function isDarkColor(bg){
   const m=/rgb\((\d+),\s*(\d+),\s*(\d+)\)/.exec(bg||''); if(!m) return false;
   return (0.299*+m[1]+0.587*+m[2]+0.114*+m[3]) < 130;
@@ -1154,7 +1204,7 @@ function drawRedactions(ctx,pi,scale){
     // manual regions (photo/signature) have no text → always solid cover
     const solid = e.mode==='no' || e.kind==='manual' || largeHalf;
     if(solid){
-      for(const l of lines){ ctx.fillStyle=INK; ctx.fillRect(l.x*scale,l.y*scale,l.w*scale,l.h*scale); }
+      for(const l of lines){ const r=largeHalf?largeBarRect(l):l; ctx.fillStyle=INK; ctx.fillRect(r.x*scale,r.y*scale,r.w*scale,r.h*scale); }
     } else { // partial: fully cover every line first, then draw the masked value ONCE
       for(const l of lines){ ctx.fillStyle=l.bg||'#FFFFFF'; ctx.fillRect(l.x*scale-1,l.y*scale-1,l.w*scale+2,l.h*scale+2); }
       const f=lines[0];
