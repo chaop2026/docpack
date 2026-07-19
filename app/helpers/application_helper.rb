@@ -8,11 +8,13 @@ module ApplicationHelper
 
   # `path` is the canonical unprefixed path (e.g. "/faq"); the current locale
   # prefix is applied so each localized page self-canonicalizes.
-  def page_meta(title:, description:, path: nil, image: nil)
-    canonical = path ? locale_prefixed(path) : request.path
+  # `canonical` (when given) is an absolute path already resolved to the correct
+  # locale — used to point untranslated blog pages at the Korean original.
+  def page_meta(title:, description:, path: nil, image: nil, canonical: nil)
+    canonical_path = canonical || (path ? locale_prefixed(path) : request.path)
     content_for(:meta_title, title)
     content_for(:meta_description, description)
-    content_for(:meta_url, "#{base_url}#{canonical}")
+    content_for(:meta_url, "#{base_url}#{canonical_path}")
     content_for(:meta_image, image || "#{base_url}/icon.png")
   end
 

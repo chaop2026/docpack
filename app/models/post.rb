@@ -25,6 +25,24 @@ class Post < ApplicationRecord
     I18n.locale == :ko ? meta_description_ko : (meta_description_en.presence || meta_description_ko)
   end
 
+  # Blog posts only carry ko/en body columns. A locale counts as "translated"
+  # only when that locale's body column is actually filled in — ja/es never are,
+  # and en falls back to ko text (untranslated) unless body_en is present.
+  # Used to gate indexing (noindex,follow) so empty/untranslated locale pages
+  # don't get indexed while AdSense review is in progress.
+  def translated?(loc = I18n.locale)
+    case loc.to_sym
+    when :ko then body_ko.present?
+    when :en then body_en.present?
+    else false
+    end
+  end
+
+  # Locales whose body is genuinely present — drives sitemap + hreflang.
+  def translated_locales
+    [ :ko, :en ].select { |l| translated?(l) }
+  end
+
   def publish!
     update!(status: "published", published_at: Time.current) if published_at.blank?
     update!(status: "published")

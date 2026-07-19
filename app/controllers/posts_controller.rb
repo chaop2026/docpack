@@ -15,10 +15,10 @@ class PostsController < ApplicationController
     @post.increment!(:view_count)
     @related_posts = Post.published.where(category: @post.category).where.not(id: @post.id).recent.limit(3)
 
-    helpers.page_meta(
-      title: @post.title,
-      description: @post.meta_description.presence || @post.title,
-      path: "/blog/#{@post.slug}"
-    )
+    # Empty body or a locale we haven't actually translated into → don't index
+    # this URL; point its canonical at the Korean original (see show.html.erb).
+    # NOTE: page/meta tags are emitted from the view via content_for — content_for
+    # set from a controller's `helpers` proxy does not reach the rendered layout.
+    @post_translated = @post.translated?
   end
 end

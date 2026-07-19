@@ -1,3 +1,13 @@
+<%# Page meta must be emitted from the view: content_for set via the controller's
+    `helpers` proxy does not propagate to the layout head. %>
+<% canonical_path = @post_translated ? locale_prefixed("/blog/#{@post.slug}") : "/blog/#{@post.slug}" %>
+<% page_meta(
+     title: @post.title,
+     description: @post.meta_description.presence || @post.title,
+     canonical: canonical_path
+   ) %>
+<% content_for :robots, "noindex,follow" unless @post_translated %>
+
 <% content_for :head do %>
   <meta property="og:type" content="article">
   <meta property="article:published_time" content="<%= @post.published_at&.iso8601 %>">

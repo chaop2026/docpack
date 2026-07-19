@@ -4,7 +4,6 @@
 <%
   default   = I18n.default_locale
   ui_locales = I18n.available_locales                 # [:ko, :en, :ja, :es] — fully translated UI
-  post_locales = [:ko, :en]                           # blog posts only have ko/en columns
   prefix = ->(loc, path) { loc == default ? path : "/#{loc}#{path == '/' ? '' : path}" }
 
   # Fully localized UI pages: [path, changefreq, priority]
@@ -34,13 +33,17 @@
 <% end %>
 <% Post.published.recent.each do |post| %>
   <% lastmod = (post.updated_at || post.published_at)&.to_date&.iso8601 %>
-  <% post_locales.each do |loc| %>
+  <%# Only emit locales the post is actually translated into — untranslated
+      (ja/es always, en unless body_en present) URLs carry noindex, so keeping
+      them out of the sitemap avoids indexing empty/mismatched pages. %>
+  <% locales = post.translated_locales %>
+  <% locales.each do |loc| %>
   <url>
     <loc><%= @base_url %><%= prefix.(loc, "/blog/#{post.slug}") %></loc>
     <lastmod><%= lastmod %></lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
-    <% post_locales.each do |alt| %>
+    <% locales.each do |alt| %>
     <xhtml:link rel="alternate" hreflang="<%= alt %>" href="<%= @base_url %><%= prefix.(alt, "/blog/#{post.slug}") %>"/>
     <% end %>
     <xhtml:link rel="alternate" hreflang="x-default" href="<%= @base_url %><%= prefix.(default, "/blog/#{post.slug}") %>"/>

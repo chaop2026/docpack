@@ -20,6 +20,9 @@
     <meta name="description" content="<%= content_for(:meta_description) || t('seo.default_description') %>">
     <meta name="keywords" content="<%= t('seo.keywords') %>">
 
+    <% if content_for?(:robots) %>
+    <meta name="robots" content="<%= content_for(:robots) %>">
+    <% end %>
     <link rel="canonical" href="<%= content_for(:meta_url) || "#{base_url}#{request.path}" %>">
 
     <% hreflang_alternates.each do |loc, href| %>
