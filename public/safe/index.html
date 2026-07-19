@@ -173,9 +173,22 @@ header{border-bottom:1px solid var(--line);background:var(--paper);position:stic
 .result-head{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .result-head h2{font-size:16px}
 .result-actions{display:flex;gap:8px;flex-wrap:wrap}
-#resultDoc{padding:16px;background:#FDFCFA;max-height:520px;overflow:auto;display:flex;flex-direction:column;gap:12px;align-items:center}
-#resultDoc img{max-width:100%;width:auto;border:1px solid var(--line);border-radius:6px;box-shadow:0 1px 5px rgba(23,20,15,.10)}
-.result-flat{font-size:12px;color:var(--sub);text-align:center;padding:0 16px 14px}
+/* ── Result viewer (fit-to-width + pager + zoom) ── */
+.rv-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--line);background:#fff;position:sticky;top:0;z-index:2}
+.rv-pager,.rv-zoom{display:flex;align-items:center;gap:6px}
+.rv-btn{min-width:44px;min-height:44px;padding:0 10px;border:1px solid var(--line);background:#fff;border-radius:10px;font-family:inherit;font-size:17px;font-weight:600;color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1;transition:.12s}
+.rv-btn:hover:not(:disabled){background:var(--marker-soft);border-color:var(--ink)}
+.rv-btn:disabled{opacity:.35;cursor:not-allowed}
+.rv-btn.rv-fit{font-size:13px}
+.rv-btn:focus-visible{outline:2px solid var(--half);outline-offset:2px}
+.rv-page,.rv-zoom-label{font-size:13px;color:var(--sub);min-width:52px;text-align:center;font-weight:500}
+#resultDoc{padding:16px;background:#FDFCFA;max-height:min(72vh,860px);overflow:auto;display:flex;justify-content:center;align-items:flex-start;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+#resultDoc canvas.rv-pg{display:block;margin:0 auto;border:1px solid var(--line);border-radius:6px;background:#fff;box-shadow:0 1px 5px rgba(23,20,15,.10)}
+.result-flat{font-size:12px;color:var(--sub);text-align:center;padding:10px 16px 14px}
+@media(max-width:480px){
+  .rv-toolbar{padding:8px 12px}
+  #resultDoc{padding:12px;max-height:min(64vh,680px)}
+}
 
 /* Partners */
 .partners{border-top:1px solid var(--line);padding:30px 0 16px}
@@ -357,6 +370,19 @@ footer a{color:var(--sub)}
           <button class="btn ghost small" id="btnCopy" data-i18n="btnCopy">텍스트 복사</button>
         </div>
       </div>
+      <div class="rv-toolbar" id="rvToolbar">
+        <div class="rv-pager" id="rvPager">
+          <button class="rv-btn" id="rvPrev" data-i18n-aria="rvPrevAria" aria-label="이전 페이지">‹</button>
+          <span class="rv-page mono" id="rvPageLabel">1 / 1</span>
+          <button class="rv-btn" id="rvNext" data-i18n-aria="rvNextAria" aria-label="다음 페이지">›</button>
+        </div>
+        <div class="rv-zoom">
+          <button class="rv-btn" id="rvZoomOut" data-i18n-aria="rvZoomOutAria" aria-label="축소">−</button>
+          <span class="rv-zoom-label mono" id="rvZoomLabel">100%</span>
+          <button class="rv-btn" id="rvZoomIn" data-i18n-aria="rvZoomInAria" aria-label="확대">＋</button>
+          <button class="rv-btn rv-fit" id="rvFit" data-i18n="rvFit">맞춤</button>
+        </div>
+      </div>
       <div id="resultDoc"></div>
       <div class="result-flat" data-i18n="resFlat">🔒 이 파일은 이미지로 평탄화(플래튼)되어 검은 박스 아래 원문이 남아 있지 않습니다.</div>
     </div>
@@ -423,6 +449,7 @@ ko:{
   aiBusy:'AI가 읽는 중…', aiDone:'AI 검사 완료',
   fmtJpg:'이미지 (JPG)', fmtPng:'이미지 (PNG)', fmtPdf:'PDF', btnMake:'문서 만들기',
   resTitle:'완성된 문서', btnDl:'다운로드', btnCopy:'텍스트 복사',
+  rvFit:'맞춤', rvPrevAria:'이전 페이지', rvNextAria:'다음 페이지', rvZoomInAria:'확대', rvZoomOutAria:'축소',
   resFlat:'🔒 이 파일은 이미지로 평탄화(플래튼)되어 검은 박스 아래 원문이 남아 있지 않습니다.',
   privacy:'🔒 모든 문서는 사용자의 브라우저 안에서만 처리됩니다. AI 정밀 검사를 선택한 경우에만 추출된 텍스트가 AI 분석을 위해 전송되며, 저장되지 않습니다.',
   partners:'SafeFile이 추천하는 서비스',
@@ -469,6 +496,7 @@ en:{
   aiBusy:'AI reading…', aiDone:'AI scan complete',
   fmtJpg:'Image (JPG)', fmtPng:'Image (PNG)', fmtPdf:'PDF', btnMake:'Create document',
   resTitle:'Your safe document', btnDl:'Download', btnCopy:'Copy text',
+  rvFit:'Fit', rvPrevAria:'Previous page', rvNextAria:'Next page', rvZoomInAria:'Zoom in', rvZoomOutAria:'Zoom out',
   resFlat:'🔒 This file is flattened to an image — no original text remains under the black boxes.',
   privacy:'🔒 All documents are processed inside your browser. Only when you choose AI deep scan is the extracted text sent for analysis — never stored.',
   partners:'Recommended by SafeFile',
@@ -515,6 +543,7 @@ ja:{
   aiBusy:'AIが読み取り中…', aiDone:'AI検査完了',
   fmtJpg:'画像 (JPG)', fmtPng:'画像 (PNG)', fmtPdf:'PDF', btnMake:'文書を作成',
   resTitle:'完成した文書', btnDl:'ダウンロード', btnCopy:'テキストをコピー',
+  rvFit:'フィット', rvPrevAria:'前のページ', rvNextAria:'次のページ', rvZoomInAria:'拡大', rvZoomOutAria:'縮小',
   resFlat:'🔒 このファイルは画像に平坦化（フラット化）され、黒いボックスの下に原文は残りません。',
   privacy:'🔒 すべての文書はお使いのブラウザ内でのみ処理されます。AI精密検査を選んだ場合のみ、抽出テキストがAI分析のため送信され、保存されることはありません。',
   partners:'SafeFileのおすすめサービス',
@@ -561,6 +590,7 @@ es:{
   aiBusy:'La IA está leyendo…', aiDone:'Análisis con IA completado',
   fmtJpg:'Imagen (JPG)', fmtPng:'Imagen (PNG)', fmtPdf:'PDF', btnMake:'Crear documento',
   resTitle:'Tu documento seguro', btnDl:'Descargar', btnCopy:'Copiar texto',
+  rvFit:'Ajustar', rvPrevAria:'Página anterior', rvNextAria:'Página siguiente', rvZoomInAria:'Acercar', rvZoomOutAria:'Alejar',
   resFlat:'🔒 Este archivo está aplanado a imagen: no queda texto original bajo las cajas negras.',
   privacy:'🔒 Todos los documentos se procesan dentro de tu navegador. Solo cuando eliges el análisis con IA se envía el texto extraído para su análisis, y nunca se almacena.',
   partners:'Recomendado por SafeFile',
@@ -657,6 +687,7 @@ function applyLang(){
     if(typeof v==='string') el.innerHTML=v;
   });
   document.querySelectorAll('[data-i18n-ph]').forEach(el=>{const v=T()[el.dataset.i18nPh];if(typeof v==='string')el.placeholder=v;});
+  document.querySelectorAll('[data-i18n-aria]').forEach(el=>{const v=T()[el.dataset.i18nAria];if(typeof v==='string')el.setAttribute('aria-label',v);});
   $('pasteArea').placeholder=T().pastePh;
   const ml=$('manifestLink'); if(ml) ml.href=`/safe/manifest.${LANG}.webmanifest`;
   if(typeof refreshInstallBanner==='function') refreshInstallBanner();
@@ -1594,24 +1625,59 @@ $('btnMake').addEventListener('click',async()=>{
         doc.addImage(cv.toDataURL('image/jpeg',0.92),'JPEG',0,0,wpt,hpt);
       });
       lastOut={fmt:'pdf', pdf:doc, name:base+'.pdf'};
-      showResult(outs.map(cv=>cv.toDataURL('image/jpeg',0.92)));
+      showResult(outs);
     } else {
       const type=fmt==='jpg'?'image/jpeg':'image/png';
       const dataUrls=outs.map(cv=>cv.toDataURL(type,0.92));
       lastOut={fmt, dataUrls, name:base+'.'+fmt};
-      showResult(dataUrls);
+      showResult(outs);
     }
     const hidden=entities.filter(e=>isOn(e)&&e.mode!=='ok'&&located(e)).reduce((s,e)=>s+e.boxes.length,0);
     toast(hidden? T().tMade(hidden) : T().tMadeWM);
   }catch(err){ console.error(err); toast(T().tReadFail); }
   finally{ setStatus(''); btn.disabled=false; }
 });
-function showResult(imgUrls){
-  const host=$('resultDoc'); host.innerHTML='';
-  imgUrls.forEach(u=>{ const im=new Image(); im.src=u; host.appendChild(im); });
+/* ───────── result viewer (fit-to-width, pager, 50–200% zoom) ───────── */
+let rvPages=[];        // composed source canvases (final pixels)
+let rvIndex=0;         // current page
+let rvZoom=null;       // null = fit-to-width baseline (100%); else multiplier of fit, 0.5–2.0
+const RV_MIN=0.5, RV_MAX=2.0, RV_STEP=0.25;
+function showResult(sources){
+  rvPages=sources.slice(); rvIndex=0; rvZoom=null;
   $('result').style.display='block';
+  rvRender();
   $('result').scrollIntoView({behavior:'smooth'});
 }
+function rvRender(){
+  const host=$('resultDoc'); if(!host) return;
+  if(!rvPages.length){ host.innerHTML=''; return; }
+  rvIndex=Math.max(0,Math.min(rvIndex,rvPages.length-1));
+  const src=rvPages[rvIndex];
+  const avail=Math.max(120,(host.clientWidth||600)-32);   // minus padding
+  const fit=avail/src.width;                               // fit-to-width baseline
+  const scale=rvZoom==null ? fit : fit*rvZoom;
+  const dispW=Math.max(1,Math.round(src.width*scale)), dispH=Math.max(1,Math.round(src.height*scale));
+  let cv=host.querySelector('canvas.rv-pg');
+  if(!cv){ host.innerHTML=''; cv=document.createElement('canvas'); cv.className='rv-pg'; host.appendChild(cv); }
+  cv.width=dispW; cv.height=dispH;
+  cv.getContext('2d').drawImage(src,0,0,dispW,dispH);
+  const pct=Math.round((rvZoom==null?1:rvZoom)*100);
+  $('rvPageLabel').textContent=`${rvIndex+1} / ${rvPages.length}`;
+  $('rvZoomLabel').textContent=pct+'%';
+  $('rvPager').style.display=rvPages.length>1?'':'none';
+  $('rvPrev').disabled=rvIndex<=0;
+  $('rvNext').disabled=rvIndex>=rvPages.length-1;
+  $('rvZoomOut').disabled=(rvZoom!=null&&rvZoom<=RV_MIN+1e-9);
+  $('rvZoomIn').disabled=(rvZoom!=null&&rvZoom>=RV_MAX-1e-9);
+  $('rvFit').disabled=(rvZoom==null);
+  host.scrollTop=0; host.scrollLeft=Math.max(0,(cv.width-host.clientWidth)/2);
+}
+function rvSetZoom(next){ rvZoom=Math.min(RV_MAX,Math.max(RV_MIN,next)); rvRender(); }
+$('rvPrev').addEventListener('click',()=>{ rvIndex--; rvRender(); });
+$('rvNext').addEventListener('click',()=>{ rvIndex++; rvRender(); });
+$('rvZoomIn').addEventListener('click',()=>rvSetZoom((rvZoom==null?1:rvZoom)+RV_STEP));
+$('rvZoomOut').addEventListener('click',()=>rvSetZoom((rvZoom==null?1:rvZoom)-RV_STEP));
+$('rvFit').addEventListener('click',()=>{ rvZoom=null; rvRender(); });
 $('btnDownload').addEventListener('click',()=>{
   if(!lastOut) return;
   if(lastOut.fmt==='pdf'){ lastOut.pdf.save(lastOut.name); toast(T().tSaved(lastOut.name)); return; }
@@ -1625,7 +1691,7 @@ $('btnCopy').addEventListener('click',async()=>{
 function triggerDL(url,name){const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();toast(T().tSaved(name));}
 
 /* re-fit preview widths on resize */
-let _rz; window.addEventListener('resize',()=>{ clearTimeout(_rz); _rz=setTimeout(()=>{ if(pages.length) buildPreview(); },250); });
+let _rz; window.addEventListener('resize',()=>{ clearTimeout(_rz); _rz=setTimeout(()=>{ if(pages.length) buildPreview(); if(rvPages.length && $('result').style.display!=='none') rvRender(); },250); });
 
 /* ───────── PWA: service worker + install banner ───────── */
 (function(){
