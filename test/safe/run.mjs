@@ -120,7 +120,13 @@ async function checkDoc(page, spec) {
   await loadDoc(page, doc, ocr);
   const snap = await page.evaluate(() => window.__entitySnapshot());
   const autoCount = snap.filter(e => e.kind === 'auto').length;
+  process.stderr.write(`    [autoCount] ${doc} = ${autoCount}\n`);
   if (spec.min_auto != null) rec(doc, 'REGRESSION', `auto>=${spec.min_auto}`, `>=${spec.min_auto}`, String(autoCount), autoCount >= spec.min_auto);
+  // False-positive regression guard: a hard CEILING on auto-detected entities.
+  // The golden's MUST_MASK checks catch "did we mask what we should"; max_auto
+  // catches the inverse — a detection change that starts auto-masking body text
+  // (the résumé-defect class where 95/95 passed while the body got shredded).
+  if (spec.max_auto != null) rec(doc, 'REGRESSION', `auto<=${spec.max_auto}`, `<=${spec.max_auto}`, String(autoCount), autoCount <= spec.max_auto);
 
   // Turn a name candidate ON (hide → solid) so must_mask can assert the whole
   // name — surname included — is geometrically covered once the user activates it.

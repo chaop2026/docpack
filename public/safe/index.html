@@ -622,7 +622,11 @@ const TYPES = {
   phone:{icon:'📞',risk:'half'}, email:{icon:'✉️',risk:'half'}, birth:{icon:'🎂',risk:'half'},
   address:{icon:'📍',risk:'half'}, name:{icon:'👤',risk:'half'},
   company:{icon:'🏢',risk:'ok'}, title:{icon:'💼',risk:'ok'},
-  ip:{icon:'🌐',risk:'no'}, url:{icon:'🔗',risk:'half'}, health:{icon:'🏥',risk:'no'}, other:{icon:'📌',risk:'half'}
+  ip:{icon:'🌐',risk:'no'}, url:{icon:'🔗',risk:'half'}, health:{icon:'🏥',risk:'no'},
+  // 'other' = "분류 불확실". 불확실한 것을 기본 마스킹하면 시험명·수상명·자격증명 같은
+  // 비(非)PII 본문이 자동으로 훼손된다(예: TOPIK→TOP**). 확실한 유형만 기본 마스킹하고
+  // other 는 기본 공개(ok) 후 사용자가 필요 시 직접 켠다. (오탐 본문 훼손 방지)
+  other:{icon:'📌',risk:'ok'}
 };
 Object.keys(TYPES).forEach(t=>{catEnabled[t]=true;catDefault[t]=TYPES[t].risk;});
 const isOn=e=>catEnabled[e.type]!==false;
@@ -746,9 +750,15 @@ function isCountryOrAdj(v){
   if(!t) return false;
   if(COUNTRY_ADJ_RE.test(t)) return true;                 // "Indian"
   const words=t.split(/\s+/).filter(Boolean);
-  if(words.length && words.length<=2 && COUNTRY_RE.test(t) && !/\d/.test(t) && !isOrgName(t)
+  // A phrase built ONLY of direction/filler words + a country name is a country
+  // anchor, never PII — the `words.every` guard keeps this tight (a single non
+  // dir/country token disqualifies it). The length cap is 4 (not 2) so a wrapped
+  // official name whose tail line reads "Republic of Korea (Koreaz Contest)"
+  // — the real-résumé merged-line trap — is still dropped, not proposed as an
+  // address candidate. "of the republic of korea" = 4 words, still all dir+country.
+  if(words.length && words.length<=4 && COUNTRY_RE.test(t) && !/\d/.test(t) && !isOrgName(t)
      && words.every(w=>{const c=w.replace(/[.,]/g,''); return DIRWORD_RE.test(c)||COUNTRY_RE.test(c);}))
-    return true;                                           // "Korea", "South Korea", "Korea (…)"
+    return true;                                           // "Korea", "South Korea", "Republic of Korea (…)"
   return false;
 }
 function classifyAddress(v){
@@ -1271,8 +1281,20 @@ function isDarkColor(bg){
   const m=/rgb\((\d+),\s*(\d+),\s*(\d+)\)/.exec(bg||''); if(!m) return false;
   return (0.299*+m[1]+0.587*+m[2]+0.114*+m[3]) < 130;
 }
+// Overlap-aware redaction. Two entities that resolve to the same coordinate band
+// (a common AI outcome — e.g. "Korea", "Koreaz Contest" and "Korea (Koreaz
+// Contest)" all landing on one line) used to be drawn independently, so their
+// partial values were painted on top of each other ("Kore***.Koreaz *******"
+// ghosting) and a shorter masked value left an uncovered original tail. We now
+// (1) build every entity's per-line render plan, (2) paint partial masks first
+// covering each line's FULL background, then (3) paint solid masks on top, and
+// escalate any partial whose slot is overlapped by another mask to a solid block
+// — masking strength wins (비공개 > 부분 > 공개) and no original pixels survive.
 function drawRedactions(ctx,pi,scale){
   const page=pages[pi]; const medH=page?pageMedH(page):16;
+  const S=v=>v*scale;
+  const hit=(a,b)=> !(a.x+a.w<=b.x || b.x+b.w<=a.x || a.y+a.h<=b.y || b.y+b.h<=a.y);
+  const plans=[];
   for(const e of entities){
     if(!isOn(e)||e.mode==='ok') continue;
     const lines=mergeLineBoxes(e.boxes,pi);
@@ -1282,13 +1304,31 @@ function drawRedactions(ctx,pi,scale){
     const largeHalf = e.mode==='half' && lines[0].h > Math.max(medH*1.7, 40);
     // manual regions (photo/signature) have no text → always solid cover
     const solid = e.mode==='no' || e.kind==='manual' || largeHalf;
-    if(solid){
-      for(const l of lines){ const r=largeHalf?largeBarRect(l):l; ctx.fillStyle=INK; ctx.fillRect(r.x*scale,r.y*scale,r.w*scale,r.h*scale); }
-    } else { // partial: fully cover every line first, then draw the masked value ONCE
-      for(const l of lines){ ctx.fillStyle=l.bg||'#FFFFFF'; ctx.fillRect(l.x*scale-1,l.y*scale-1,l.w*scale+2,l.h*scale+2); }
-      const f=lines[0];
-      drawFitText(ctx, f.x*scale, f.y*scale, f.w*scale, f.h*scale, maskHalf(e.type,e.value), f.bg);
+    if(solid) plans.push({mode:'solid', rects:lines.map(l=>largeHalf?largeBarRect(l):l), e});
+    else      plans.push({mode:'half',  rects:lines, anchor:lines[0], e});
+  }
+  if(!plans.length) return;
+  // Every solid rect covers the original hardest; a partial overlapping one must
+  // yield to it (its text would just sit under the black block).
+  const solidRects=[]; plans.forEach(p=>{ if(p.mode==='solid') p.rects.forEach(r=>solidRects.push(r)); });
+  const drawnHalf=[];
+  // 1) partial masks — cover each line's full background, draw the value ONCE.
+  for(const p of plans){
+    if(p.mode!=='half') continue;
+    for(const l of p.rects){ ctx.fillStyle=l.bg||'#FFFFFF'; ctx.fillRect(S(l.x)-1,S(l.y)-1,S(l.w)+2,S(l.h)+2); }
+    const a=p.anchor;
+    if(solidRects.some(r=>hit(r,a))) continue;                       // a solid will cover it
+    if(drawnHalf.some(r=>hit(r,a))){                                 // overlaps another partial →
+      ctx.fillStyle=INK; ctx.fillRect(S(a.x),S(a.y),S(a.w),S(a.h));  // escalate to solid (no ghost)
+      continue;
     }
+    drawFitText(ctx, S(a.x), S(a.y), S(a.w), S(a.h), maskHalf(p.e.type,p.e.value), a.bg);
+    drawnHalf.push(a);
+  }
+  // 2) solid masks on top.
+  for(const p of plans){
+    if(p.mode!=='solid') continue;
+    ctx.fillStyle=INK; for(const r of p.rects) ctx.fillRect(S(r.x),S(r.y),S(r.w),S(r.h));
   }
 }
 function drawFitText(ctx,x,y,w,h,text,bg){

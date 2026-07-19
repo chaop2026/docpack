@@ -1,34 +1,36 @@
 {
   "_readme": "Golden specification for the SafeFile PII pipeline. Each doc lists values that MUST be masked, MUST NOT be masked (geometrically covered), and values that should surface only as review CANDIDATES. Checked headlessly by run.mjs against the live detection in public/safe/index.html. never_candidate = value must not be proposed as a candidate at all. ai_inject = adversarial AI-label cases fed to addEntities (reproduces the real-doc name/country/org false positives without a live API).",
 
+  "_max_auto_basis": "max_auto is a per-fixture CEILING on auto-detected entities — the false-positive regression guard. Without it the golden only proved 'we masked what we should' and a detection change shredded résumé body text while 95/95 stayed green. Ceilings measured 2026-07-20 against the fixed pipeline (actual auto counts: 1=9, 2=3, 3=3, 4=5, 5=10, 6=4, 7=2, 8=2). Headroom: deterministic text/table/résumé docs get a TIGHT ceiling (actual + ~2-3) so any new auto-mask of body text (schools, exam/contest names, countries) trips it; OCR docs (2,3) get a LOOSE ceiling (8) because Tesseract counts vary run-to-run and a tight bound would flake. The résumé docs 7/8 (actual 2 = phone+email only; everything else is candidate/excluded) are the primary guard — a ceiling of 4 catches the exact defect class this task fixed.",
+
   "docs": [
     {
-      "doc": "1_text.pdf", "type": "pdf", "ocr": false, "min_auto": 5,
+      "doc": "1_text.pdf", "type": "pdf", "ocr": false, "min_auto": 5, "max_auto": 12,
       "must_mask": ["900315-1234567", "010-2345-6789", "minjun.kim@hanmail.net", "010-9876-5432", "123456-04-789012"],
       "must_not_mask": ["한빛테크"],
       "should_candidate": [],
       "never_candidate": ["한빛테크"]
     },
     {
-      "doc": "2_scanned.pdf", "type": "pdf", "ocr": true, "min_auto": 3,
+      "doc": "2_scanned.pdf", "type": "pdf", "ocr": true, "min_auto": 3, "max_auto": 8,
       "must_mask": [], "must_not_mask": [], "should_candidate": [], "never_candidate": []
     },
     {
-      "doc": "3_photo.jpg", "type": "image", "ocr": true, "min_auto": 3,
+      "doc": "3_photo.jpg", "type": "image", "ocr": true, "min_auto": 3, "max_auto": 8,
       "must_mask": [], "must_not_mask": [], "should_candidate": [], "never_candidate": []
     },
     {
-      "doc": "4_table.pdf", "type": "pdf", "ocr": false, "min_auto": 4,
+      "doc": "4_table.pdf", "type": "pdf", "ocr": false, "min_auto": 4, "max_auto": 8,
       "must_mask": ["870915-1234567", "010-3456-7890", "daeho@corp.com", "110-234-567890"],
       "must_not_mask": [], "should_candidate": [], "never_candidate": []
     },
     {
-      "doc": "5_multipage.pdf", "type": "pdf", "ocr": false, "min_auto": 9,
+      "doc": "5_multipage.pdf", "type": "pdf", "ocr": false, "min_auto": 9, "max_auto": 13,
       "must_mask": ["900315-1234567", "920820-2345678", "880505-1234567", "minjun@a.com", "seoyeon@b.com", "doyoon@c.com"],
       "must_not_mask": [], "should_candidate": [], "never_candidate": []
     },
     {
-      "doc": "6_resume_light.pdf", "type": "pdf", "ocr": false, "min_auto": 3,
+      "doc": "6_resume_light.pdf", "type": "pdf", "ocr": false, "min_auto": 3, "max_auto": 7,
       "must_mask": ["+91 9599320477", "aarav.sharma@gmail.com"],
       "_note_ai_only": "English street addresses (e.g. 'Signature Global Mall, Sector 84') are detected only by the AI deep-scan path, not the deterministic regex path this harness exercises.",
       "must_not_mask": ["Delhi University", "Maharaja Agrasen College", "Saket", "Imphal"],
@@ -38,7 +40,7 @@
       "name_bar": "Aarav Sharma"
     },
     {
-      "doc": "7_resume_dark.pdf", "type": "pdf", "ocr": false, "min_auto": 2,
+      "doc": "7_resume_dark.pdf", "type": "pdf", "ocr": false, "min_auto": 2, "max_auto": 4,
       "must_mask": ["+91 9599320477", "aarav.sharma@gmail.com"],
       "must_not_mask": [
         "Delhi University", "Maharaja Agrasen College", "Vidya Niketan School",
@@ -55,13 +57,13 @@
       "dark_bg_value": "aarav.sharma@gmail.com"
     },
     {
-      "doc": "8_resume_2col.pdf", "type": "pdf", "ocr": false, "min_auto": 2,
-      "_note": "Regression for 2 real-résumé defects: (1) a 3-token name in a 2-column layout whose surname renders slightly smaller must stay whole and be fully maskable (surname included) — activate_name turns the name candidate on, then must_mask asserts every token incl. the surname is covered; (2) a merged 'Korea (Koreaz Contest)' line must not be proposed as an address candidate.",
+      "doc": "8_resume_2col.pdf", "type": "pdf", "ocr": false, "min_auto": 2, "max_auto": 4,
+      "_note": "Regression for real-résumé defects: (1) a 3-token name in a 2-column layout whose surname renders slightly smaller must stay whole and be fully maskable (surname included) — activate_name turns the name candidate on, then must_mask asserts every token incl. the surname is covered; (2) a country inside a WRAPPED flowing sentence whose tail line reads 'Republic of Korea (Koreaz Contest)' must not be proposed as an address candidate (the old <=2-word country-anchor cap let the 3-word 'Republic of Korea' slip past); the isolated 'Korea (Koreaz Contest)' line is covered too. Koreaz Contest is a contest name (not PII) and must never be masked.",
       "activate_name": "Ishan Rohit Malhotra",
       "must_mask": ["Ishan Rohit Malhotra", "Malhotra", "+91 9599320477", "ishan.malhotra@gmail.com"],
-      "must_not_mask": ["Software Engineer", "Delhi University", "Maharaja Agrasen College"],
+      "must_not_mask": ["Software Engineer", "Delhi University", "Maharaja Agrasen College", "Koreaz Contest", "Republic of Korea (Koreaz Contest)"],
       "should_candidate": [],
-      "never_candidate": ["Korea (Koreaz Contest)", "Korea", "Maharaja Agrasen College", "Delhi University"],
+      "never_candidate": ["Republic of Korea (Koreaz Contest)", "Korea (Koreaz Contest)", "Korea", "Maharaja Agrasen College", "Delhi University"],
       "phone_format": {"+91 9599320477": "+91 95****0477"}
     }
   ],
@@ -85,6 +87,9 @@
       {"label": "lone country labelled as name", "entity": {"type": "name", "value": "India"}, "expect": "dropped"},
       {"label": "country adjective labelled as name", "entity": {"type": "name", "value": "Indian"}, "expect": "dropped"},
       {"label": "country+parenthetical labelled as address", "entity": {"type": "address", "value": "Korea (Koreaz Contest)"}, "expect": "dropped"},
+      {"label": "exam name labelled 'other' stays visible", "entity": {"type": "other", "value": "TOPIK"}, "expect": "not_masked"},
+      {"label": "exam name with UNKNOWN type → 'other', visible", "entity": {"type": "certificate", "value": "TOPIK"}, "expect": "not_masked"},
+      {"label": "contest name labelled 'other' stays visible", "entity": {"type": "other", "value": "Koreaz Contest"}, "expect": "not_masked"},
       {"label": "genuine body name (positive control)", "entity": {"type": "name", "value": "Rohan Mehta"}, "expect": "masked"}
     ]
   },

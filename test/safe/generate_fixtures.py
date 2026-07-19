@@ -204,6 +204,13 @@ def resume_dark():
     page.insert_text((40, 484), "Korea", fontname="Times-Roman", fontsize=11, color=INK)
     page.insert_text((40, 501), "Hindi, English", fontname="Times-Roman", fontsize=11, color=INK)
 
+    # certification line reproducing the real "Given Exam - TOPIK" trap: an exam
+    # name is NOT personal info. Deterministic regex never fires on it; only the
+    # AI deep-scan can mislabel it (usually as an unknown type → 'other'). The
+    # AI_INJECT golden feeds {type:'other'|<unknown>, value:'TOPIK'} and asserts
+    # it stays visible (other defaults to 'ok' after the false-positive fix).
+    page.insert_text((40, 520), "Certification: Given Exam - TOPIK", fontname="Times-Roman", fontsize=10, color=GREY)
+
     # photo placeholder (left, bottom)
     page.draw_rect(fitz.Rect(40, 545, 150, 665), color=(0.6, 0.6, 0.6), width=1)
     page.insert_text((78, 609), "PHOTO", fontname="Times-Roman", fontsize=10, color=GREY)
@@ -234,10 +241,16 @@ def resume_2col():
           word-boxes and mixed typesetting produce). The old name-line assembly
           gated tokens on the PAGE max height, so the shorter last token
           ("Malhotra") was dropped and the surname leaked.  MUST mask all three.
-      (2) A country name followed by a parenthetical award on ONE merged line:
-          "Korea (Koreaz Contest)". Alone, "Korea" is dropped as a country, but
-          once the line merges the 3-word span slipped past the country anchor
-          and was proposed as an address candidate. MUST NOT be a candidate.
+      (2) A country name inside a MULTI-LINE flowing sentence, wrapped so the
+          tail visual line reads "Republic of Korea (Koreaz Contest)". This is
+          the real-résumé shape: the official name "Ministry of Foreign Affairs
+          of the Republic of Korea (Koreaz Contest)" wraps in a narrow column,
+          and the wrapped tail becomes its own line segment. "Republic of Korea"
+          is 3 country-anchor words, so the old cap (<=2) let it slip past the
+          country test and it was proposed as an address candidate. The isolated
+          "Korea (Koreaz Contest)" line (dropped by the country anchor even with
+          the old cap) is kept too, so both the easy and the realistic case are
+          covered. MUST NOT be a candidate.
     """
     doc = fitz.open(); page = doc.new_page(width=595, height=842)
     DARK = (0.05, 0.20, 0.12); WHITE = (0.98, 0.98, 0.95); INK = (0.1, 0.1, 0.1); GREY = (0.35, 0.35, 0.35)
@@ -254,13 +267,24 @@ def resume_2col():
     page.insert_text((40, 199), "Delhi University, Saket", fontname="Times-Roman", fontsize=11, color=INK)
     page.insert_text((40, 240), "Maharaja Agrasen College", fontname="Times-Roman", fontsize=11, color=INK)
 
+    # EXPERIENCE: a flowing sentence that WRAPS across three visual lines. The
+    # official body name overflows the column and the wrap point falls right
+    # before "Republic", so the tail line is exactly the country-anchored span
+    # that leaked as an address candidate in the real résumé. No digits on the
+    # tail line (a number would route it to the confirmed-address path instead).
+    page.insert_text((40, 380), "EXPERIENCE", fontname="Times-Bold", fontsize=14, color=INK)
+    page.insert_text((40, 404), "Represented student delegates before the Ministry of", fontname="Times-Roman", fontsize=10, color=INK)
+    page.insert_text((40, 420), "Foreign Affairs of the", fontname="Times-Roman", fontsize=10, color=INK)
+    page.insert_text((40, 436), "Republic of Korea (Koreaz Contest)", fontname="Times-Roman", fontsize=10, color=INK)
+
     # ── RIGHT dark column ──
     page.insert_text((380, 80),  "CONTACT", fontname="Times-Bold", fontsize=12, color=WHITE)
     page.insert_text((380, 104), "+91 9599320477", fontname="Times-Roman", fontsize=10, color=WHITE)
     page.insert_text((380, 122), "ishan.malhotra@gmail.com", fontname="Times-Roman", fontsize=9, color=WHITE)
 
     page.insert_text((380, 200), "AWARDS", fontname="Times-Bold", fontsize=12, color=WHITE)
-    # country + parenthetical award on ONE line (the merged-line trap)
+    # country + parenthetical award on ONE isolated line (the easy trap, already
+    # handled by the country anchor even before the cap change)
     page.insert_text((380, 224), "Korea (Koreaz Contest)", fontname="Times-Roman", fontsize=9, color=WHITE)
 
     doc.save(os.path.join(OUT, "8_resume_2col.pdf")); print("8_resume_2col.pdf")
