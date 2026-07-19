@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="SafeFile">
+  <!-- full-bleed paper background (no rounding): OS applies the mask shape -->
+  <rect x="0" y="0" width="512" height="512" fill="#F7F5EF"/>
+  <!-- document sheet kept inside the 80% safe zone (center, ~52% wide) -->
+  <rect x="158" y="130" width="196" height="252" rx="16" fill="#FFFFFF" stroke="#E6E1D4" stroke-width="4"/>
+  <!-- redacted line (black marker, ink) -->
+  <rect x="176" y="172" width="160" height="26" rx="6" fill="#17140F"/>
+  <!-- normal text line (line) -->
+  <rect x="176" y="216" width="132" height="14" rx="4" fill="#E6E1D4"/>
+  <!-- yellow marker highlight (brand marker) -->
+  <rect x="174" y="240" width="112" height="18" rx="4" fill="#FFE066"/>
+  <rect x="176" y="243" width="98" height="11" rx="3" fill="#CFC9BB"/>
+  <!-- second redacted line (black marker) -->
+  <rect x="176" y="278" width="98" height="24" rx="6" fill="#17140F"/>
+  <!-- normal text line -->
+  <rect x="176" y="322" width="120" height="14" rx="4" fill="#E6E1D4"/>
+</svg>

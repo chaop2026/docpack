@@ -1,0 +1,19 @@
+{
+  "id": "/safe/",
+  "name": "SafeFile — Redact personal info in documents",
+  "short_name": "SafeFile",
+  "description": "Redact the personal info in your documents while keeping the original layout, and share safely. Free · processed only in your browser.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/safe/",
+  "scope": "/safe/",
+  "display": "standalone",
+  "theme_color": "#17140F",
+  "background_color": "#F7F5EF",
+  "categories": ["utilities", "productivity", "security"],
+  "icons": [
+    { "src": "/safe/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/safe/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/safe/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

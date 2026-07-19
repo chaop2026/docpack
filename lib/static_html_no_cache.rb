@@ -28,15 +28,25 @@ class StaticHtmlNoCache
 
   def call(env)
     status, headers, body = @app.call(env)
-    rewrite!(headers)
+    rewrite!(headers, env["PATH_INFO"].to_s)
     [status, headers, body]
   end
 
   private
 
-  def rewrite!(headers)
+  # Paths that, like static HTML, must always revalidate so a deploy reaches
+  # returning visitors immediately:
+  #   - the service worker (/safe/sw.js): a 1-year-cached SW would pin an old
+  #     app shell / caching logic on returning visitors — the very failure this
+  #     middleware exists to prevent, one layer deeper.
+  #   - PWA manifests (*.webmanifest): small, occasionally-edited metadata.
+  # Digest-stamped assets and immutable icons keep their long cache.
+  REVALIDATE_PATHS = /\/sw\.js\z|\.webmanifest\z/i
+
+  def rewrite!(headers, path)
     content_type = lookup(headers, "content-type")
-    return unless content_type&.downcase&.include?("text/html")
+    is_html = content_type&.downcase&.include?("text/html")
+    return unless is_html || path =~ REVALIDATE_PATHS
 
     cache_control = lookup(headers, "cache-control")
     return unless cache_control

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="SafeFile">
+  <!-- paper background (design token paper) with rounded corners for 'any' icon -->
+  <rect x="0" y="0" width="512" height="512" rx="96" fill="#F7F5EF"/>
+  <!-- document sheet (card + line border) -->
+  <rect x="128" y="92" width="256" height="328" rx="20" fill="#FFFFFF" stroke="#E6E1D4" stroke-width="4"/>
+  <!-- redacted line (black marker, ink) -->
+  <rect x="152" y="146" width="208" height="34" rx="7" fill="#17140F"/>
+  <!-- normal text lines (line) -->
+  <rect x="152" y="204" width="176" height="18" rx="5" fill="#E6E1D4"/>
+  <!-- yellow marker highlight (brand marker) over a line -->
+  <rect x="150" y="236" width="150" height="22" rx="5" fill="#FFE066"/>
+  <rect x="152" y="240" width="132" height="14" rx="4" fill="#CFC9BB"/>
+  <!-- second redacted line (black marker) -->
+  <rect x="152" y="286" width="128" height="30" rx="7" fill="#17140F"/>
+  <!-- normal text lines -->
+  <rect x="152" y="338" width="160" height="18" rx="5" fill="#E6E1D4"/>
+  <rect x="152" y="368" width="112" height="18" rx="5" fill="#E6E1D4"/>
+</svg>
