@@ -85,6 +85,16 @@ header{border-bottom:1px solid var(--line);background:var(--paper);position:stic
 /* rendered-page preview */
 .preview{flex:1;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:12px;background:#FDFCFA;min-height:0;max-height:56vh;display:flex;flex-direction:column;gap:12px;align-items:center}
 .preview canvas.pg{width:100%;max-width:660px;border:1px solid var(--line);border-radius:6px;background:#fff;box-shadow:0 1px 5px rgba(23,20,15,.10);display:block}
+.preview.selmode canvas.pg{cursor:crosshair;touch-action:none}
+.sel-bar{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+#btnSelect.on{background:var(--ink);color:#fff}
+.sel-hint{font-size:12px;color:var(--half);background:var(--half-bg);border-radius:8px;padding:5px 10px}
+.pii-item .del{border:1px solid var(--line);background:#fff;color:var(--no);border-radius:8px;width:30px;min-height:30px;cursor:pointer;font-size:13px;flex-shrink:0;font-family:inherit}
+.pii-item .del:hover{background:var(--no-bg);border-color:var(--no)}
+.cat-row.sec-candidate{border-color:var(--half);background:var(--half-bg)}
+.cat-row.sec-candidate .cl{color:var(--half)}
+.cat-row.sec-manual .cl{color:var(--ink)}
+.pii-item.is-cand{background:#fff}
 .file-meta{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px;color:var(--sub);flex-wrap:wrap}
 .file-meta .chip{background:var(--marker-soft);padding:2px 9px;border-radius:14px;color:var(--ink);font-weight:500;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
@@ -237,6 +247,10 @@ footer a{color:var(--sub)}
             <span id="fileInfo"></span>
             <button class="btn ghost small" id="btnReset" style="margin-left:auto" data-i18n="btnReset">다른 문서</button>
           </div>
+          <div class="sel-bar">
+            <button class="btn ghost small" id="btnSelect" data-i18n="btnSelect">🖐 영역 직접 선택</button>
+            <span class="sel-hint" id="selHint" style="display:none" data-i18n="selHint">가릴 영역을 드래그하세요</span>
+          </div>
           <div class="preview" id="preview" aria-live="polite"></div>
         </div>
         <input type="file" id="fileInput" accept=".pdf,.docx,.txt,.md,.csv,image/*,.heic,.heif,.webp" hidden>
@@ -368,11 +382,14 @@ ko:{
   renderProg:(p,n)=>`페이지 렌더링 중… (${p}/${n})`, ocrStart:'글자 위치 인식 준비 중…', ocrProg:p=>`글자 인식(OCR) 중… ${p}%`,
   scanOcr:'스캔 문서 같아요 — 글자 위치를 OCR로 인식 중…', heicConv:'HEIC 이미지 변환 중…', building:'문서 만드는 중…',
   notLocated:'위치 못 찾음',
+  btnSelect:'🖐 영역 직접 선택', selHint:'가릴 영역을 손가락이나 마우스로 드래그하세요 (사진·서명·도장·이름 등)',
+  manualSection:'직접 선택한 영역', candSection:'이름일 수 있음 — 확인 필요', manualItem:'직접 선택한 영역',
+  tManualAdded:'영역을 추가했어요', tManualRemoved:'영역을 삭제했어요', tSelSmall:'너무 작아요. 조금 더 크게 드래그하세요.', btnSelectOn:'✓ 선택 모드 (끄기)',
   wmToggle:'워터마크 넣기 (선택)', wmPlaceholder:'워터마크 문구 (직접 입력 가능)', wmCustom:'직접 입력…',
   wmPresets:['○○ 제출용','부동산 임대용','구직 지원용','YYYY-MM-DD ○○에 제출'],
   wmQR:'⚠ 워터마크가 QR코드·바코드·도장을 가리지 않았는지 결과 미리보기에서 꼭 확인하세요. (하단 여백은 자동으로 비웁니다)',
   pasted:'붙여넣은 텍스트', aiChars:n=>`${n}자 (AI 추출)`, chars:n=>`${n}자`, pages:n=>`${n}페이지`,
-  types:{rrn:'주민등록번호',ssn:'SSN(미국)',passport:'여권번호',license:'운전면허번호',card:'카드번호',account:'계좌번호',phone:'전화번호',email:'이메일',birth:'생년월일',address:'주소',name:'이름',company:'회사·소속',title:'직책',ip:'IP 주소',url:'SNS·URL',health:'건강·민감정보',other:'기타'}
+  types:{rrn:'주민등록번호',ssn:'SSN(미국)',passport:'여권번호',license:'운전면허번호',card:'카드번호',account:'계좌번호',phone:'전화번호',email:'이메일',birth:'생년월일',address:'주소',name:'이름',company:'회사·소속',title:'직책',ip:'IP 주소',url:'SNS·URL',health:'건강·민감정보',other:'기타',manual:'직접 선택'}
 },
 en:{
   badge:'Free · No signup', navHome:'← SlimFile',
@@ -409,11 +426,14 @@ en:{
   renderProg:(p,n)=>`Rendering pages… (${p}/${n})`, ocrStart:'Preparing text recognition…', ocrProg:p=>`Recognizing text (OCR)… ${p}%`,
   scanOcr:'Looks like a scan — recognizing text positions with OCR…', heicConv:'Converting HEIC image…', building:'Building document…',
   notLocated:'not located',
+  btnSelect:'🖐 Select area manually', selHint:'Drag with your finger or mouse over the area to hide (photo, signature, stamp, name…)',
+  manualSection:'Manually selected areas', candSection:'Possibly a name — please review', manualItem:'Selected area',
+  tManualAdded:'Area added', tManualRemoved:'Area removed', tSelSmall:'Too small — drag a bit larger.', btnSelectOn:'✓ Selecting (turn off)',
   wmToggle:'Add watermark (optional)', wmPlaceholder:'Watermark text (editable)', wmCustom:'Custom…',
   wmPresets:['For submission to ○○','For property rental','For job application','Submitted to ○○ on YYYY-MM-DD'],
   wmQR:'⚠ Check the result preview to ensure the watermark does not cover any QR code, barcode, or stamp. (The bottom margin is kept clear automatically.)',
   pasted:'Pasted text', aiChars:n=>`${n} chars (AI extracted)`, chars:n=>`${n} chars`, pages:n=>`${n} pages`,
-  types:{rrn:'Korean RRN',ssn:'SSN (US)',passport:'Passport no.',license:"Driver's license",card:'Card number',account:'Bank account',phone:'Phone',email:'Email',birth:'Date of birth',address:'Address',name:'Name',company:'Company',title:'Job title',ip:'IP address',url:'Social · URL',health:'Health / sensitive',other:'Other'}
+  types:{rrn:'Korean RRN',ssn:'SSN (US)',passport:'Passport no.',license:"Driver's license",card:'Card number',account:'Bank account',phone:'Phone',email:'Email',birth:'Date of birth',address:'Address',name:'Name',company:'Company',title:'Job title',ip:'IP address',url:'Social · URL',health:'Health / sensitive',other:'Other',manual:'Manual'}
 },
 ja:{
   badge:'無料 · 登録不要', navHome:'← SlimFile',
@@ -450,11 +470,14 @@ ja:{
   renderProg:(p,n)=>`ページをレンダリング中… (${p}/${n})`, ocrStart:'文字位置の認識を準備中…', ocrProg:p=>`文字認識(OCR)中… ${p}%`,
   scanOcr:'スキャン文書のようです — OCRで文字位置を認識中…', heicConv:'HEIC画像を変換中…', building:'文書を作成中…',
   notLocated:'位置不明',
+  btnSelect:'🖐 範囲を手動で選択', selHint:'隠したい範囲を指またはマウスでドラッグしてください（写真・署名・印鑑・氏名など）',
+  manualSection:'手動で選択した範囲', candSection:'氏名の可能性 — 要確認', manualItem:'選択した範囲',
+  tManualAdded:'範囲を追加しました', tManualRemoved:'範囲を削除しました', tSelSmall:'小さすぎます。もう少し大きくドラッグしてください。', btnSelectOn:'✓ 選択モード（オフ）',
   wmToggle:'ウォーターマークを入れる（任意）', wmPlaceholder:'ウォーターマーク文言（自由入力可）', wmCustom:'自由入力…',
   wmPresets:['○○ 提出用','不動産賃貸用','求職応募用','YYYY-MM-DD ○○ に提出'],
   wmQR:'⚠ ウォーターマークがQRコード・バーコード・印鑑を隠していないか、結果プレビューで必ずご確認ください。（下部の余白は自動で空けます）',
   pasted:'貼り付けたテキスト', aiChars:n=>`${n}文字（AI抽出）`, chars:n=>`${n}文字`, pages:n=>`${n}ページ`,
-  types:{rrn:'住民登録番号(韓国)',ssn:'SSN(米国)',passport:'パスポート番号',license:'運転免許番号',card:'カード番号',account:'口座番号',phone:'電話番号',email:'メール',birth:'生年月日',address:'住所',name:'氏名',company:'会社・所属',title:'役職',ip:'IPアドレス',url:'SNS・URL',health:'健康・センシティブ情報',other:'その他'}
+  types:{rrn:'住民登録番号(韓国)',ssn:'SSN(米国)',passport:'パスポート番号',license:'運転免許番号',card:'カード番号',account:'口座番号',phone:'電話番号',email:'メール',birth:'生年月日',address:'住所',name:'氏名',company:'会社・所属',title:'役職',ip:'IPアドレス',url:'SNS・URL',health:'健康・センシティブ情報',other:'その他',manual:'手動選択'}
 },
 es:{
   badge:'Gratis · Sin registro', navHome:'← SlimFile',
@@ -491,11 +514,14 @@ es:{
   renderProg:(p,n)=>`Renderizando páginas… (${p}/${n})`, ocrStart:'Preparando el reconocimiento de texto…', ocrProg:p=>`Reconociendo texto (OCR)… ${p}%`,
   scanOcr:'Parece un escaneo: reconociendo posiciones de texto con OCR…', heicConv:'Convirtiendo imagen HEIC…', building:'Creando documento…',
   notLocated:'sin ubicar',
+  btnSelect:'🖐 Seleccionar área manualmente', selHint:'Arrastra con el dedo o el ratón sobre el área a ocultar (foto, firma, sello, nombre…)',
+  manualSection:'Áreas seleccionadas manualmente', candSection:'Puede ser un nombre — revísalo', manualItem:'Área seleccionada',
+  tManualAdded:'Área añadida', tManualRemoved:'Área eliminada', tSelSmall:'Demasiado pequeña — arrastra un poco más.', btnSelectOn:'✓ Seleccionando (desactivar)',
   wmToggle:'Añadir marca de agua (opcional)', wmPlaceholder:'Texto de la marca de agua (editable)', wmCustom:'Personalizado…',
   wmPresets:['Para presentar a ○○','Para alquiler','Para solicitud de empleo','Presentado a ○○ el YYYY-MM-DD'],
   wmQR:'⚠ Revisa la vista previa del resultado para que la marca de agua no cubra ningún código QR, de barras o sello. (El margen inferior se deja libre automáticamente.)',
   pasted:'Texto pegado', aiChars:n=>`${n} caracteres (extraído por IA)`, chars:n=>`${n} caracteres`, pages:n=>`${n} páginas`,
-  types:{rrn:'RRN de Corea',ssn:'SSN (EE. UU.)',passport:'N.º de pasaporte',license:'Permiso de conducir',card:'N.º de tarjeta',account:'Cuenta bancaria',phone:'Teléfono',email:'Correo',birth:'Fecha de nacimiento',address:'Dirección',name:'Nombre',company:'Empresa',title:'Cargo',ip:'Dirección IP',url:'Redes · URL',health:'Salud / sensible',other:'Otro'}
+  types:{rrn:'RRN de Corea',ssn:'SSN (EE. UU.)',passport:'N.º de pasaporte',license:'Permiso de conducir',card:'N.º de tarjeta',account:'Cuenta bancaria',phone:'Teléfono',email:'Correo',birth:'Fecha de nacimiento',address:'Dirección',name:'Nombre',company:'Empresa',title:'Cargo',ip:'Dirección IP',url:'Redes · URL',health:'Salud / sensible',other:'Otro',manual:'Manual'}
 }
 };
 const LANGS = ['ko','en','ja','es'];
@@ -575,8 +601,6 @@ const REGEX_RULES=[
   {type:'rrn',    re:/\d{6}[-‐ ]?[1-4]\d{6}/g},
   {type:'ssn',    re:/\b\d{3}-\d{2}-\d{4}\b/g},
   {type:'card',   re:/\b\d{4}[- ]\d{4}[- ]\d{4}[- ]\d{4}\b/g},
-  {type:'phone',  re:/\b(01[016789]|0[2-6]\d?)[-. ]?\d{3,4}[-. ]?\d{4}\b/g},
-  {type:'phone',  re:/\+\d{1,3}[-. ]?\d{2,4}[-. ]?\d{3,4}[-. ]?\d{3,4}\b/g},
   {type:'email',  re:/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g},
   {type:'passport',re:/\b[MSRODG]\d{8}\b/g},
   {type:'license',re:/\b\d{2}-\d{2}-\d{6}-\d{2}\b/g},
@@ -586,19 +610,85 @@ const REGEX_RULES=[
   {type:'address',re:/(서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충청?[북남]|전라?[북남]|경상?[북남]|제주)[^\n,()]{0,20}?(시|군|구)\s?[^\n,()]{0,25}?(로|길|대로)\s?\d+[^\n,()]{0,20}/g},
   {type:'url',    re:/https?:\/\/[^\s)>\]]+|(?:instagram|facebook|linkedin|twitter|x)\.com\/[^\s)>\]]+/g},
 ];
+/* International phone detection. Regex + digit-count validation per shape.
+   Covers +country-code (any), KR/JP/ID/BR/US/ES/MX domestic & grouped forms.
+   Digit-count gates keep false positives (IDs, dates, accounts) out. */
+const RRN_LIKE=/\d{6}[-‐ ]?[1-4]\d{6}/;
+function phoneScan(text){
+  const out=[], seen=new Set();
+  const add=(raw,min,max)=>{
+    let v=raw.trim().replace(/[.\s,;:]+$/,'').replace(/^[.\s,;:]+/,'');
+    const d=v.replace(/\D/g,'');
+    if(d.length<min||d.length>max) return;
+    if(RRN_LIKE.test(v)) return;                 // Korean RRN, not a phone
+    if(/^0+$/.test(d)||/^(\d)\1+$/.test(d)) return; // all-same digits
+    if(seen.has(d)) return; seen.add(d);
+    out.push({type:'phone',value:v});
+  };
+  let m,re;
+  // 1) international, starts with + and country code
+  re=/\+\d[\d\s().\-]{5,17}\d/g;
+  while((m=re.exec(text))) add(m[0],8,15);
+  // 2) parenthesised area code, e.g. Brazil (11) 91234-5678, (415) 555-2671
+  re=/\(\d{2,4}\)[\s.\-]?\d{3,5}[\s.\-]?\d{3,4}/g;
+  while((m=re.exec(text))) add(m[0],9,12);
+  // 3) domestic trunk starting with 0 (KR 010/02, JP 090, ID 0812 …)
+  re=/\b0\d{1,3}[\s.\-]?\d{3,4}[\s.\-]?\d{3,4}(?:[\s.\-]?\d{2,4})?(?!\d)/g;
+  while((m=re.exec(text))) add(m[0],9,13);
+  // 4) grouped 3-3/4-4 without +, e.g. US 415-555-2671, 415.555.2671
+  re=/\b\d{3}[\s.\-]\d{3,4}[\s.\-]\d{4}(?!\d)/g;
+  while((m=re.exec(text))) add(m[0],10,11);
+  return out;
+}
 function regexScan(text){
-  const found=[];
+  const found=phoneScan(text);            // phones first so numeric dedup below defers to them
   for(const rule of REGEX_RULES){
     let m; const re=new RegExp(rule.re.source,rule.re.flags);
     while((m=re.exec(text))!==null){
       const v=m[0].trim();
       if(rule.type==='birth' && found.some(f=>f.type==='rrn'&&f.value.includes(v))) continue;
-      if(rule.type==='phone' && /\d{6}[-‐ ]?[1-4]\d{6}/.test(v)) continue;
-      if((rule.type==='account'||rule.type==='ip'||rule.type==='phone') && found.some(f=>f.value.includes(v)||v.includes(f.value))) continue;
+      if((rule.type==='account'||rule.type==='ip') && found.some(f=>f.value.includes(v)||v.includes(f.value))) continue;
       found.push({type:rule.type,value:v});
     }
   }
   return found;
+}
+/* Address false-positive guard: keep as address only with a strong signal
+   (a number = street/postal). Institution names (university/college/…) become
+   'company' (visible); bare place names with no signal are dropped. */
+const INSTITUTION_RE=/\b(univ|university|college|institute|institution|school|academy|polytechnic|faculty|department|hospital|clinic|seminary)\b|대학교|대학원|대학|고등학교|중학교|초등학교|학원|학교|병원|연구소|大学|大學|高校|高等学校|学院|学校|universidad|colegio|instituto|escuela|facultad|academia/i;
+function classifyAddress(v){
+  if(/\d/.test(v)) return 'address';       // has a number → real address signal
+  if(INSTITUTION_RE.test(v)) return 'company'; // org/education name → keep visible
+  return 'drop';                           // bare place name, no signal → not PII
+}
+/* Name heuristic: the largest text near the top of page 1 is likely the
+   person's name. Conservative — skips doc titles, only fires when clear font
+   variation exists (so plain text docs never produce a candidate). */
+const DOC_TITLE_RE=/^(resume|r[eé]sum[eé]|cv|curriculum\s*vitae|curriculum|bio\s*data|biodata|profile|portfolio|자기?소개서|이력서|履歴書|職務経歴書|hoja\s*de\s*vida)$/i;
+function isLikelyName(text){
+  if(!text||text.length<2||text.length>40) return false;
+  if(/[\d@]|https?:|www\./i.test(text)) return false;
+  if(DOC_TITLE_RE.test(text.trim())) return false;
+  if(text.split(/\s+/).length>4) return false;
+  const compact=text.replace(/\s/g,'');
+  const letters=(text.match(/[A-Za-zÀ-ɏ가-힣぀-ヿ一-鿿]/g)||[]).length;
+  return letters >= compact.length*0.7;
+}
+function nameCandidates(){
+  if(!pages.length) return [];
+  const page=pages[0]; if(!page.items||!page.items.length) return [];
+  const topItems=page.items.filter(it=>it.y < page.h*0.42 && (it.str||'').trim().length>=2);
+  if(!topItems.length) return [];
+  const maxH=Math.max(...topItems.map(it=>it.h));
+  const heights=page.items.map(it=>it.h).slice().sort((a,b)=>a-b);
+  const median=heights[Math.floor(heights.length/2)]||maxH;
+  if(maxH < median*1.25) return [];        // no clearly-larger title text → skip
+  const big=topItems.filter(it=>it.h>=maxH*0.85).sort((a,b)=>a.y-b.y||a.x-b.x);
+  const first=big[0];
+  const line=big.filter(it=>Math.abs(it.y-first.y)<first.h*0.6).sort((a,b)=>a.x-b.x);
+  const text=line.map(it=>it.str).join(' ').replace(/\s+/g,' ').trim();
+  return isLikelyName(text) ? [{type:'name',value:text,kind:'candidate'}] : [];
 }
 
 /* ───────── text masking (for partial rendering, list display, copy) ───────── */
@@ -640,8 +730,10 @@ function boxesFromRange(page,pi,map,a,b,out){
   for(const i in byItem){
     const cs=byItem[i], it=page.items[i], len=(it.str||'').length||1;
     const cMin=Math.min(...cs), cMax=Math.max(...cs);
-    const x=it.x+it.w*(cMin/len), w=it.w*((cMax+1-cMin)/len);
-    const box={page:pi,x:x-2,y:it.y-2,w:w+4,h:it.h+4};
+    // proportional char-width is an estimate; pad generously so no sliver of the
+    // original text survives at the box edges (redaction must over-cover).
+    const cw=it.w/len, x=it.x+cw*cMin, w=cw*(cMax+1-cMin);
+    const box={page:pi,x:x-cw*0.6-1,y:it.y-2,w:w+cw*1.2+2,h:it.h+4};
     box.bg=sampleBg(page,box);
     out.push(box);
   }
@@ -662,14 +754,24 @@ function boxesForValue(value){
   });
   return out;
 }
+// Estimate the local background color by sampling the clean gaps just above/
+// below/beside the box (never a single pixel that might land on ink), then
+// picking the lightest — the background is virtually always lighter than text.
 function sampleBg(page,b){
   try{
-    const ctx=page.canvas.getContext('2d');
-    const px=Math.max(0,Math.min(page.canvas.width-1,Math.round(b.x-3)));
-    const py=Math.max(0,Math.min(page.canvas.height-1,Math.round(b.y+b.h/2)));
-    const d=ctx.getImageData(px,py,1,1).data;
-    if(d[3]<200) return '#FFFFFF';
-    return `rgb(${d[0]},${d[1]},${d[2]})`;
+    const ctx=page.canvas.getContext('2d'), W=page.canvas.width, H=page.canvas.height;
+    const cx=b.x+b.w/2, cy=b.y+b.h/2, gap=Math.max(3,b.h*0.4);
+    const pts=[[cx,b.y-gap],[cx,b.y+b.h+gap],[b.x-gap,cy],[b.x+b.w+gap,cy]];
+    const cols=[];
+    for(let [px,py] of pts){
+      px=Math.max(0,Math.min(W-1,Math.round(px))); py=Math.max(0,Math.min(H-1,Math.round(py)));
+      const d=ctx.getImageData(px,py,1,1).data;
+      if(d[3]>=200) cols.push([d[0],d[1],d[2]]);
+    }
+    if(!cols.length) return '#FFFFFF';
+    cols.sort((a,b)=>(b[0]+b[1]+b[2])-(a[0]+a[1]+a[2]));
+    const c=cols[0];
+    return `rgb(${c[0]},${c[1]},${c[2]})`;
   }catch(e){ return '#FFFFFF'; }
 }
 
@@ -850,7 +952,8 @@ function afterLoad(keepEntities){
   if(!keepEntities){
     entities=[]; aiDone=false; showAllCats=false;
     addEntities(regexScan(docText));
-    setStatus(T().scanDone(entities.length)); setProg(0);
+    addEntities(nameCandidates());   // conservative top-of-doc name suggestion (defaults to visible)
+    setStatus(T().scanDone(entities.filter(e=>e.kind!=='candidate').length)); setProg(0);
   }
   const ab=$('btnAI'); if(!aiDone){ ab.disabled=false; }
   buildPreview(); renderAll();
@@ -859,6 +962,7 @@ function resetResult(){ $('result').style.display='none'; lastOut=null; }
 function resetAll(){
   pages=[]; docText=''; entities=[]; aiDone=false; showAllCats=false; previewCanvases=[];
   $('docWrap').style.display='none'; dz.style.display='flex'; $('preview').innerHTML='';
+  if(typeof setSelectMode==='function') setSelectMode(false);
   setStatus(''); setProg(0); resetResult();
   const ab=$('btnAI'); ab.disabled=true; ab.innerHTML='🤖 <span data-i18n="btnAI">'+T().btnAI+'</span>';
   renderAll();
@@ -868,15 +972,18 @@ function resetAll(){
 function addEntities(list){
   for(const e of list){
     const v=(e.value||'').trim(); if(!v||v.replace(/\s/g,'').length<2) continue;
+    let type=TYPES[e.type]?e.type:'other';
+    if(type==='address'){ const d=classifyAddress(v); if(d==='drop') continue; type=d; }
     if(entities.some(x=>x.value===v)) continue;
-    const type=TYPES[e.type]?e.type:'other';
-    const ent={id:'e'+Math.random().toString(36).slice(2,8),type,value:v,mode:catDefault[type],boxes:[]};
-    ent.boxes=boxesForValue(v);
-    entities.push(ent);
+    const kind=e.kind||'auto';
+    const boxes=boxesForValue(v);
+    if(kind==='candidate' && !boxes.length) continue;   // don't propose what we can't locate
+    const mode = kind==='candidate' ? 'ok' : catDefault[type];  // candidates suggested, not hidden
+    entities.push({id:'e'+Math.random().toString(36).slice(2,8),type,value:v,mode,kind,boxes});
   }
   entities.sort((a,b)=>Object.keys(TYPES).indexOf(a.type)-Object.keys(TYPES).indexOf(b.type));
 }
-function recomputeBoxes(){ entities.forEach(e=>{ e.boxes=boxesForValue(e.value); }); }
+function recomputeBoxes(){ entities.forEach(e=>{ if(e.kind!=='manual') e.boxes=boxesForValue(e.value); }); }
 const located=e=>e.boxes&&e.boxes.length>0;
 
 function renderAll(){ renderList(); drawPreview(); updateMake(); }
@@ -893,6 +1000,7 @@ function buildPreview(){
     const cv=canvasEl(dispW, page.h*scale); cv.className='pg';
     cv.dataset.pi=pi; cv.dataset.scale=scale;
     host.appendChild(cv); previewCanvases.push(cv);
+    attachSelect(cv);
   });
   drawPreview();
 }
@@ -907,14 +1015,39 @@ function drawPreview(){
     if(wmEnabled()) drawWatermark(ctx,cv.width,cv.height,wmText());
   });
 }
+// Merge an entity's boxes that sit on the same visual line into one rect, so a
+// wrapped address (multiple boxes) is covered cleanly and the partial value is
+// drawn once — not duplicated per box.
+function mergeLineBoxes(boxes,pi){
+  const arr=boxes.filter(b=>b.page===pi).slice().sort((a,b)=>a.y-b.y||a.x-b.x);
+  const used=new Array(arr.length).fill(false), lines=[];
+  for(let i=0;i<arr.length;i++){
+    if(used[i])continue;
+    let x0=arr[i].x,y0=arr[i].y,x1=arr[i].x+arr[i].w,y1=arr[i].y+arr[i].h,bg=arr[i].bg;
+    used[i]=true;
+    for(let j=i+1;j<arr.length;j++){
+      if(used[j])continue; const b=arr[j];
+      const oy0=Math.max(y0,b.y), oy1=Math.min(y1,b.y+b.h);
+      const ov=(oy1-oy0)/Math.max(1,Math.min(y1-y0,b.h));
+      if(ov>0.5){ x0=Math.min(x0,b.x);y0=Math.min(y0,b.y);x1=Math.max(x1,b.x+b.w);y1=Math.max(y1,b.y+b.h);used[j]=true; }
+    }
+    lines.push({x:x0,y:y0,w:x1-x0,h:y1-y0,bg});
+  }
+  return lines.sort((a,b)=>a.y-b.y||a.x-b.x);
+}
 function drawRedactions(ctx,pi,scale){
   for(const e of entities){
     if(!isOn(e)||e.mode==='ok') continue;
-    for(const b of e.boxes){
-      if(b.page!==pi) continue;
-      const x=b.x*scale,y=b.y*scale,w=b.w*scale,h=b.h*scale;
-      if(e.mode==='no'){ ctx.fillStyle=INK; ctx.fillRect(x,y,w,h); }
-      else { ctx.fillStyle=b.bg||'#FFFFFF'; ctx.fillRect(x,y,w,h); drawFitText(ctx,x,y,w,h,maskHalf(e.type,e.value)); }
+    const lines=mergeLineBoxes(e.boxes,pi);
+    if(!lines.length) continue;
+    // manual regions (photo/signature/stamp) have no text → always solid cover
+    const solid = e.mode==='no' || e.kind==='manual';
+    if(solid){
+      for(const l of lines){ ctx.fillStyle=INK; ctx.fillRect(l.x*scale,l.y*scale,l.w*scale,l.h*scale); }
+    } else { // partial: fully cover every line first, then draw the masked value ONCE
+      for(const l of lines){ ctx.fillStyle=l.bg||'#FFFFFF'; ctx.fillRect(l.x*scale-1,l.y*scale-1,l.w*scale+2,l.h*scale+2); }
+      const f=lines[0];
+      drawFitText(ctx, f.x*scale, f.y*scale, f.w*scale, f.h*scale, maskHalf(e.type,e.value));
     }
   }
 }
@@ -943,6 +1076,56 @@ function drawWatermark(ctx,W,H,text){
   for(let yy=-diag; yy<diag; yy+=stepY) for(let xx=-diag; xx<diag; xx+=stepX) ctx.fillText(text,xx,yy);
   ctx.restore();
 }
+
+/* ───────── manual region selection (drag to redact photo/signature/name) ───────── */
+let selectMode=false, sel=null;
+function setSelectMode(on){
+  selectMode=on;
+  const btn=$('btnSelect'); if(btn){ btn.classList.toggle('on',on); btn.textContent=on? T().btnSelectOn : T().btnSelect; }
+  $('preview').classList.toggle('selmode',on);
+  const hint=$('selHint'); if(hint) hint.style.display=on?'block':'none';
+}
+function attachSelect(cv){
+  const toCanvas=e=>{ const r=cv.getBoundingClientRect(); return { x:(e.clientX-r.left)*(cv.width/r.width), y:(e.clientY-r.top)*(cv.height/r.height) }; };
+  cv.addEventListener('pointerdown',e=>{
+    if(!selectMode) return; e.preventDefault();
+    try{cv.setPointerCapture(e.pointerId);}catch(_){}
+    const p=toCanvas(e); sel={cv,x0:p.x,y0:p.y,x1:p.x,y1:p.y};
+  });
+  cv.addEventListener('pointermove',e=>{
+    if(!selectMode||!sel||sel.cv!==cv) return; e.preventDefault();
+    const p=toCanvas(e); sel.x1=p.x; sel.y1=p.y; drawSelOverlay();
+  });
+  const finish=e=>{ if(!selectMode||!sel||sel.cv!==cv) return; e.preventDefault(); finalizeSel(); };
+  cv.addEventListener('pointerup',finish);
+  cv.addEventListener('pointercancel',()=>{ sel=null; drawPreview(); });
+}
+function drawSelOverlay(){
+  if(!sel) return;
+  const cv=sel.cv, ctx=cv.getContext('2d'), pi=+cv.dataset.pi, scale=+cv.dataset.scale, page=pages[pi];
+  ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.drawImage(page.canvas,0,0,cv.width,cv.height);
+  drawRedactions(ctx,pi,scale);
+  if(wmEnabled()) drawWatermark(ctx,cv.width,cv.height,wmText());
+  const x=Math.min(sel.x0,sel.x1), y=Math.min(sel.y0,sel.y1), w=Math.abs(sel.x1-sel.x0), h=Math.abs(sel.y1-sel.y0);
+  ctx.save();
+  ctx.fillStyle='rgba(23,20,15,0.30)'; ctx.fillRect(x,y,w,h);
+  ctx.strokeStyle=INK; ctx.lineWidth=2; ctx.setLineDash([6,4]); ctx.strokeRect(x,y,w,h);
+  ctx.restore();
+}
+function finalizeSel(){
+  const s=sel; sel=null;
+  if(!s){ return; }
+  const pi=+s.cv.dataset.pi, scale=+s.cv.dataset.scale, page=pages[pi];
+  const dx=Math.min(s.x0,s.x1), dy=Math.min(s.y0,s.y1), dw=Math.abs(s.x1-s.x0), dh=Math.abs(s.y1-s.y0);
+  if(dw<8||dh<8){ drawPreview(); toast(T().tSelSmall); return; }
+  const box={page:pi, x:dx/scale, y:dy/scale, w:dw/scale, h:dh/scale}; // display px → page px
+  box.bg=sampleBg(page,box);
+  entities.push({id:'e'+Math.random().toString(36).slice(2,8),type:'manual',value:'('+T().manualItem+')',mode:'no',kind:'manual',boxes:[box]});
+  renderAll();
+  toast(T().tManualAdded);
+}
+$('btnSelect').addEventListener('click',()=>setSelectMode(!selectMode));
 
 /* ───────── detection list (live value next to toggle) ───────── */
 function catRowHtml(type,items){
@@ -973,15 +1156,39 @@ function catRowHtml(type,items){
       </div>`).join('')}</div>`:''}
   </div>`;
 }
+// Flat item box for manual selections / name candidates (not category-grouped).
+function sectionHtml(kind,title,items){
+  const t=T(), cand=kind==='candidate';
+  return `
+  <div class="cat-row sec-${kind}">
+    <div class="cat-head">
+      <span class="cl">${cand?'❓':'✏️'} ${title}</span>
+      <span class="cnt hit">${t.cnt(items.length)}</span>
+    </div>
+    <div class="cat-items">${items.map(e=>`
+      <div class="pii-item${cand?' is-cand':''}">
+        <span class="val ${cand?'':'mono'}" title="${escapeHtml(e.value)}">${escapeHtml(kind==='manual'? t.manualItem : displayValue(e))}</span>
+        <div class="seg" role="radiogroup">
+          <button class="${e.mode==='ok'?'on-ok':''}" data-id="${e.id}" data-mode="ok">${t.segOk}</button>
+          ${cand?`<button class="${e.mode==='half'?'on-half':''}" data-id="${e.id}" data-mode="half">${t.segHalf}</button>`:''}
+          <button class="${e.mode==='no'?'on-no':''}" data-id="${e.id}" data-mode="no">${t.segNo}</button>
+        </div>
+        ${kind==='manual'?`<button class="del" data-del="${e.id}" title="remove" aria-label="remove">✕</button>`:''}
+      </div>`).join('')}</div>
+  </div>`;
+}
 function renderList(){
   const list=$('piiList'), t=T();
+  const autoE=entities.filter(e=>e.kind!=='candidate'&&e.kind!=='manual');
+  const manualE=entities.filter(e=>e.kind==='manual');
+  const candE=entities.filter(e=>e.kind==='candidate');
   const total=entities.filter(isOn).length;
   $('piiCount').textContent= total? t.cntUse(total):'';
   document.querySelectorAll('#bulkBtns button').forEach(b=>b.disabled=!total);
   $('catHint').textContent = pages.length? t.hintAfter : t.hintBefore;
   const groups={};
-  for(const e of entities){(groups[e.type]=groups[e.type]||[]).push(e);}
-  const all=Object.keys(TYPES);
+  for(const e of autoE){(groups[e.type]=groups[e.type]||[]).push(e);}
+  const all=Object.keys(TYPES).filter(ty=>ty!=='manual');
   if(!pages.length){
     list.innerHTML = all.map(ty=>catRowHtml(ty,[])).join('');
     return;
@@ -993,6 +1200,8 @@ function renderList(){
     html+=`<button class="more-cats" id="moreCats">${showAllCats? t.moreHide : t.moreShow(misses.length)}</button>`;
     if(showAllCats) html+=misses.map(ty=>catRowHtml(ty,[])).join('');
   }
+  if(manualE.length) html+=sectionHtml('manual', t.manualSection, manualE);
+  if(candE.length)   html+=sectionHtml('candidate', t.candSection, candE);
   list.innerHTML=html;
 }
 $('piiList').addEventListener('change',e=>{
@@ -1001,6 +1210,8 @@ $('piiList').addEventListener('change',e=>{
 });
 $('piiList').addEventListener('click',e=>{
   if(e.target.closest('#moreCats')){showAllCats=!showAllCats;renderList();return;}
+  const del=e.target.closest('button[data-del]');
+  if(del){ entities=entities.filter(x=>x.id!==del.dataset.del); renderAll(); toast(T().tManualRemoved); return; }
   const cm=e.target.closest('button[data-cmode]');
   if(cm){
     const type=cm.closest('[data-cat-seg]').dataset.catSeg;
