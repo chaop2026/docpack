@@ -95,6 +95,8 @@ header{border-bottom:1px solid var(--line);background:var(--paper);position:stic
 .cat-row.sec-candidate .cl{color:var(--half)}
 .cat-row.sec-manual .cl{color:var(--ink)}
 .pii-item.is-cand{background:#fff}
+.pii-item .val-wrap{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.pii-item .reason{font-size:10.5px;color:var(--half);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .file-meta{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px;color:var(--sub);flex-wrap:wrap}
 .file-meta .chip{background:var(--marker-soft);padding:2px 9px;border-radius:14px;color:var(--ink);font-weight:500;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
@@ -383,7 +385,8 @@ ko:{
   scanOcr:'스캔 문서 같아요 — 글자 위치를 OCR로 인식 중…', heicConv:'HEIC 이미지 변환 중…', building:'문서 만드는 중…',
   notLocated:'위치 못 찾음',
   btnSelect:'🖐 영역 직접 선택', selHint:'가릴 영역을 손가락이나 마우스로 드래그하세요 (사진·서명·도장·이름 등)',
-  manualSection:'직접 선택한 영역', candSection:'이름일 수 있음 — 확인 필요', manualItem:'직접 선택한 영역',
+  manualSection:'직접 선택한 영역', candSection:'확인 필요 — 이것도 가릴까요?', manualItem:'직접 선택한 영역',
+  reasons:{name:'이름일 수 있음', addr:'주소일 수 있음', addr_contact:'주소일 수 있음 · 연락처 영역', addr_edge:'주소일 수 있음 · 문서 상·하단', addr_kw:'주소일 수 있음 · 지명·주소어'},
   tManualAdded:'영역을 추가했어요', tManualRemoved:'영역을 삭제했어요', tSelSmall:'너무 작아요. 조금 더 크게 드래그하세요.', btnSelectOn:'✓ 선택 모드 (끄기)',
   wmToggle:'워터마크 넣기 (선택)', wmPlaceholder:'워터마크 문구 (직접 입력 가능)', wmCustom:'직접 입력…',
   wmPresets:['○○ 제출용','부동산 임대용','구직 지원용','YYYY-MM-DD ○○에 제출'],
@@ -427,7 +430,8 @@ en:{
   scanOcr:'Looks like a scan — recognizing text positions with OCR…', heicConv:'Converting HEIC image…', building:'Building document…',
   notLocated:'not located',
   btnSelect:'🖐 Select area manually', selHint:'Drag with your finger or mouse over the area to hide (photo, signature, stamp, name…)',
-  manualSection:'Manually selected areas', candSection:'Possibly a name — please review', manualItem:'Selected area',
+  manualSection:'Manually selected areas', candSection:'Please review — hide these too?', manualItem:'Selected area',
+  reasons:{name:'Possibly a name', addr:'Possibly an address', addr_contact:'Possibly an address · near contact info', addr_edge:'Possibly an address · header/footer', addr_kw:'Possibly an address · place/street term'},
   tManualAdded:'Area added', tManualRemoved:'Area removed', tSelSmall:'Too small — drag a bit larger.', btnSelectOn:'✓ Selecting (turn off)',
   wmToggle:'Add watermark (optional)', wmPlaceholder:'Watermark text (editable)', wmCustom:'Custom…',
   wmPresets:['For submission to ○○','For property rental','For job application','Submitted to ○○ on YYYY-MM-DD'],
@@ -471,7 +475,8 @@ ja:{
   scanOcr:'スキャン文書のようです — OCRで文字位置を認識中…', heicConv:'HEIC画像を変換中…', building:'文書を作成中…',
   notLocated:'位置不明',
   btnSelect:'🖐 範囲を手動で選択', selHint:'隠したい範囲を指またはマウスでドラッグしてください（写真・署名・印鑑・氏名など）',
-  manualSection:'手動で選択した範囲', candSection:'氏名の可能性 — 要確認', manualItem:'選択した範囲',
+  manualSection:'手動で選択した範囲', candSection:'要確認 — これも隠しますか？', manualItem:'選択した範囲',
+  reasons:{name:'氏名の可能性', addr:'住所の可能性', addr_contact:'住所の可能性 · 連絡先の近く', addr_edge:'住所の可能性 · 文書の上部・下部', addr_kw:'住所の可能性 · 地名・住所語'},
   tManualAdded:'範囲を追加しました', tManualRemoved:'範囲を削除しました', tSelSmall:'小さすぎます。もう少し大きくドラッグしてください。', btnSelectOn:'✓ 選択モード（オフ）',
   wmToggle:'ウォーターマークを入れる（任意）', wmPlaceholder:'ウォーターマーク文言（自由入力可）', wmCustom:'自由入力…',
   wmPresets:['○○ 提出用','不動産賃貸用','求職応募用','YYYY-MM-DD ○○ に提出'],
@@ -515,7 +520,8 @@ es:{
   scanOcr:'Parece un escaneo: reconociendo posiciones de texto con OCR…', heicConv:'Convirtiendo imagen HEIC…', building:'Creando documento…',
   notLocated:'sin ubicar',
   btnSelect:'🖐 Seleccionar área manualmente', selHint:'Arrastra con el dedo o el ratón sobre el área a ocultar (foto, firma, sello, nombre…)',
-  manualSection:'Áreas seleccionadas manualmente', candSection:'Puede ser un nombre — revísalo', manualItem:'Área seleccionada',
+  manualSection:'Áreas seleccionadas manualmente', candSection:'Revisar — ¿ocultar también esto?', manualItem:'Área seleccionada',
+  reasons:{name:'Puede ser un nombre', addr:'Puede ser una dirección', addr_contact:'Puede ser una dirección · cerca del contacto', addr_edge:'Puede ser una dirección · encabezado/pie', addr_kw:'Puede ser una dirección · término de lugar/calle'},
   tManualAdded:'Área añadida', tManualRemoved:'Área eliminada', tSelSmall:'Demasiado pequeña — arrastra un poco más.', btnSelectOn:'✓ Seleccionando (desactivar)',
   wmToggle:'Añadir marca de agua (opcional)', wmPlaceholder:'Texto de la marca de agua (editable)', wmCustom:'Personalizado…',
   wmPresets:['Para presentar a ○○','Para alquiler','Para solicitud de empleo','Presentado a ○○ el YYYY-MM-DD'],
@@ -653,23 +659,33 @@ function regexScan(text){
   }
   return found;
 }
-/* Address false-positive guard: keep as address only with a strong signal
-   (a number = street/postal). Institution names (university/college/…) become
-   'company' (visible); bare place names with no signal are dropped. */
+/* Address detection in 3 tiers (mirrors the name-candidate approach):
+   (1) confirmed  — a number (street/postal) → auto-masked as before
+   (2) candidate  — place/city with a country or address keyword, NOT combined
+                    with an institution/org → visible "review" item, not masked
+   (3) excluded   — institution/org names, lone tokens, country-only, prose */
 const INSTITUTION_RE=/\b(univ|university|college|institute|institution|school|academy|polytechnic|faculty|department|hospital|clinic|seminary)\b|대학교|대학원|대학|고등학교|중학교|초등학교|학원|학교|병원|연구소|大学|大學|高校|高等学校|学院|学校|universidad|colegio|instituto|escuela|facultad|academia/i;
+const ORG_RE=/\b(foundation|trust|ngo|organi[sz]ation|association|federation|council|ministry|bank|ltd|inc|corp|pvt|company|technolog|solutions?|systems?|services?|labs?|studios?|agency|enterprises?)\b|재단|협회|공사|공단|주식회사|株式会社|財団|協会/i;
+const COUNTRY_RE=/\b(india|indonesia|korea|japan|brazil|brasil|spain|espa[nñ]a|mexico|m[eé]xico|usa|u\.s\.a\.?|united states|u\.k\.?|united kingdom|england|canada|australia|singapore|philippines|vietnam|thailand|malaysia|germany|france|italy|netherlands|nepal|bangladesh|pakistan|sri lanka|china|taiwan|uae|dubai|qatar)\b/i;
+const ADDR_KEYWORD_RE=/\b(road|rd|street|st|avenue|ave|lane|ln|nagar|sector|colony|society|apartment|apartments|apt|flat|block|marg|enclave|vihar|puram|layout|phase|cross|extension|residency|towers?|heights?|villa|plot|gali|chowk|mohalla|bagh|ganj)\b|[가-힣]{2,}(로|길|동|읍|면|리)\b|丁目|区|市/i;
+const isOrgName=v=>INSTITUTION_RE.test(v)||ORG_RE.test(v);
 function classifyAddress(v){
-  if(/\d/.test(v)) return 'address';       // has a number → real address signal
-  if(INSTITUTION_RE.test(v)) return 'company'; // org/education name → keep visible
-  return 'drop';                           // bare place name, no signal → not PII
+  if(/\d/.test(v)) return 'address';        // (1) number → confirmed, auto-mask
+  if(isOrgName(v)) return 'company';         // (3) org/institution → visible, not address
+  const words=v.trim().split(/\s+/);
+  if(words.length<=1) return 'drop';         // (3) lone place token (e.g. "Imphal")
+  if(COUNTRY_RE.test(v)||ADDR_KEYWORD_RE.test(v)) return 'candidate'; // (2)
+  return 'drop';                             // (3) no address signal
 }
 /* Name heuristic: the largest text near the top of page 1 is likely the
    person's name. Conservative — skips doc titles, only fires when clear font
    variation exists (so plain text docs never produce a candidate). */
 const DOC_TITLE_RE=/^(resume|r[eé]sum[eé]|cv|curriculum\s*vitae|curriculum|bio\s*data|biodata|profile|portfolio|자기?소개서|이력서|履歴書|職務経歴書|hoja\s*de\s*vida)$/i;
+const NON_NAME_RE=/증명서|명세서|계약서|신청서|경력|재직|이력|자기소개|졸업|성적|证明|証明|明細|履歴|resume|résumé|profile|curriculum|contract|certificate|statement|invoice/i;
 function isLikelyName(text){
   if(!text||text.length<2||text.length>40) return false;
   if(/[\d@]|https?:|www\./i.test(text)) return false;
-  if(DOC_TITLE_RE.test(text.trim())) return false;
+  if(DOC_TITLE_RE.test(text.trim())||NON_NAME_RE.test(text)) return false;
   if(text.split(/\s+/).length>4) return false;
   const compact=text.replace(/\s/g,'');
   const letters=(text.match(/[A-Za-zÀ-ɏ가-힣぀-ヿ一-鿿]/g)||[]).length;
@@ -688,7 +704,63 @@ function nameCandidates(){
   const first=big[0];
   const line=big.filter(it=>Math.abs(it.y-first.y)<first.h*0.6).sort((a,b)=>a.x-b.x);
   const text=line.map(it=>it.str).join(' ').replace(/\s+/g,' ').trim();
-  return isLikelyName(text) ? [{type:'name',value:text,kind:'candidate'}] : [];
+  return isLikelyName(text) ? [{type:'name',value:text,kind:'candidate',reason:'name'}] : [];
+}
+// Group items into visual line SEGMENTS (per page), column-aware: items on the
+// same row but separated by a large horizontal gap (a 2-column layout) become
+// separate segments — otherwise the two columns merge into nonsense lines.
+function docLines(){
+  const out=[];
+  pages.forEach((page,pi)=>{
+    const arr=page.items.slice().sort((a,b)=>a.y-b.y||a.x-b.x);
+    const rows=[]; let row=null;
+    for(const it of arr){
+      if(row && Math.abs(it.y-row.y)<row.h*0.7){ row.items.push(it); }
+      else { if(row)rows.push(row); row={y:it.y,h:it.h,items:[it]}; }
+    }
+    if(row)rows.push(row);
+    const gapThresh=Math.max(40, page.w*0.06);
+    for(const r of rows){
+      const its=r.items.sort((a,b)=>a.x-b.x); let seg=null;
+      for(const it of its){
+        if(seg && it.x - seg.x1 < gapThresh){ seg.text+=' '+it.str; seg.x1=it.x+it.w; }
+        else { if(seg)out.push(seg); seg={page:pi,y:r.y,h:r.h,x0:it.x,x1:it.x+it.w,text:it.str}; }
+      }
+      if(seg)out.push(seg);
+    }
+  });
+  return out;
+}
+// Address candidates: place/city lines WITHOUT a number, gated to avoid prose
+// and org names. Confidence is higher near contact info or in header/footer;
+// body-middle place names need a real address keyword + mostly-proper-noun text.
+function addressCandidates(){
+  const lines=docLines(), out=[], seen=new Set();
+  const hasContact=s=>/@|(?:\+?\d[\d\s().\-]{6,}\d)/.test(s);
+  // a contact segment in the SAME column (x-overlap) within a few lines above/below
+  const nearContact=ln=>lines.some(l=> l!==ln && l.page===ln.page && Math.abs(l.y-ln.y)<ln.h*3.5
+        && !(l.x1<ln.x0-5 || l.x0>ln.x1+5) && hasContact(l.text));
+  lines.forEach(ln=>{
+    const t=ln.text.replace(/\s+/g,' ').trim();
+    if(t.length<4||t.length>80) return;
+    if(/\d/.test(t)) return;                   // numbered → confirmed path handles it
+    if(isOrgName(t)) return;                    // (3) org/institution excluded
+    const words=t.split(/\s+/);
+    if(words.length>9) return;                  // long body sentence
+    const hasCountry=COUNTRY_RE.test(t), hasKw=ADDR_KEYWORD_RE.test(t);
+    if(!hasCountry && !hasKw) return;
+    const page=pages[ln.page];
+    const region = ln.y < page.h*0.20 ? 'header' : ln.y > page.h*0.80 ? 'footer' : 'body';
+    const capWords=words.filter(w=>/^[A-Z가-힣]/.test(w)).length, proper=capWords/words.length;
+    let reason=null;
+    if(nearContact(ln)) reason='addr_contact';
+    else if(region!=='body') reason='addr_edge';
+    else if((hasCountry||hasKw) && proper>=0.6 && words.length<=6) reason='addr_kw'; // proper-noun phrase, not prose
+    if(!reason) return;                         // body-middle prose → excluded
+    if(seen.has(t)) return; seen.add(t);
+    out.push({type:'address', value:t, kind:'candidate', reason});
+  });
+  return out;
 }
 
 /* ───────── text masking (for partial rendering, list display, copy) ───────── */
@@ -729,48 +801,68 @@ function boxesFromRange(page,pi,map,a,b,out){
   for(let k=a;k<b;k++){ const m=map[k]; if(!m)continue; const [i,c]=m; (byItem[i]=byItem[i]||[]).push(c); }
   for(const i in byItem){
     const cs=byItem[i], it=page.items[i], len=(it.str||'').length||1;
-    const cMin=Math.min(...cs), cMax=Math.max(...cs);
-    // proportional char-width is an estimate; pad generously so no sliver of the
-    // original text survives at the box edges (redaction must over-cover).
-    const cw=it.w/len, x=it.x+cw*cMin, w=cw*(cMax+1-cMin);
-    const box={page:pi,x:x-cw*0.6-1,y:it.y-2,w:w+cw*1.2+2,h:it.h+4};
+    const cMin=Math.min(...cs), cMax=Math.max(...cs), cw=it.w/len;
+    // Anchor edges to the item's TRUE bounds when the match reaches them — this
+    // is where the proportional estimate drifts and leaves a remnant (e.g. the
+    // right side of an email). Middle edges keep a proportional estimate + pad.
+    const x0 = (cMin===0)     ? it.x        : it.x + cw*cMin - cw*0.4;
+    const x1 = (cMax===len-1) ? it.x+it.w   : it.x + cw*(cMax+1) + cw*0.4;
+    const box={page:pi,x:x0-1,y:it.y-2,w:(x1-x0)+2,h:it.h+4};
     box.bg=sampleBg(page,box);
     out.push(box);
   }
 }
+// A Latin word/phrase (name, city, org) must match on word boundaries, so a
+// short value never masks a fragment inside a longer word — e.g. "Korea" must
+// not hit "Koreaz". Numbers/emails (with @ . - separators) are exempt.
+function isLatinToken(v){ return /^[A-Za-z][A-Za-z .,'’&\-]*$/.test(v); }
+function boundaryOk(latin,before,after){
+  if(!latin) return true;
+  return !/[A-Za-z]/.test(before||'') && !/[A-Za-z]/.test(after||'');
+}
 function boxesForValue(value){
   const out=[];
   if(!value || value.replace(/\s/g,'').length<2) return out;
+  const latin=isLatinToken(value);
   pages.forEach((page,pi)=>{
     buildIndex(page);
     let from=0, at;
-    while((at=page._text.indexOf(value,from))>=0){ boxesFromRange(page,pi,page._map,at,at+value.length,out); from=at+value.length; }
+    while((at=page._text.indexOf(value,from))>=0){
+      if(boundaryOk(latin, page._text[at-1], page._text[at+value.length]))
+        boxesFromRange(page,pi,page._map,at,at+value.length,out);
+      from=at+value.length;
+    }
   });
   if(out.length) return out;
   const tgt=value.replace(/\s/g,'');
   pages.forEach((page,pi)=>{
     let from=0, at;
-    while((at=page._stext.indexOf(tgt,from))>=0){ boxesFromRange(page,pi,page._smap,at,at+tgt.length,out); from=at+tgt.length; }
+    while((at=page._stext.indexOf(tgt,from))>=0){
+      if(boundaryOk(latin, page._stext[at-1], page._stext[at+tgt.length]))
+        boxesFromRange(page,pi,page._smap,at,at+tgt.length,out);
+      from=at+tgt.length;
+    }
   });
   return out;
 }
-// Estimate the local background color by sampling the clean gaps just above/
-// below/beside the box (never a single pixel that might land on ink), then
-// picking the lightest — the background is virtually always lighter than text.
+// Estimate the local background color from the clean inter-line gaps just above
+// and below the box (those rows are almost always pure background). Use the
+// MEDIAN per channel — robust for BOTH light and dark backgrounds (picking the
+// "lightest" broke on dark pages, drawing a white box). Never a single pixel.
 function sampleBg(page,b){
   try{
     const ctx=page.canvas.getContext('2d'), W=page.canvas.width, H=page.canvas.height;
-    const cx=b.x+b.w/2, cy=b.y+b.h/2, gap=Math.max(3,b.h*0.4);
-    const pts=[[cx,b.y-gap],[cx,b.y+b.h+gap],[b.x-gap,cy],[b.x+b.w+gap,cy]];
+    const gap=Math.max(3,b.h*0.5);
+    const xs=[b.x+b.w*0.15, b.x+b.w*0.5, b.x+b.w*0.85], ys=[b.y-gap, b.y+b.h+gap];
     const cols=[];
-    for(let [px,py] of pts){
-      px=Math.max(0,Math.min(W-1,Math.round(px))); py=Math.max(0,Math.min(H-1,Math.round(py)));
+    for(const yy of ys) for(const xx of xs){
+      const px=Math.max(0,Math.min(W-1,Math.round(xx))), py=Math.max(0,Math.min(H-1,Math.round(yy)));
       const d=ctx.getImageData(px,py,1,1).data;
       if(d[3]>=200) cols.push([d[0],d[1],d[2]]);
     }
     if(!cols.length) return '#FFFFFF';
-    cols.sort((a,b)=>(b[0]+b[1]+b[2])-(a[0]+a[1]+a[2]));
-    const c=cols[0];
+    const med=ch=>{ const s=cols.map(c=>c[ch]).sort((a,b)=>a-b); return s[s.length>>1]; };
+    const c=[med(0),med(1),med(2)];
     return `rgb(${c[0]},${c[1]},${c[2]})`;
   }catch(e){ return '#FFFFFF'; }
 }
@@ -952,7 +1044,8 @@ function afterLoad(keepEntities){
   if(!keepEntities){
     entities=[]; aiDone=false; showAllCats=false;
     addEntities(regexScan(docText));
-    addEntities(nameCandidates());   // conservative top-of-doc name suggestion (defaults to visible)
+    addEntities(nameCandidates());     // conservative top-of-doc name suggestion (defaults to visible)
+    addEntities(addressCandidates());  // place/city lines without a number → review candidates
     setStatus(T().scanDone(entities.filter(e=>e.kind!=='candidate').length)); setProg(0);
   }
   const ab=$('btnAI'); if(!aiDone){ ab.disabled=false; }
@@ -973,13 +1066,18 @@ function addEntities(list){
   for(const e of list){
     const v=(e.value||'').trim(); if(!v||v.replace(/\s/g,'').length<2) continue;
     let type=TYPES[e.type]?e.type:'other';
-    if(type==='address'){ const d=classifyAddress(v); if(d==='drop') continue; type=d; }
+    let kind=e.kind||'auto', reason=e.reason||null;
+    if(type==='address' && kind!=='candidate'){       // classify auto/AI addresses into the 3 tiers
+      const d=classifyAddress(v);
+      if(d==='drop') continue;
+      if(d==='candidate'){ kind='candidate'; reason=reason||'addr'; }
+      else type=d;                                     // 'address' (mask) or 'company' (visible)
+    }
     if(entities.some(x=>x.value===v)) continue;
-    const kind=e.kind||'auto';
     const boxes=boxesForValue(v);
-    if(kind==='candidate' && !boxes.length) continue;   // don't propose what we can't locate
+    if(kind==='candidate' && !boxes.length) continue;  // don't propose what we can't locate
     const mode = kind==='candidate' ? 'ok' : catDefault[type];  // candidates suggested, not hidden
-    entities.push({id:'e'+Math.random().toString(36).slice(2,8),type,value:v,mode,kind,boxes});
+    entities.push({id:'e'+Math.random().toString(36).slice(2,8),type,value:v,mode,kind,reason,boxes});
   }
   entities.sort((a,b)=>Object.keys(TYPES).indexOf(a.type)-Object.keys(TYPES).indexOf(b.type));
 }
@@ -1035,29 +1133,43 @@ function mergeLineBoxes(boxes,pi){
   }
   return lines.sort((a,b)=>a.y-b.y||a.x-b.x);
 }
+function pageMedH(page){
+  if(page._medH!=null) return page._medH;
+  const hs=page.items.map(i=>i.h).filter(h=>h>0).sort((a,b)=>a-b);
+  return (page._medH = hs.length? hs[hs.length>>1] : 16);
+}
+function isDarkColor(bg){
+  const m=/rgb\((\d+),\s*(\d+),\s*(\d+)\)/.exec(bg||''); if(!m) return false;
+  return (0.299*+m[1]+0.587*+m[2]+0.114*+m[3]) < 130;
+}
 function drawRedactions(ctx,pi,scale){
+  const page=pages[pi]; const medH=page?pageMedH(page):16;
   for(const e of entities){
     if(!isOn(e)||e.mode==='ok') continue;
     const lines=mergeLineBoxes(e.boxes,pi);
     if(!lines.length) continue;
-    // manual regions (photo/signature/stamp) have no text → always solid cover
-    const solid = e.mode==='no' || e.kind==='manual';
+    // Large display text (e.g. a 48pt name) can't be partial-masked with
+    // asterisks without overflow → render it as a solid bar instead.
+    const largeHalf = e.mode==='half' && lines[0].h > Math.max(medH*1.7, 40);
+    // manual regions (photo/signature) have no text → always solid cover
+    const solid = e.mode==='no' || e.kind==='manual' || largeHalf;
     if(solid){
       for(const l of lines){ ctx.fillStyle=INK; ctx.fillRect(l.x*scale,l.y*scale,l.w*scale,l.h*scale); }
     } else { // partial: fully cover every line first, then draw the masked value ONCE
       for(const l of lines){ ctx.fillStyle=l.bg||'#FFFFFF'; ctx.fillRect(l.x*scale-1,l.y*scale-1,l.w*scale+2,l.h*scale+2); }
       const f=lines[0];
-      drawFitText(ctx, f.x*scale, f.y*scale, f.w*scale, f.h*scale, maskHalf(e.type,e.value));
+      drawFitText(ctx, f.x*scale, f.y*scale, f.w*scale, f.h*scale, maskHalf(e.type,e.value), f.bg);
     }
   }
 }
-function drawFitText(ctx,x,y,w,h,text){
+function drawFitText(ctx,x,y,w,h,text,bg){
   ctx.save();
   ctx.beginPath(); ctx.rect(x-1,y-1,w+2,h+2); ctx.clip();
   let fsz=h*0.78;
   ctx.font=fsz+'px "IBM Plex Sans KR",sans-serif';
   while(ctx.measureText(text).width>w && fsz>6){ fsz-=1; ctx.font=fsz+'px "IBM Plex Sans KR",sans-serif'; }
-  ctx.fillStyle=INK; ctx.textBaseline='middle'; ctx.textAlign='left';
+  ctx.fillStyle = isDarkColor(bg)? '#F4F1E8' : INK;   // contrast: light text on dark background
+  ctx.textBaseline='middle'; ctx.textAlign='left';
   ctx.fillText(text, x+1, y+h/2);
   ctx.restore();
 }
@@ -1167,7 +1279,10 @@ function sectionHtml(kind,title,items){
     </div>
     <div class="cat-items">${items.map(e=>`
       <div class="pii-item${cand?' is-cand':''}">
-        <span class="val ${cand?'':'mono'}" title="${escapeHtml(e.value)}">${escapeHtml(kind==='manual'? t.manualItem : displayValue(e))}</span>
+        <div class="val-wrap">
+          <span class="val ${cand?'':'mono'}" title="${escapeHtml(e.value)}">${escapeHtml(kind==='manual'? t.manualItem : displayValue(e))}</span>
+          ${cand?`<span class="reason">${(TYPES[e.type]||{}).icon||''} ${t.reasons[e.reason]||t.reasons.name}</span>`:''}
+        </div>
         <div class="seg" role="radiogroup">
           <button class="${e.mode==='ok'?'on-ok':''}" data-id="${e.id}" data-mode="ok">${t.segOk}</button>
           ${cand?`<button class="${e.mode==='half'?'on-half':''}" data-id="${e.id}" data-mode="half">${t.segHalf}</button>`:''}
