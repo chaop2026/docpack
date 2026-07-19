@@ -226,7 +226,47 @@ def resume_dark():
     doc.save(os.path.join(OUT, "7_resume_dark.pdf")); print("7_resume_dark.pdf")
 
 
+# ─────── 2-column résumé, 3-token name + merged country line (regression) ───────
+def resume_2col():
+    """Reproduces two real-résumé detection defects with fully synthetic data:
+      (1) A 3-token name in a 2-column layout whose surname renders with a
+          slightly smaller item height than the given names (exactly what OCR
+          word-boxes and mixed typesetting produce). The old name-line assembly
+          gated tokens on the PAGE max height, so the shorter last token
+          ("Malhotra") was dropped and the surname leaked.  MUST mask all three.
+      (2) A country name followed by a parenthetical award on ONE merged line:
+          "Korea (Koreaz Contest)". Alone, "Korea" is dropped as a country, but
+          once the line merges the 3-word span slipped past the country anchor
+          and was proposed as an address candidate. MUST NOT be a candidate.
+    """
+    doc = fitz.open(); page = doc.new_page(width=595, height=842)
+    DARK = (0.05, 0.20, 0.12); WHITE = (0.98, 0.98, 0.95); INK = (0.1, 0.1, 0.1); GREY = (0.35, 0.35, 0.35)
+    page.draw_rect(fitz.Rect(360, 0, 595, 842), color=None, fill=DARK)  # right dark sidebar
+
+    # ── LEFT column: 3-token name, surname rendered a touch smaller (item-height
+    #    variance like OCR) — the trailing token must still be masked. ──
+    page.insert_text((40, 92),  "Ishan",    fontname="Times-Bold", fontsize=26, color=INK)
+    page.insert_text((116, 92), "Rohit",    fontname="Times-Bold", fontsize=26, color=INK)
+    page.insert_text((188, 92), "Malhotra", fontname="Times-Bold", fontsize=21, color=INK)
+    page.insert_text((40, 118), "Software Engineer", fontname="Times-Roman", fontsize=13, color=GREY)
+
+    page.insert_text((40, 175), "EDUCATION", fontname="Times-Bold", fontsize=14, color=INK)
+    page.insert_text((40, 199), "Delhi University, Saket", fontname="Times-Roman", fontsize=11, color=INK)
+    page.insert_text((40, 240), "Maharaja Agrasen College", fontname="Times-Roman", fontsize=11, color=INK)
+
+    # ── RIGHT dark column ──
+    page.insert_text((380, 80),  "CONTACT", fontname="Times-Bold", fontsize=12, color=WHITE)
+    page.insert_text((380, 104), "+91 9599320477", fontname="Times-Roman", fontsize=10, color=WHITE)
+    page.insert_text((380, 122), "ishan.malhotra@gmail.com", fontname="Times-Roman", fontsize=9, color=WHITE)
+
+    page.insert_text((380, 200), "AWARDS", fontname="Times-Bold", fontsize=12, color=WHITE)
+    # country + parenthetical award on ONE line (the merged-line trap)
+    page.insert_text((380, 224), "Korea (Koreaz Contest)", fontname="Times-Roman", fontsize=9, color=WHITE)
+
+    doc.save(os.path.join(OUT, "8_resume_2col.pdf")); print("8_resume_2col.pdf")
+
+
 if __name__ == "__main__":
     text_pdf(); scanned_pdf(); jpg_photo(); table_pdf(); multipage_pdf()
-    resume_light(); resume_dark()
+    resume_light(); resume_dark(); resume_2col()
     print("done ->", OUT)

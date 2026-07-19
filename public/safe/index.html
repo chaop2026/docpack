@@ -734,13 +734,21 @@ const isOrgName=v=>INSTITUTION_RE.test(v)||ORG_RE.test(v);
 const COUNTRY_ADJ_RE=/^(korean|indian|japanese|chinese|american|british|english|spanish|mexican|brazilian|canadian|australian|french|german|italian|dutch|nepali|nepalese|bangladeshi|pakistani|filipino|filipina|vietnamese|thai|malaysian|singaporean|taiwanese|emirati|qatari|russian|swiss|swedish|norwegian|danish|finnish|polish|turkish|greek|portuguese|indonesian)$/i;
 const DIRWORD_RE=/^(south|north|east|west|republic|of|the)$/i;
 function isCountryOrAdj(v){
-  const t=(v||'').trim().replace(/^[.,()'"’]+|[.,()'"’]+$/g,'');
+  const raw=(v||'').trim();
+  if(!raw) return false;
+  // Strip a parenthetical suffix (award/title) BEFORE the country test, then
+  // trim stray edge punctuation. This keeps the country "anchor" judgment
+  // identical whether a line stands alone ("Korea") or has merged with an
+  // adjacent parenthetical ("Korea (Koreaz Contest)") — both are anchored on
+  // the country and must be dropped, not proposed as an address.
+  const core=raw.replace(/\([^)]*\)/g,' ').replace(/\s+/g,' ').trim();
+  const t=core.replace(/^[.,()'"’]+|[.,()'"’]+$/g,'').trim();
   if(!t) return false;
   if(COUNTRY_ADJ_RE.test(t)) return true;                 // "Indian"
-  const words=t.split(/\s+/);
-  if(words.length<=2 && COUNTRY_RE.test(t) && !/\d/.test(t) && !isOrgName(t)
+  const words=t.split(/\s+/).filter(Boolean);
+  if(words.length && words.length<=2 && COUNTRY_RE.test(t) && !/\d/.test(t) && !isOrgName(t)
      && words.every(w=>{const c=w.replace(/[.,]/g,''); return DIRWORD_RE.test(c)||COUNTRY_RE.test(c);}))
-    return true;                                           // "Korea", "South Korea"
+    return true;                                           // "Korea", "South Korea", "Korea (…)"
   return false;
 }
 function classifyAddress(v){
@@ -777,8 +785,20 @@ function nameCandidates(){
   const median=heights[Math.floor(heights.length/2)]||maxH;
   if(maxH < median*1.25) return [];        // no clearly-larger title text → skip
   const big=topItems.filter(it=>it.h>=maxH*0.85).sort((a,b)=>a.y-b.y||a.x-b.x);
-  const first=big[0];
-  const line=big.filter(it=>Math.abs(it.y-first.y)<first.h*0.6).sort((a,b)=>a.x-b.x);
+  const anchor=big[0];
+  // Assemble the whole name line. Height is gated at 0.72×max (not 0.85) so a
+  // trailing token rendered a touch smaller — exactly what OCR word-boxes and
+  // mixed typesetting produce for a surname — is NOT dropped (the 3-token name
+  // "Ishan Rohit Malhotra" must stay whole, surname included). The run is then
+  // grown left/right from the anchor only while items stay horizontally
+  // contiguous, so a same-row token in another column (2-column layouts) is
+  // never swallowed into the name.
+  const row=topItems.filter(it=>Math.abs(it.y-anchor.y)<maxH*0.6 && it.h>=maxH*0.72).sort((a,b)=>a.x-b.x);
+  const gap=Math.max(maxH*1.8, page.w*0.05);
+  let ai=row.indexOf(anchor), lo=ai, hi=ai;
+  while(lo>0            && row[lo].x-(row[lo-1].x+row[lo-1].w)<gap) lo--;
+  while(hi<row.length-1 && row[hi+1].x-(row[hi].x+row[hi].w)<gap) hi++;
+  const line=row.slice(lo,hi+1);
   const text=line.map(it=>it.str).join(' ').replace(/\s+/g,' ').trim();
   return isLikelyName(text) ? [{type:'name',value:text,kind:'candidate',reason:'name'}] : [];
 }
