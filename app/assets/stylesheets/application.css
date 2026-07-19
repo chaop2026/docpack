@@ -1366,6 +1366,91 @@ p {
 }
 .blog-btn-secondary:hover { background: #F0EFEB; }
 
+/* ---------------------------------------------------------------------------
+   Legacy privacy-guide bodies migrated from the static public/blog/ HTML.
+   All selectors are scoped under .blog-legacy so the migrated markup (tables,
+   cards, checklists, demo rows) keeps its structure without colliding with the
+   v2 blog classes or the surrounding page. Uses the Bento white-card palette.
+   --------------------------------------------------------------------------- */
+.blog-legacy p { font-size: 15px; color: #2A261E; line-height: 1.75; margin-bottom: 14px; }
+.blog-legacy ul, .blog-legacy ol { padding-left: 22px; margin: 0 0 16px; }
+.blog-legacy li { font-size: 15px; color: #2A261E; line-height: 1.7; margin-bottom: 7px; }
+.blog-legacy strong { font-weight: 700; }
+.blog-legacy mark { background: var(--marker, #FFE066); padding: 1px 4px; border-radius: 3px; }
+.blog-legacy .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+.blog-legacy a { color: #1A1918; }
+
+/* Info / warning cards */
+.blog-legacy .card {
+  background: #fff; border: 1px solid #E5E3DC;
+  border-radius: 12px; padding: 16px 18px; margin: 16px 0;
+}
+.blog-legacy .card h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+.blog-legacy .card p { margin: 0; font-size: 14px; color: #4A463F; }
+
+/* Numbered checklist (contract guide) */
+.blog-legacy .chk {
+  background: #fff; border: 1px solid #E5E3DC;
+  border-radius: 12px; padding: 6px 0; margin: 16px 0;
+}
+.blog-legacy .chk .item {
+  display: flex; gap: 12px; padding: 13px 18px;
+  border-bottom: 1px solid #E5E3DC; align-items: flex-start;
+}
+.blog-legacy .chk .item:last-child { border-bottom: none; }
+.blog-legacy .chk .n {
+  width: 26px; height: 26px; border-radius: 7px;
+  background: var(--marker, #FFE066); font-weight: 700; font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 2px;
+}
+.blog-legacy .chk strong { display: block; font-size: 15px; margin-bottom: 3px; }
+.blog-legacy .chk p { font-size: 14px; color: #6B6963; margin: 0; }
+
+/* Demo rows (masking good/bad examples) */
+.blog-legacy .demo {
+  background: #fff; border: 1px solid #E5E3DC;
+  border-radius: 12px; padding: 16px 18px; margin: 16px 0; font-size: 15px;
+}
+.blog-legacy .demo .row {
+  display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;
+}
+.blog-legacy .demo .row:last-child { margin-bottom: 0; }
+.blog-legacy .demo .lbl { font-size: 12px; font-weight: 700; width: 64px; flex-shrink: 0; }
+.blog-legacy .bad { color: #B3402A; }
+.blog-legacy .good { color: #2F7D5B; }
+.blog-legacy .blk { background: #17140F; color: #17140F; border-radius: 3px; padding: 1px 4px; user-select: none; }
+
+/* Comparison table (resume guide) */
+.blog-legacy table {
+  width: 100%; border-collapse: collapse; background: #fff;
+  border: 1px solid #E5E3DC; border-radius: 12px; overflow: hidden;
+  font-size: 14px; margin: 16px 0;
+}
+.blog-legacy th, .blog-legacy td {
+  padding: 10px 12px; border-bottom: 1px solid #E5E3DC;
+  text-align: left; vertical-align: top;
+}
+.blog-legacy th { background: #FFF3BF; font-weight: 700; font-size: 13px; }
+.blog-legacy tr:last-child td { border-bottom: none; }
+.blog-legacy .tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 1px 9px; border-radius: 12px; }
+.blog-legacy .t-no { background: #F7E4DF; color: #B3402A; }
+.blog-legacy .t-half { background: #FBF0DC; color: #B97A17; }
+.blog-legacy .t-ok { background: #E4F1EA; color: #2F7D5B; }
+
+/* Self-contained SafeFile CTA carried over from the static article */
+.blog-legacy .cta {
+  background: #17140F; color: #fff;
+  border-radius: 14px; padding: 22px 24px; margin: 28px 0 10px;
+}
+.blog-legacy .cta strong { font-size: 17px; display: block; margin-bottom: 6px; color: #fff; }
+.blog-legacy .cta p { color: #D9D4C8; font-size: 14px; margin-bottom: 14px; }
+.blog-legacy .cta a {
+  display: inline-block; background: var(--marker, #FFE066); color: #17140F;
+  text-decoration: none; font-weight: 700; font-size: 14px;
+  padding: 10px 18px; border-radius: 9px;
+}
+
 /* Before/After */
 .blog-ba-wrap {
   background: #fff;

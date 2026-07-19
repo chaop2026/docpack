@@ -3,7 +3,7 @@ class Post < ApplicationRecord
 
   validates :title_ko, presence: true
   validates :slug, presence: true, uniqueness: true
-  validates :category, inclusion: { in: %w[pdf image office student freelancer global] }
+  validates :category, inclusion: { in: %w[privacy pdf image office student freelancer global] }
   validates :status, inclusion: { in: %w[draft scheduled published] }
 
   scope :published, -> { where(status: "published") }

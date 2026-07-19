@@ -1,66 +1,4 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>주민등록번호 마스킹, 뒷자리만 가리면 될까 — 올바르게 가리는 법 | SafeFile 블로그</title>
-<meta name="description" content="주민등록번호 뒷자리에는 어떤 정보가 들어 있을까요? 서류 제출 전 주민번호를 올바르게 마스킹하는 방법과 등본·신분증 사본 제출 시 주의사항을 정리했습니다.">
-<link rel="canonical" href="https://slimfile.net/blog/resident-number-masking/">
-<meta property="og:title" content="주민등록번호 마스킹, 뒷자리만 가리면 될까">
-<meta property="og:description" content="서류 제출 전 주민번호를 올바르게 가리는 방법을 정리했습니다.">
-<meta property="og:url" content="https://slimfile.net/blog/resident-number-masking/">
-<meta property="og:type" content="article">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-:root{--paper:#F7F5EF;--card:#FFF;--ink:#17140F;--sub:#6B655A;--line:#E6E1D4;--marker:#FFE066;--marker-soft:#FFF3BF;--ok:#2F7D5B;--half:#B97A17;--no:#B3402A;--no-bg:#F7E4DF}
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'IBM Plex Sans KR',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var(--paper);color:var(--ink);line-height:1.75;-webkit-text-size-adjust:100%}
-.mono{font-family:'IBM Plex Mono',monospace}
-.wrap{max-width:720px;margin:0 auto;padding:0 20px}
-header{border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--paper);z-index:10}
-.nav{display:flex;align-items:center;justify-content:space-between;height:56px}
-.logo{font-weight:700;font-size:17px;display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--ink)}
-.logo .bar{display:inline-block;width:24px;height:12px;background:var(--ink);border-radius:3px}
-.logo small{font-size:12px;color:var(--sub);font-weight:400}
-.nav a.back{font-size:13px;color:var(--sub);text-decoration:none}
-main{padding:40px 0 60px}
-.eyebrow{font-size:12.5px;color:var(--sub);letter-spacing:.04em;margin-bottom:10px}
-h1{font-size:clamp(23px,4.5vw,32px);letter-spacing:-.02em;line-height:1.4;margin-bottom:10px}
-.meta{color:var(--sub);font-size:13px;margin-bottom:32px}
-h2{font-size:19px;margin:38px 0 12px;letter-spacing:-.01em}
-p{font-size:15.5px;margin-bottom:14px;color:#2A261E}
-ul,ol{padding-left:22px;margin:0 0 14px}
-li{font-size:15.5px;margin-bottom:7px;color:#2A261E}
-mark{background:var(--marker);padding:1px 4px;border-radius:3px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:18px 0}
-.card h3{font-size:15px;margin-bottom:8px}
-.demo{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:18px 0;font-size:15px}
-.demo .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
-.demo .row:last-child{margin-bottom:0}
-.demo .lbl{font-size:12px;font-weight:700;width:64px;flex-shrink:0}
-.bad{color:var(--no)}.good{color:var(--ok)}
-.blk{background:var(--ink);color:var(--ink);border-radius:3px;padding:1px 4px;user-select:none}
-.cta{background:var(--ink);color:#fff;border-radius:14px;padding:22px 24px;margin:36px 0 10px}
-.cta strong{font-size:17px;display:block;margin-bottom:6px}
-.cta p{color:#D9D4C8;font-size:14px;margin-bottom:14px}
-.cta a{display:inline-block;background:var(--marker);color:var(--ink);text-decoration:none;font-weight:700;font-size:14px;padding:10px 18px;border-radius:9px}
-a{color:var(--ink)}
-footer{border-top:1px solid var(--line);padding:20px 0 44px;text-align:center;color:var(--sub);font-size:13px}
-footer a{color:var(--sub)}
-</style>
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9747637096324982" crossorigin="anonymous"></script>
-</head>
-<body>
-<header><div class="wrap nav">
-  <a class="logo" href="https://slimfile.net"><span class="bar" aria-hidden="true"></span>SafeFile <small>블로그</small></a>
-  <a class="back" href="/blog/">← 목록</a>
-</div></header>
-
-<main class="wrap">
-  <p class="eyebrow">개인정보 가이드</p>
-  <h1>주민등록번호 마스킹,<br>뒷자리만 가리면 될까</h1>
-  <p class="meta">2026년 7월 16일 · SafeFile 팀</p>
+<div class="blog-legacy">
 
   <p>등본, 계약서, 신분증 사본, 보험 서류. 어디엔가 제출할 때마다 등장하는 것이 주민등록번호입니다. "뒷자리는 가려서 보내주세요"라는 말을 자주 듣지만, 막상 가리려고 하면 궁금해집니다. <mark>어디까지, 어떻게 가리는 게 맞을까?</mark></p>
 
@@ -109,10 +47,4 @@ footer a{color:var(--sub)}
     <p>SafeFile에 문서를 올리면 주민등록번호를 자동으로 찾아 900315-*******처럼 가려주고, 텍스트 레이어가 남지 않는 새 이미지·PDF를 만들어 드립니다. 파일은 서버에 저장되지 않습니다.</p>
     <a href="https://slimfile.net/safe/">SafeFile 무료로 사용하기 →</a>
   </div>
-</main>
-
-<footer><div class="wrap">
-  <a href="https://slimfile.net">SlimFile</a> · <a href="https://slimfile.net/safe/">SafeFile</a> · <a href="/blog/">블로그</a> · <a href="/privacy/">개인정보처리방침</a>
-</div></footer>
-</body>
-</html>
+</div>
