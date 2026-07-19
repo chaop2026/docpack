@@ -1236,10 +1236,36 @@ function addEntities(list){
     if(entities.some(x=>x.value===v)) continue;
     const boxes=boxesForValue(v);
     if(kind==='candidate' && !boxes.length) continue;  // don't propose what we can't locate
-    const mode = kind==='candidate' ? 'ok' : catDefault[type];  // candidates suggested, not hidden
+    // Candidates are lower-confidence, but a name/address candidate's TYPE is known
+    // and both types default to 'half' when auto-detected. Defaulting these candidates
+    // to 'half' too makes the "확인 필요" label match a visibly-partial state (a
+    // candidate shown fully in the clear contradicts its own review prompt). This does
+    // NOT touch the 불확실=기본공개 rule (that governs the type='other' 분류-불확실 case,
+    // still 'ok') nor the max_auto body-damage guard (which counts only kind='auto').
+    // Any other candidate type keeps the visible default.
+    const mode = kind==='candidate'
+      ? ((type==='name'||type==='address') ? 'half' : 'ok')
+      : catDefault[type];
     entities.push({id:'e'+Math.random().toString(36).slice(2,8),type,value:v,mode,kind,reason,boxes});
   }
   entities.sort((a,b)=>Object.keys(TYPES).indexOf(a.type)-Object.keys(TYPES).indexOf(b.type));
+  dedupeCandidates();
+}
+// Remove review candidates wholly contained (as whole space-separated tokens) in a
+// CONFIRMED entity's value — e.g. confirmed "MANSI GAZAL TIWARI" makes the candidate
+// "MANSI GAZAL" redundant (the confirmed mask already covers it). Only the shorter,
+// fully-contained candidate is dropped; a candidate that adds tokens is kept. Runs
+// after every addEntities batch so a later AI-confirmed name also clears an earlier
+// candidate.
+function dedupeCandidates(){
+  const norm=s=>(s||'').toLowerCase().replace(/\s+/g,' ').trim();
+  const confirmed=entities.filter(e=>e.kind!=='candidate').map(e=>norm(e.value)).filter(Boolean);
+  if(!confirmed.length) return;
+  entities=entities.filter(e=>{
+    if(e.kind!=='candidate') return true;
+    const cv=norm(e.value); if(!cv) return true;
+    return !confirmed.some(fv=>fv!==cv && (' '+fv+' ').includes(' '+cv+' '));
+  });
 }
 function recomputeBoxes(){ entities.forEach(e=>{ if(e.kind!=='manual') e.boxes=boxesForValue(e.value); }); }
 const located=e=>e.boxes&&e.boxes.length>0;

@@ -81,6 +81,8 @@ const PAGE_HELPERS = () => {
   };
   window.__isCandidateExact = function (v) { const n = norm(v); return entities.some(e => e.kind === 'candidate' && norm(e.value) === n); };
   window.__isCandidateContains = function (v) { const n = norm(v); return entities.some(e => e.kind === 'candidate' && norm(e.value).includes(n)); };
+  // default mode of the candidate whose value contains v (null if not a candidate)
+  window.__candidateMode = function (v) { const n = norm(v); const e = entities.find(x => x.kind === 'candidate' && norm(x.value).includes(n)); return e ? e.mode : null; };
   // name-bar geometry: glyph union (raw pdf items) vs drawn bar rect
   window.__nameBar = function (v) {
     const rects = boxesForValue(v).filter(b => b.page === 0);
@@ -152,9 +154,17 @@ async function checkDoc(page, spec) {
     rec(doc, 'NEVER_CANDIDATE', v, 'not-cand', isCand ? 'CANDIDATE' : 'not-cand', !isCand);
   }
   for (const v of spec.should_candidate || []) {
+    // A candidate must SURFACE as a review candidate. (Its default redaction level
+    // — name/address candidates now default to 'half' — is asserted separately by
+    // CANDIDATE_MODE; "surfaced" is no longer coupled to "left in the clear".)
     const isCand = await page.evaluate(x => window.__isCandidateContains(x), v);
-    const masked = await page.evaluate(x => window.__isMasked(x), v);
-    rec(doc, 'SHOULD_CANDIDATE', v, 'candidate', isCand ? (masked ? 'cand+MASKED' : 'candidate') : 'missing', isCand && !masked);
+    rec(doc, 'SHOULD_CANDIDATE', v, 'candidate', isCand ? 'candidate' : 'missing', isCand);
+  }
+  // Candidate default-mode policy: name/address candidates default to 'half' so the
+  // "확인 필요" label matches a visibly-partial state. Old code defaulted them to 'ok'.
+  for (const [v, exp] of Object.entries(spec.candidate_mode || {})) {
+    const mode = await page.evaluate(x => window.__candidateMode(x), v);
+    rec(doc, 'CANDIDATE_MODE', v, exp, mode || 'not-candidate', mode === exp);
   }
   if (spec.phone_format) {
     for (const [orig, exp] of Object.entries(spec.phone_format)) {
@@ -254,6 +264,28 @@ async function checkAiCatState(page) {
   }
 }
 
+async function checkCandidateDedup(page) {
+  const cd = SPECS.candidate_dedup; if (!cd) return;
+  for (const c of cd.cases) {
+    await loadDoc(page, cd._doc, false);   // fresh load so the base candidate is present
+    const res = await page.evaluate(({ cand, confirm }) => {
+      const before = window.__isCandidateContains(cand);
+      addEntities([confirm]); renderAll();
+      const after = window.__isCandidateContains(cand);
+      return { before, after };
+    }, { cand: c.candidate, confirm: c.confirm });
+    let pass, actual;
+    if (c.expect === 'removed') {
+      pass = res.before && !res.after;
+      actual = !res.before ? 'not-present-before' : (res.after ? 'STILL present' : 'removed');
+    } else { // kept
+      pass = res.before && res.after;
+      actual = !res.before ? 'not-present-before' : (res.after ? 'kept' : 'DROPPED');
+    }
+    rec(cd._doc, 'CANDIDATE_DEDUP', `${c.label} [${c.confirm.value}]`, c.expect, actual, pass);
+  }
+}
+
 function printTable() {
   const pad = (s, n) => { s = String(s); return s.length > n ? s.slice(0, n - 1) + '…' : s.padEnd(n); };
   let lastDoc = '';
@@ -302,6 +334,7 @@ function printTable() {
   if (!onlyArg || onlyArg === '(units)') await checkPhoneUnits(page);
   if (!onlyArg || onlyArg === '7_resume_dark.pdf') { process.stderr.write('… ai_inject\n'); await checkAiInject(page); }
   if (!onlyArg || onlyArg === '7_resume_dark.pdf') { process.stderr.write('… ai_cat_state\n'); await checkAiCatState(page); }
+  if (!onlyArg || onlyArg === (SPECS.candidate_dedup && SPECS.candidate_dedup._doc)) { process.stderr.write('… candidate_dedup\n'); await checkCandidateDedup(page); }
 
   const failCount = printTable();
   if (consoleErrors.length) { console.log('\n  ⚠ console errors:'); consoleErrors.slice(0, 10).forEach(e => console.log('    ' + e)); }

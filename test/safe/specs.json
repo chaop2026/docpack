@@ -35,6 +35,7 @@
       "_note_ai_only": "English street addresses (e.g. 'Signature Global Mall, Sector 84') are detected only by the AI deep-scan path, not the deterministic regex path this harness exercises.",
       "must_not_mask": ["Delhi University", "Maharaja Agrasen College", "Saket", "Imphal"],
       "should_candidate": ["Aarav Sharma"],
+      "candidate_mode": {"Aarav Sharma": "half"},
       "never_candidate": ["Delhi University", "Maharaja Agrasen College"],
       "phone_format": {"+91 9599320477": "+91 95****0477"},
       "name_bar": "Aarav Sharma"
@@ -48,6 +49,7 @@
         "Koreaz Contest", "Imphal", "Saket", "India"
       ],
       "should_candidate": ["Aarav Sharma", "Signature Global"],
+      "candidate_mode": {"Aarav Sharma": "half", "Signature Global": "half"},
       "never_candidate": [
         "Korea", "Maharaja Agrasen College", "Vidya Niketan School",
         "King Sejong Institute", "Concern India Foundation", "Delhi University", "Imphal"
@@ -102,5 +104,14 @@
       {"type": "company", "value": "Globex Solutions Pvt Ltd"}
     ],
     "assert_enabled": ["name", "company"]
+  },
+
+  "candidate_dedup": {
+    "_doc": "6_resume_light.pdf",
+    "_note": "A CONFIRMED entity whose value wholly contains a review candidate (as whole space-separated tokens) makes that candidate redundant — the confirmed mask already covers it — so the candidate must be removed. Reproduces confirmed 'MANSI GAZAL TIWARI' hiding candidate 'MANSI GAZAL'. Directional: only the shorter, fully-contained candidate is dropped; a candidate that ADDS a token beyond the confirmed value must be kept (removing it would lose coverage). The base doc surfaces 'Aarav Sharma' as a name candidate; each case injects a confirmed name and asserts the candidate is dropped/kept accordingly. Old code (no dedupe) leaves the candidate in place, so the 'removed' case fails on it.",
+    "cases": [
+      {"label": "candidate contained in confirmed name is removed", "candidate": "Aarav Sharma", "confirm": {"type": "name", "value": "Aarav Sharma Verma"}, "expect": "removed"},
+      {"label": "candidate adding a token beyond confirmed is kept", "candidate": "Aarav Sharma", "confirm": {"type": "name", "value": "Aarav"}, "expect": "kept"}
+    ]
   }
 }
