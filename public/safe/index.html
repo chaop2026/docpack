@@ -75,6 +75,7 @@ header{border-bottom:1px solid var(--line);background:var(--paper);position:stic
 .dropzone small{color:var(--sub);font-size:12.5px}
 .dropzone .dz-limit{font-size:11.5px;color:var(--sub);opacity:.85}
 .dropzone .dz-note{font-size:11px;color:var(--sub);opacity:.7}
+.dropzone .dz-alert{margin-top:2px;max-width:300px;font-size:12px;line-height:1.5;color:var(--ink);background:var(--marker-soft);border:1px solid var(--line);border-radius:8px;padding:8px 12px}
 .dz-actions{margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 .btn{border:1px solid var(--ink);background:var(--ink);color:#fff;font-family:inherit;font-size:14px;font-weight:500;padding:10px 16px;border-radius:9px;cursor:pointer;transition:.15s;min-height:40px}
 .btn:hover{opacity:.85}
@@ -299,6 +300,7 @@ footer a{color:var(--sub)}
             <button class="btn ghost small" type="button" id="btnSample" data-i18n="btnSample">샘플 문서로 체험</button>
             <button class="btn ghost small" type="button" id="btnPaste" data-i18n="btnPaste">텍스트 붙여넣기</button>
           </div>
+          <div class="dz-alert" id="dzAlert" role="alert" hidden></div>
         </div>
         <textarea id="pasteArea" style="display:none;flex:1;border:1px solid var(--line);border-radius:10px;padding:14px;font-family:inherit;font-size:14px;resize:none;min-height:210px"></textarea>
         <div id="pasteActions" style="display:none;margin-top:10px;gap:8px">
@@ -478,6 +480,9 @@ ko:{
   tUnsupExcel:'엑셀 파일은 아직 지원하지 않습니다. PDF로 저장한 뒤 올려주세요.',
   tUnsupHangul:'한글(HWP) 파일은 아직 지원하지 않습니다. PDF로 저장한 뒤 올려주세요.',
   tUnsupPpt:'파워포인트 파일은 아직 지원하지 않습니다. PDF로 저장한 뒤 올려주세요.',
+  dzSaveExcel:"엑셀에서 ‘파일 › 다른 이름으로 저장’(또는 ‘내보내기’)을 눌러 PDF로 저장하세요.",
+  dzSaveHangul:"한글에서 ‘파일 › PDF로 저장하기’를 누르세요. (버전에 따라 ‘다른 이름으로 저장 › PDF’)",
+  dzSavePpt:"파워포인트에서 ‘파일 › 다른 이름으로 저장’(또는 ‘내보내기’)을 눌러 PDF로 저장하세요.",
   renderProg:(p,n)=>`페이지 렌더링 중… (${p}/${n})`, ocrStart:'글자 위치 인식 준비 중…', ocrProg:p=>`글자 인식(OCR) 중… ${p}%`,
   scanOcr:'스캔 문서 같아요 — 글자 위치를 OCR로 인식 중…', heicConv:'HEIC 이미지 변환 중…', building:'문서 만드는 중…',
   notLocated:'위치 못 찾음',
@@ -529,6 +534,9 @@ en:{
   tUnsupExcel:'Excel files aren’t supported yet. Please save as PDF and upload.',
   tUnsupHangul:'Hangul (HWP) files aren’t supported yet. Please save as PDF and upload.',
   tUnsupPpt:'PowerPoint files aren’t supported yet. Please save as PDF and upload.',
+  dzSaveExcel:'In Excel, use File › Save As (or Export) and choose PDF.',
+  dzSaveHangul:'In the Hangul (HWP) app, use File › Save as PDF (or Save As → PDF).',
+  dzSavePpt:'In PowerPoint, use File › Save As (or Export) and choose PDF.',
   renderProg:(p,n)=>`Rendering pages… (${p}/${n})`, ocrStart:'Preparing text recognition…', ocrProg:p=>`Recognizing text (OCR)… ${p}%`,
   scanOcr:'Looks like a scan — recognizing text positions with OCR…', heicConv:'Converting HEIC image…', building:'Building document…',
   notLocated:'not located',
@@ -580,6 +588,9 @@ ja:{
   tUnsupExcel:'Excelファイルはまだ対応していません。PDFに保存してからアップロードしてください。',
   tUnsupHangul:'ハングル（HWP）ファイルはまだ対応していません。PDFに保存してからアップロードしてください。',
   tUnsupPpt:'PowerPointファイルはまだ対応していません。PDFに保存してからアップロードしてください。',
+  dzSaveExcel:'Excelで「ファイル › 名前を付けて保存」（または「エクスポート」）からPDFを選びます。',
+  dzSaveHangul:'ハングル（HWP）アプリで「ファイル › PDFで保存」からPDF形式を選びます。',
+  dzSavePpt:'PowerPointで「ファイル › 名前を付けて保存」（または「エクスポート」）からPDFを選びます。',
   renderProg:(p,n)=>`ページをレンダリング中… (${p}/${n})`, ocrStart:'文字位置の認識を準備中…', ocrProg:p=>`文字認識(OCR)中… ${p}%`,
   scanOcr:'スキャン文書のようです — OCRで文字位置を認識中…', heicConv:'HEIC画像を変換中…', building:'文書を作成中…',
   notLocated:'位置不明',
@@ -631,6 +642,9 @@ es:{
   tUnsupExcel:'Los archivos de Excel aún no son compatibles. Guárdalos como PDF y súbelos.',
   tUnsupHangul:'Los archivos Hangul (HWP) aún no son compatibles. Guárdalos como PDF y súbelos.',
   tUnsupPpt:'Los archivos de PowerPoint aún no son compatibles. Guárdalos como PDF y súbelos.',
+  dzSaveExcel:'En Excel, usa Archivo › Guardar como (o Exportar) y elige PDF.',
+  dzSaveHangul:'En la app Hangul (HWP), usa Archivo › Guardar como PDF.',
+  dzSavePpt:'En PowerPoint, usa Archivo › Guardar como (o Exportar) y elige PDF.',
   renderProg:(p,n)=>`Renderizando páginas… (${p}/${n})`, ocrStart:'Preparando el reconocimiento de texto…', ocrProg:p=>`Reconociendo texto (OCR)… ${p}%`,
   scanOcr:'Parece un escaneo: reconociendo posiciones de texto con OCR…', heicConv:'Convirtiendo imagen HEIC…', building:'Creando documento…',
   notLocated:'sin ubicar',
@@ -1137,8 +1151,15 @@ Payroll account: 123456-04-789012
 Emergency contact: Sarah Miller 010-9876-5432`;
 $('btnSample').addEventListener('click',()=>loadFromText(LANG==='ko'?SAMPLE_KO:SAMPLE_EN, LANG==='ko'?'샘플_재직증명서.txt':'sample_certificate.txt'));
 
+// Persistent inline notice inside the dropzone (data-i18n so applyLang re-localises
+// it on language switch). Used for the office save-as-PDF path, which is too long
+// to read inside the 2.6s toast — the toast gives the quick "not supported" ack,
+// this stays on screen with the concrete menu path.
+function showDzAlert(key){ const a=$('dzAlert'); if(!a) return; a.dataset.i18n=key; a.innerHTML=T()[key]; a.hidden=false; }
+function clearDzAlert(){ const a=$('dzAlert'); if(a){ a.hidden=true; a.removeAttribute('data-i18n'); a.innerHTML=''; } }
+
 async function handleFile(f){
-  resetResult();
+  resetResult(); clearDzAlert();
   if(f.size>MAX_BYTES){ toast(T().tTooBig); return; }
   const ext=(f.name.split('.').pop()||'').toLowerCase();
   const isImg = f.type.startsWith('image/') || ['heic','heif','webp','jpg','jpeg','png','gif','bmp','tif','tiff'].includes(ext);
@@ -1150,9 +1171,9 @@ async function handleFile(f){
     else if(['txt','md','csv','text','log','json'].includes(ext) || f.type.startsWith('text/')){ const t=await f.text(); await renderTextPages(t, f.name); }
     // Common office formats we don't parse yet: guide the user to save as PDF
     // BEFORE the generic-unsupported fallback (csv is handled above, stays text).
-    else if(['xls','xlsx','xlsm','xlsb'].includes(ext)){ toast(T().tUnsupExcel); setProg(0); return; }
-    else if(['hwp','hwpx'].includes(ext)){ toast(T().tUnsupHangul); setProg(0); return; }
-    else if(['ppt','pptx','pps','ppsx'].includes(ext)){ toast(T().tUnsupPpt); setProg(0); return; }
+    else if(['xls','xlsx','xlsm','xlsb'].includes(ext)){ toast(T().tUnsupExcel); showDzAlert('dzSaveExcel'); setProg(0); return; }
+    else if(['hwp','hwpx'].includes(ext)){ toast(T().tUnsupHangul); showDzAlert('dzSaveHangul'); setProg(0); return; }
+    else if(['ppt','pptx','pps','ppsx'].includes(ext)){ toast(T().tUnsupPpt); showDzAlert('dzSavePpt'); setProg(0); return; }
     else { toast(T().tUnsupported(ext)); setProg(0); return; }
     docTitle=f.name;
     afterLoad(false);
@@ -1277,7 +1298,7 @@ function afterLoad(keepEntities){
 function resetResult(){ $('result').style.display='none'; lastOut=null; }
 function resetAll(){
   pages=[]; docText=''; entities=[]; aiDone=false; showAllCats=false; previewCanvases=[];
-  $('docWrap').style.display='none'; dz.style.display='flex'; $('preview').innerHTML='';
+  $('docWrap').style.display='none'; dz.style.display='flex'; $('preview').innerHTML=''; clearDzAlert();
   if(typeof setSelectMode==='function') setSelectMode(false);
   setStatus(''); setProg(0); resetResult();
   const ab=$('btnAI'); ab.disabled=true; ab.innerHTML='🤖 <span data-i18n="btnAI">'+T().btnAI+'</span>';
