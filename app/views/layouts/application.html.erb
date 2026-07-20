@@ -92,6 +92,7 @@
       <div class="top-bar-inner">
         <%= link_to "SlimFile", root_path, class: "top-bar-logo" %>
         <div class="top-bar-right">
+          <%= link_to "SafeFile", "/safe/", class: "top-bar-nav-link" %>
           <%= link_to t("nav_blog"), blog_path, class: "top-bar-nav-link" %>
           <details class="lang-dropdown">
             <summary class="btn-lang" aria-label="Select language"><%= locale_name(I18n.locale) %></summary>
