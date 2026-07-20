@@ -74,6 +74,7 @@ header{border-bottom:1px solid var(--line);background:var(--paper);position:stic
 .dropzone strong{font-size:15px}
 .dropzone small{color:var(--sub);font-size:12.5px}
 .dropzone .dz-limit{font-size:11.5px;color:var(--sub);opacity:.85}
+.dropzone .dz-note{font-size:11px;color:var(--sub);opacity:.7}
 .dz-actions{margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 .btn{border:1px solid var(--ink);background:var(--ink);color:#fff;font-family:inherit;font-size:14px;font-weight:500;padding:10px 16px;border-radius:9px;cursor:pointer;transition:.15s;min-height:40px}
 .btn:hover{opacity:.85}
@@ -291,6 +292,7 @@ footer a{color:var(--sub)}
           <div class="icon">📄</div>
           <strong data-i18n="dzTitle">파일을 끌어다 놓거나 클릭하세요</strong>
           <small data-i18n="dzTypes">PDF · 이미지(JPG/PNG/WEBP/HEIC) · Word(docx) · 텍스트</small>
+          <small class="dz-note" data-i18n="dzTypesNote">엑셀·한글 파일은 PDF로 저장한 뒤 올려주세요</small>
           <small class="dz-limit" data-i18n="dzLimit">최대 20MB · 30페이지 · 브라우저 안에서만 처리</small>
           <div class="dz-actions">
             <button class="btn small" type="button" id="btnPick" data-i18n="btnPick">파일 선택</button>
@@ -446,6 +448,7 @@ ko:{
   trust1:'파일은 서버에 저장되지 않습니다', trust2:'회원가입 없음', trust3:'원본 레이아웃 그대로',
   s1:'문서 올리기', s2:'발견된 개인정보', s3:'문서 만들기', s3sub:'원본 위에 마스킹을 합성해 새 문서를 만듭니다. 검은 박스 밑 원문은 복사되지 않습니다.',
   dzTitle:'파일을 끌어다 놓거나 클릭하세요', dzTypes:'PDF · 이미지(JPG/PNG/WEBP/HEIC) · Word(docx) · 텍스트',
+  dzTypesNote:'엑셀·한글 파일은 PDF로 저장한 뒤 올려주세요',
   dzLimit:'최대 20MB · 30페이지 · 브라우저 안에서만 처리',
   btnPick:'파일 선택', btnSample:'샘플 문서로 체험', btnPaste:'텍스트 붙여넣기',
   btnPasteScan:'이 내용으로 검사', btnCancel:'취소', btnReset:'다른 문서',
@@ -472,6 +475,9 @@ ko:{
   tMade:n=>`완성! ${n}곳을 가렸어요`, tMadeWM:'완성! 워터마크를 적용했어요', tCopied:'클립보드에 복사했어요', tSaved:n=>`${n} 저장 완료`,
   tReadFail:'파일을 읽지 못했어요. 텍스트 붙여넣기를 이용해 보세요.',
   tTooBig:'파일이 너무 큽니다 (최대 20MB).', tPageCap:n=>`페이지가 많아 앞 ${n}페이지만 처리했어요.`, tUnsupported:e=>`지원하지 않는 형식이에요 (.${e}). PDF·이미지·Word·텍스트만 됩니다.`,
+  tUnsupExcel:'엑셀 파일은 아직 지원하지 않습니다. PDF로 저장한 뒤 올려주세요.',
+  tUnsupHangul:'한글(HWP) 파일은 아직 지원하지 않습니다. PDF로 저장한 뒤 올려주세요.',
+  tUnsupPpt:'파워포인트 파일은 아직 지원하지 않습니다. PDF로 저장한 뒤 올려주세요.',
   renderProg:(p,n)=>`페이지 렌더링 중… (${p}/${n})`, ocrStart:'글자 위치 인식 준비 중…', ocrProg:p=>`글자 인식(OCR) 중… ${p}%`,
   scanOcr:'스캔 문서 같아요 — 글자 위치를 OCR로 인식 중…', heicConv:'HEIC 이미지 변환 중…', building:'문서 만드는 중…',
   notLocated:'위치 못 찾음',
@@ -493,6 +499,7 @@ en:{
   trust1:'Files never leave your browser', trust2:'No signup', trust3:'Original layout preserved',
   s1:'Upload document', s2:'Detected personal info', s3:'Create document', s3sub:'Composites the masking over your original. Text under the black boxes is not copied.',
   dzTitle:'Drag & drop a file or click', dzTypes:'PDF · Image (JPG/PNG/WEBP/HEIC) · Word (docx) · Text',
+  dzTypesNote:'Excel files: save as PDF first, then upload',
   dzLimit:'Up to 20MB · 30 pages · processed only in your browser',
   btnPick:'Choose file', btnSample:'Try a sample', btnPaste:'Paste text',
   btnPasteScan:'Scan this text', btnCancel:'Cancel', btnReset:'New document',
@@ -519,6 +526,9 @@ en:{
   tMade:n=>`Done! ${n} spots masked`, tMadeWM:'Done! Watermark applied', tCopied:'Copied to clipboard', tSaved:n=>`Saved ${n}`,
   tReadFail:"Couldn't read the file. Try pasting the text instead.",
   tTooBig:'File is too large (max 20MB).', tPageCap:n=>`Many pages — processed only the first ${n}.`, tUnsupported:e=>`Unsupported format (.${e}). Only PDF, image, Word, or text.`,
+  tUnsupExcel:'Excel files aren’t supported yet. Please save as PDF and upload.',
+  tUnsupHangul:'Hangul (HWP) files aren’t supported yet. Please save as PDF and upload.',
+  tUnsupPpt:'PowerPoint files aren’t supported yet. Please save as PDF and upload.',
   renderProg:(p,n)=>`Rendering pages… (${p}/${n})`, ocrStart:'Preparing text recognition…', ocrProg:p=>`Recognizing text (OCR)… ${p}%`,
   scanOcr:'Looks like a scan — recognizing text positions with OCR…', heicConv:'Converting HEIC image…', building:'Building document…',
   notLocated:'not located',
@@ -540,6 +550,7 @@ ja:{
   trust1:'ファイルはサーバーに保存されません', trust2:'登録不要', trust3:'元のレイアウトそのまま',
   s1:'文書をアップロード', s2:'検出された個人情報', s3:'文書を作成', s3sub:'元の文書の上にマスキングを合成して新しい文書を作ります。黒いボックスの下の原文はコピーされません。',
   dzTitle:'ファイルをドラッグ＆ドロップ、またはクリック', dzTypes:'PDF · 画像(JPG/PNG/WEBP/HEIC) · Word(docx) · テキスト',
+  dzTypesNote:'ExcelファイルはPDFに保存してからアップロードしてください',
   dzLimit:'最大20MB · 30ページ · ブラウザ内でのみ処理',
   btnPick:'ファイルを選択', btnSample:'サンプル文書で試す', btnPaste:'テキストを貼り付け',
   btnPasteScan:'この内容で検査', btnCancel:'キャンセル', btnReset:'別の文書',
@@ -566,6 +577,9 @@ ja:{
   tMade:n=>`完成！ ${n}か所を隠しました`, tMadeWM:'完成！ ウォーターマークを適用しました', tCopied:'クリップボードにコピーしました', tSaved:n=>`${n} を保存しました`,
   tReadFail:'ファイルを読み取れませんでした。テキストの貼り付けをお試しください。',
   tTooBig:'ファイルが大きすぎます（最大20MB）。', tPageCap:n=>`ページが多いため、先頭${n}ページのみ処理しました。`, tUnsupported:e=>`対応していない形式です（.${e}）。PDF・画像・Word・テキストのみ対応します。`,
+  tUnsupExcel:'Excelファイルはまだ対応していません。PDFに保存してからアップロードしてください。',
+  tUnsupHangul:'ハングル（HWP）ファイルはまだ対応していません。PDFに保存してからアップロードしてください。',
+  tUnsupPpt:'PowerPointファイルはまだ対応していません。PDFに保存してからアップロードしてください。',
   renderProg:(p,n)=>`ページをレンダリング中… (${p}/${n})`, ocrStart:'文字位置の認識を準備中…', ocrProg:p=>`文字認識(OCR)中… ${p}%`,
   scanOcr:'スキャン文書のようです — OCRで文字位置を認識中…', heicConv:'HEIC画像を変換中…', building:'文書を作成中…',
   notLocated:'位置不明',
@@ -587,6 +601,7 @@ es:{
   trust1:'Los archivos nunca salen de tu navegador', trust2:'Sin registro', trust3:'Diseño original intacto',
   s1:'Subir documento', s2:'Datos personales detectados', s3:'Crear documento', s3sub:'Superpone el enmascarado sobre tu original. El texto bajo las cajas negras no se copia.',
   dzTitle:'Arrastra y suelta un archivo o haz clic', dzTypes:'PDF · Imagen (JPG/PNG/WEBP/HEIC) · Word (docx) · Texto',
+  dzTypesNote:'Archivos de Excel: guárdalos como PDF antes de subir',
   dzLimit:'Hasta 20MB · 30 páginas · procesado solo en tu navegador',
   btnPick:'Elegir archivo', btnSample:'Probar con un ejemplo', btnPaste:'Pegar texto',
   btnPasteScan:'Analizar este texto', btnCancel:'Cancelar', btnReset:'Nuevo documento',
@@ -613,6 +628,9 @@ es:{
   tMade:n=>`¡Listo! ${n} zonas ocultadas`, tMadeWM:'¡Listo! Marca de agua aplicada', tCopied:'Copiado al portapapeles', tSaved:n=>`${n} guardado`,
   tReadFail:'No se pudo leer el archivo. Prueba a pegar el texto.',
   tTooBig:'El archivo es demasiado grande (máx. 20MB).', tPageCap:n=>`Muchas páginas: solo se procesaron las primeras ${n}.`, tUnsupported:e=>`Formato no admitido (.${e}). Solo PDF, imagen, Word o texto.`,
+  tUnsupExcel:'Los archivos de Excel aún no son compatibles. Guárdalos como PDF y súbelos.',
+  tUnsupHangul:'Los archivos Hangul (HWP) aún no son compatibles. Guárdalos como PDF y súbelos.',
+  tUnsupPpt:'Los archivos de PowerPoint aún no son compatibles. Guárdalos como PDF y súbelos.',
   renderProg:(p,n)=>`Renderizando páginas… (${p}/${n})`, ocrStart:'Preparando el reconocimiento de texto…', ocrProg:p=>`Reconociendo texto (OCR)… ${p}%`,
   scanOcr:'Parece un escaneo: reconociendo posiciones de texto con OCR…', heicConv:'Convirtiendo imagen HEIC…', building:'Creando documento…',
   notLocated:'sin ubicar',
@@ -1130,6 +1148,11 @@ async function handleFile(f){
     else if(ext==='pdf'){ await loadPdf(f); }
     else if(ext==='docx'){ setStatus('Word…'); const buf=await f.arrayBuffer(); const r=await mammoth.extractRawText({arrayBuffer:buf}); await renderTextPages(r.value.trim()||'( - )', f.name); }
     else if(['txt','md','csv','text','log','json'].includes(ext) || f.type.startsWith('text/')){ const t=await f.text(); await renderTextPages(t, f.name); }
+    // Common office formats we don't parse yet: guide the user to save as PDF
+    // BEFORE the generic-unsupported fallback (csv is handled above, stays text).
+    else if(['xls','xlsx','xlsm','xlsb'].includes(ext)){ toast(T().tUnsupExcel); setProg(0); return; }
+    else if(['hwp','hwpx'].includes(ext)){ toast(T().tUnsupHangul); setProg(0); return; }
+    else if(['ppt','pptx','pps','ppsx'].includes(ext)){ toast(T().tUnsupPpt); setProg(0); return; }
     else { toast(T().tUnsupported(ext)); setProg(0); return; }
     docTitle=f.name;
     afterLoad(false);
