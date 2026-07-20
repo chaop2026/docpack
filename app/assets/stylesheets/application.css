@@ -77,6 +77,45 @@ body {
   text-decoration: none;
   letter-spacing: -0.02em;
 }
+/* SlimFile (host brand) + SafeFile logos, side by side on the left */
+.top-bar-brands {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+.brand-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border-color);
+  flex-shrink: 0;
+}
+/* SafeFile as its own logo — CSS bar icon reproduced from the /safe/ header
+   (--ink #17140F, rounded), so no image asset is needed. */
+.top-bar-safe {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  text-decoration: none;
+}
+.top-bar-safe-bar {
+  display: inline-block;
+  width: 22px;
+  height: 11px;
+  background: #17140F;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+@media (max-width: 430px) {
+  /* keep both brands on one line on narrow phones: tighten spacing, no wrap */
+  .top-bar { padding: 0.75rem 1rem; }
+  .top-bar-brands { gap: 0.5rem; }
+  .top-bar-right { gap: 0.6rem; }
+}
 .btn-lang {
   padding: 0.35rem 0.8rem;
   font-size: 11px;
