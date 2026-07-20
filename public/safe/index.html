@@ -37,10 +37,10 @@ body{font-family:'IBM Plex Sans KR',-apple-system,'Apple SD Gothic Neo','Malgun 
 header{border-bottom:1px solid var(--line);background:var(--paper);position:sticky;top:0;z-index:50;padding-top:env(safe-area-inset-top)}
 .nav{display:flex;align-items:center;justify-content:space-between;height:56px;gap:10px}
 .logo{display:flex;align-items:center;gap:8px;min-width:0}
-.logo-brand{font-weight:700;font-size:18px;letter-spacing:-.02em;display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--ink)}
+.logo-brand{font-weight:700;font-size:18px;letter-spacing:-.02em;display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--ink);min-height:44px}
 .logo .bar{display:inline-block;width:24px;height:12px;background:var(--ink);border-radius:3px;flex-shrink:0}
-.logo .family{font-size:12px;color:var(--sub);font-weight:400;white-space:nowrap;text-decoration:none}
-.logo .family:hover{text-decoration:underline}
+.logo .brand-sep{width:1px;height:18px;background:var(--line);flex-shrink:0}
+.logo-slim{font-weight:700;font-size:18px;letter-spacing:-.02em;color:var(--ink);text-decoration:none;white-space:nowrap;display:flex;align-items:center;min-height:44px}
 .nav .links{display:flex;gap:12px;font-size:13px;color:var(--sub);align-items:center;flex-shrink:0}
 .badge-free{font-size:11px;background:var(--marker);padding:3px 8px;border-radius:20px;font-weight:500;white-space:nowrap}
 .lang-btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 10px;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer}
@@ -259,12 +259,12 @@ footer a{color:var(--sub)}
   <div class="wrap nav">
     <div class="logo">
       <a class="logo-brand" href="/safe/"><span class="bar" aria-hidden="true"></span>SafeFile</a>
-      <a class="family" href="https://slimfile.net">by SlimFile</a>
+      <span class="brand-sep" aria-hidden="true"></span>
+      <a class="logo-slim" href="https://slimfile.net">SlimFile</a>
     </div>
     <div class="links">
       <span class="badge-free" data-i18n="badge">무료 · 가입 없음</span>
       <a href="https://slimfile.net/blog?category=privacy" style="text-decoration:none;color:var(--sub)" data-i18n="footBlog">블로그</a>
-      <a href="https://slimfile.net" style="text-decoration:none;color:var(--sub)" data-i18n="navHome">← SlimFile</a>
       <select class="lang-btn" id="langSel" aria-label="Select language">
         <option value="ko">한국어</option>
         <option value="en">English</option>
