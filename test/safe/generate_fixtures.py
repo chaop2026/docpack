@@ -290,7 +290,33 @@ def resume_2col():
     doc.save(os.path.join(OUT, "8_resume_2col.pdf")); print("8_resume_2col.pdf")
 
 
+# ─────── résumé whose header name WRAPS onto two lines (regression) ───────
+def resume_2line():
+    """Reproduces the real-résumé defect where the header name renders across
+    TWO visual lines (given names on line 1, surname on line 2, same large
+    font). The old name-line assembly only grew HORIZONTALLY within the anchor's
+    single row, so it captured "MANSI GAZAL" and left the surname "TIWARI" — a
+    whole second line — fully exposed. Only phone + email surfaced as confirmed,
+    and the name showed up as a truncated "MANSI GAZAL" candidate. Fully
+    synthetic. Detection must now assemble the wrapped name whole so activating
+    it covers BOTH lines (surname included). The subtitle "Software Developer" is
+    a smaller font and must NOT be merged into the name.
+    """
+    doc = fitz.open(); page = doc.new_page(width=595, height=842)
+    INK = (0.09, 0.08, 0.06); GREY = (0.4, 0.4, 0.4)
+    # header name split across two lines, same 26pt bold font
+    page.insert_text((50, 90),  "MANSI GAZAL", fontname="Times-Bold", fontsize=26, color=INK)
+    page.insert_text((50, 120), "TIWARI",      fontname="Times-Bold", fontsize=26, color=INK)
+    # subtitle in a clearly smaller font — must stay out of the name
+    page.insert_text((50, 150), "Software Developer", fontname="Times-Roman", fontsize=12, color=GREY)
+    page.insert_text((50, 180), "Phone: +91 98765 43210", fontname="Times-Roman", fontsize=11, color=INK)
+    page.insert_text((50, 200), "Email: mansi.tiwari@example.com", fontname="Times-Roman", fontsize=11, color=INK)
+    page.insert_text((50, 240), "EDUCATION", fontname="Times-Bold", fontsize=13, color=INK)
+    page.insert_text((50, 262), "Delhi University, B.Tech CSE 2015-2019", fontname="Times-Roman", fontsize=10, color=INK)
+    doc.save(os.path.join(OUT, "9_resume_2line.pdf")); print("9_resume_2line.pdf")
+
+
 if __name__ == "__main__":
     text_pdf(); scanned_pdf(); jpg_photo(); table_pdf(); multipage_pdf()
-    resume_light(); resume_dark(); resume_2col()
+    resume_light(); resume_dark(); resume_2col(); resume_2line()
     print("done ->", OUT)

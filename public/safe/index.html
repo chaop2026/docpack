@@ -173,21 +173,28 @@ header{border-bottom:1px solid var(--line);background:var(--paper);position:stic
 .result-head{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .result-head h2{font-size:16px}
 .result-actions{display:flex;gap:8px;flex-wrap:wrap}
-/* ── Result viewer (fit-to-width + pager + zoom) ── */
+/* ── Result viewer (fit-to-page + pager + zoom + fullscreen) ── */
 .rv-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--line);background:#fff;position:sticky;top:0;z-index:2}
-.rv-pager,.rv-zoom{display:flex;align-items:center;gap:6px}
+.rv-pager,.rv-zoom,.rv-view{display:flex;align-items:center;gap:6px}
 .rv-btn{min-width:44px;min-height:44px;padding:0 10px;border:1px solid var(--line);background:#fff;border-radius:10px;font-family:inherit;font-size:17px;font-weight:600;color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1;transition:.12s}
 .rv-btn:hover:not(:disabled){background:var(--marker-soft);border-color:var(--ink)}
 .rv-btn:disabled{opacity:.35;cursor:not-allowed}
 .rv-btn.rv-fit{font-size:13px}
 .rv-btn:focus-visible{outline:2px solid var(--half);outline-offset:2px}
 .rv-page,.rv-zoom-label{font-size:13px;color:var(--sub);min-width:52px;text-align:center;font-weight:500}
-#resultDoc{padding:16px;background:#FDFCFA;max-height:min(72vh,860px);overflow:auto;display:flex;justify-content:center;align-items:flex-start;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
-#resultDoc canvas.rv-pg{display:block;margin:0 auto;border:1px solid var(--line);border-radius:6px;background:#fff;box-shadow:0 1px 5px rgba(23,20,15,.10)}
+/* fixed box height so fit-to-page has a stable viewport; content centred, scrolls when zoomed */
+#resultDoc{padding:16px;background:#FDFCFA;height:min(78vh,920px);overflow:auto;display:flex;justify-content:safe center;align-items:safe center;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+#resultDoc canvas.rv-pg{display:block;margin:auto;border:1px solid var(--line);border-radius:6px;background:#fff;box-shadow:0 1px 5px rgba(23,20,15,.10)}
 .result-flat{font-size:12px;color:var(--sub);text-align:center;padding:10px 16px 14px}
+/* fullscreen overlay — portable choice: iPhone Safari / PWA standalone don't support the element Fullscreen API */
+.result-card.rv-full{position:fixed;inset:0;z-index:1000;margin:0;border-radius:0;max-width:none;display:flex;flex-direction:column;box-shadow:none}
+.result-card.rv-full .rv-toolbar{position:static}
+.result-card.rv-full #resultDoc{height:auto;flex:1 1 auto;min-height:0}
+.result-card.rv-full .result-flat{flex:0 0 auto}
+body.rv-lock{overflow:hidden}
 @media(max-width:480px){
   .rv-toolbar{padding:8px 12px}
-  #resultDoc{padding:12px;max-height:min(64vh,680px)}
+  #resultDoc{padding:12px;height:min(72vh,680px)}
 }
 
 /* Partners */
@@ -362,7 +369,7 @@ footer a{color:var(--sub)}
 
   <!-- Result -->
   <section id="result">
-    <div class="result-card">
+    <div class="result-card" id="resultCard">
       <div class="result-head">
         <h2>✅ <span data-i18n="resTitle">완성된 문서</span></h2>
         <div class="result-actions">
@@ -381,6 +388,9 @@ footer a{color:var(--sub)}
           <span class="rv-zoom-label mono" id="rvZoomLabel">100%</span>
           <button class="rv-btn" id="rvZoomIn" data-i18n-aria="rvZoomInAria" aria-label="확대">＋</button>
           <button class="rv-btn rv-fit" id="rvFit" data-i18n="rvFit">맞춤</button>
+        </div>
+        <div class="rv-view">
+          <button class="rv-btn" id="rvFull" data-i18n-aria="rvFullAria" aria-label="전체화면">⛶</button>
         </div>
       </div>
       <div id="resultDoc"></div>
@@ -449,7 +459,7 @@ ko:{
   aiBusy:'AI가 읽는 중…', aiDone:'AI 검사 완료',
   fmtJpg:'이미지 (JPG)', fmtPng:'이미지 (PNG)', fmtPdf:'PDF', btnMake:'문서 만들기',
   resTitle:'완성된 문서', btnDl:'다운로드', btnCopy:'텍스트 복사',
-  rvFit:'맞춤', rvPrevAria:'이전 페이지', rvNextAria:'다음 페이지', rvZoomInAria:'확대', rvZoomOutAria:'축소',
+  rvFit:'맞춤', rvPrevAria:'이전 페이지', rvNextAria:'다음 페이지', rvZoomInAria:'확대', rvZoomOutAria:'축소', rvFullAria:'전체화면', rvExitAria:'전체화면 닫기',
   resFlat:'🔒 이 파일은 이미지로 평탄화(플래튼)되어 검은 박스 아래 원문이 남아 있지 않습니다.',
   privacy:'🔒 모든 문서는 사용자의 브라우저 안에서만 처리됩니다. AI 정밀 검사를 선택한 경우에만 추출된 텍스트가 AI 분석을 위해 전송되며, 저장되지 않습니다.',
   partners:'SafeFile이 추천하는 서비스',
@@ -496,7 +506,7 @@ en:{
   aiBusy:'AI reading…', aiDone:'AI scan complete',
   fmtJpg:'Image (JPG)', fmtPng:'Image (PNG)', fmtPdf:'PDF', btnMake:'Create document',
   resTitle:'Your safe document', btnDl:'Download', btnCopy:'Copy text',
-  rvFit:'Fit', rvPrevAria:'Previous page', rvNextAria:'Next page', rvZoomInAria:'Zoom in', rvZoomOutAria:'Zoom out',
+  rvFit:'Fit', rvPrevAria:'Previous page', rvNextAria:'Next page', rvZoomInAria:'Zoom in', rvZoomOutAria:'Zoom out', rvFullAria:'Fullscreen', rvExitAria:'Exit fullscreen',
   resFlat:'🔒 This file is flattened to an image — no original text remains under the black boxes.',
   privacy:'🔒 All documents are processed inside your browser. Only when you choose AI deep scan is the extracted text sent for analysis — never stored.',
   partners:'Recommended by SafeFile',
@@ -543,7 +553,7 @@ ja:{
   aiBusy:'AIが読み取り中…', aiDone:'AI検査完了',
   fmtJpg:'画像 (JPG)', fmtPng:'画像 (PNG)', fmtPdf:'PDF', btnMake:'文書を作成',
   resTitle:'完成した文書', btnDl:'ダウンロード', btnCopy:'テキストをコピー',
-  rvFit:'フィット', rvPrevAria:'前のページ', rvNextAria:'次のページ', rvZoomInAria:'拡大', rvZoomOutAria:'縮小',
+  rvFit:'フィット', rvPrevAria:'前のページ', rvNextAria:'次のページ', rvZoomInAria:'拡大', rvZoomOutAria:'縮小', rvFullAria:'全画面', rvExitAria:'全画面を閉じる',
   resFlat:'🔒 このファイルは画像に平坦化（フラット化）され、黒いボックスの下に原文は残りません。',
   privacy:'🔒 すべての文書はお使いのブラウザ内でのみ処理されます。AI精密検査を選んだ場合のみ、抽出テキストがAI分析のため送信され、保存されることはありません。',
   partners:'SafeFileのおすすめサービス',
@@ -590,7 +600,7 @@ es:{
   aiBusy:'La IA está leyendo…', aiDone:'Análisis con IA completado',
   fmtJpg:'Imagen (JPG)', fmtPng:'Imagen (PNG)', fmtPdf:'PDF', btnMake:'Crear documento',
   resTitle:'Tu documento seguro', btnDl:'Descargar', btnCopy:'Copiar texto',
-  rvFit:'Ajustar', rvPrevAria:'Página anterior', rvNextAria:'Página siguiente', rvZoomInAria:'Acercar', rvZoomOutAria:'Alejar',
+  rvFit:'Ajustar', rvPrevAria:'Página anterior', rvNextAria:'Página siguiente', rvZoomInAria:'Acercar', rvZoomOutAria:'Alejar', rvFullAria:'Pantalla completa', rvExitAria:'Salir de pantalla completa',
   resFlat:'🔒 Este archivo está aplanado a imagen: no queda texto original bajo las cajas negras.',
   privacy:'🔒 Todos los documentos se procesan dentro de tu navegador. Solo cuando eliges el análisis con IA se envía el texto extraído para su análisis, y nunca se almacena.',
   partners:'Recomendado por SafeFile',
@@ -693,6 +703,11 @@ function applyLang(){
   if(typeof refreshInstallBanner==='function') refreshInstallBanner();
   buildWmPresets();
   renderHero(); renderList(); buildPreview();
+  // keep the result viewer in sync (fit label + fullscreen aria are language-dependent)
+  if(typeof rvPages!=='undefined' && rvPages.length && $('result') && $('result').style.display!=='none'){
+    const b=$('rvFull'); if(b&&rvIsFull) b.setAttribute('aria-label',T().rvExitAria);
+    rvRender();
+  }
 }
 $('langSel').addEventListener('change',e=>{LANG=e.target.value;applyLang();});
 
@@ -827,20 +842,52 @@ function nameCandidates(){
   if(maxH < median*1.25) return [];        // no clearly-larger title text → skip
   const big=topItems.filter(it=>it.h>=maxH*0.85).sort((a,b)=>a.y-b.y||a.x-b.x);
   const anchor=big[0];
-  // Assemble the whole name line. Height is gated at 0.72×max (not 0.85) so a
-  // trailing token rendered a touch smaller — exactly what OCR word-boxes and
-  // mixed typesetting produce for a surname — is NOT dropped (the 3-token name
-  // "Ishan Rohit Malhotra" must stay whole, surname included). The run is then
-  // grown left/right from the anchor only while items stay horizontally
-  // contiguous, so a same-row token in another column (2-column layouts) is
-  // never swallowed into the name.
-  const row=topItems.filter(it=>Math.abs(it.y-anchor.y)<maxH*0.6 && it.h>=maxH*0.72).sort((a,b)=>a.x-b.x);
   const gap=Math.max(maxH*1.8, page.w*0.05);
-  let ai=row.indexOf(anchor), lo=ai, hi=ai;
-  while(lo>0            && row[lo].x-(row[lo-1].x+row[lo-1].w)<gap) lo--;
-  while(hi<row.length-1 && row[hi+1].x-(row[hi].x+row[hi].w)<gap) hi++;
-  const line=row.slice(lo,hi+1);
-  const text=line.map(it=>it.str).join(' ').replace(/\s+/g,' ').trim();
+  // Assemble one visual row around vertical position `refY`. Height is gated at
+  // 0.72×max (not 0.85) so a trailing token rendered a touch smaller — exactly
+  // what OCR word-boxes and mixed typesetting produce for a surname — is NOT
+  // dropped (the 3-token name "Ishan Rohit Malhotra" must stay whole). The run
+  // is grown left/right only while items stay horizontally contiguous, so a
+  // same-row token in another column (2-column layouts) is never swallowed. On
+  // a continuation line (colX0/colX1 given) the seed must fall inside the name's
+  // running column, so a second column on the same row is not merged.
+  function assembleRow(refY, colX0, colX1){
+    const row=topItems.filter(it=>Math.abs(it.y-refY)<maxH*0.6 && it.h>=maxH*0.72).sort((a,b)=>a.x-b.x);
+    if(!row.length) return null;
+    let si;
+    if(colX0==null){ si=row.indexOf(anchor); if(si<0) si=0; }
+    else { si=row.findIndex(it=>it.x<colX1 && it.x+it.w>colX0); if(si<0) return null; }
+    let lo=si, hi=si;
+    while(lo>0            && row[lo].x-(row[lo-1].x+row[lo-1].w)<gap) lo--;
+    while(hi<row.length-1 && row[hi+1].x-(row[hi].x+row[hi].w)<gap) hi++;
+    return row.slice(lo,hi+1);
+  }
+  const line1=assembleRow(anchor.y,null,null);
+  if(!line1) return [];
+  const lines=[line1];
+  let bx0=Math.min(...line1.map(it=>it.x)), bx1=Math.max(...line1.map(it=>it.x+it.w)), lastY=anchor.y;
+  // Grow DOWNWARD: a name that wraps to a second line (surname on its own line)
+  // is common in résumé headers. Merge a lower row only when it is (a) the same
+  // big font, (b) the immediate next line — no blank-line gap, which would mark a
+  // separate block/heading — and (c) horizontally inside the running name column
+  // (same left edge, not a second column). Cap at 3 lines total to stay
+  // conservative; isLikelyName (≤4 words, letters ratio) gates the merged text.
+  for(let guard=0; guard<2; guard++){
+    const below=topItems.filter(it=>it.h>=maxH*0.72 && it.y>lastY+maxH*0.6);
+    if(!below.length) break;
+    const belowY=Math.min(...below.map(it=>it.y));
+    if(belowY-lastY > maxH*1.7) break;                 // blank gap → next block, stop
+    const nrow=assembleRow(belowY,bx0,bx1);
+    if(!nrow) break;
+    const nx0=Math.min(...nrow.map(it=>it.x));
+    if(nx0>bx1) break;                                 // starts past the block → different column
+    lines.push(nrow);
+    bx0=Math.min(bx0,...nrow.map(it=>it.x)); bx1=Math.max(bx1,...nrow.map(it=>it.x+it.w));
+    lastY=belowY;
+  }
+  const build=arr=>arr.map(l=>l.map(it=>it.str).join(' ')).join(' ').replace(/\s+/g,' ').trim();
+  let text=build(lines);
+  if(!isLikelyName(text) && lines.length>1) text=build([line1]);  // merged grab too greedy → line 1 only
   return isLikelyName(text) ? [{type:'name',value:text,kind:'candidate',reason:'name'}] : [];
 }
 // Group items into visual line SEGMENTS (per page), column-aware: items on the
@@ -1663,11 +1710,12 @@ $('btnMake').addEventListener('click',async()=>{
   }catch(err){ console.error(err); toast(T().tReadFail); }
   finally{ setStatus(''); btn.disabled=false; }
 });
-/* ───────── result viewer (fit-to-width, pager, 50–200% zoom) ───────── */
+/* ───────── result viewer (fit-to-page, pager, zoom, fullscreen) ───────── */
 let rvPages=[];        // composed source canvases (final pixels)
 let rvIndex=0;         // current page
-let rvZoom=null;       // null = fit-to-width baseline (100%); else multiplier of fit, 0.5–2.0
-const RV_MIN=0.5, RV_MAX=2.0, RV_STEP=0.25;
+let rvZoom=null;       // null = fit-to-page; else multiplier of fit (>1)
+let rvIsFull=false;    // fullscreen overlay open?
+const RV_MIN=1.0, RV_MAX=4.0, RV_STEP=0.25;
 function showResult(sources){
   rvPages=sources.slice(); rvIndex=0; rvZoom=null;
   $('result').style.display='block';
@@ -1679,31 +1727,57 @@ function rvRender(){
   if(!rvPages.length){ host.innerHTML=''; return; }
   rvIndex=Math.max(0,Math.min(rvIndex,rvPages.length-1));
   const src=rvPages[rvIndex];
-  const avail=Math.max(120,(host.clientWidth||600)-32);   // minus padding
-  const fit=avail/src.width;                               // fit-to-width baseline
-  const scale=rvZoom==null ? fit : fit*rvZoom;
+  const cs=getComputedStyle(host);
+  const padX=(parseFloat(cs.paddingLeft)||0)+(parseFloat(cs.paddingRight)||0);
+  const padY=(parseFloat(cs.paddingTop)||0)+(parseFloat(cs.paddingBottom)||0);
+  const availW=Math.max(80,(host.clientWidth||600)-padX);
+  const availH=Math.max(80,(host.clientHeight||400)-padY);
+  const fit=Math.min(availW/src.width, availH/src.height);   // fit-to-page: whole page inside the box
+  const scale=(rvZoom==null?1:rvZoom)*fit;
   const dispW=Math.max(1,Math.round(src.width*scale)), dispH=Math.max(1,Math.round(src.height*scale));
   let cv=host.querySelector('canvas.rv-pg');
   if(!cv){ host.innerHTML=''; cv=document.createElement('canvas'); cv.className='rv-pg'; host.appendChild(cv); }
   cv.width=dispW; cv.height=dispH;
   cv.getContext('2d').drawImage(src,0,0,dispW,dispH);
-  const pct=Math.round((rvZoom==null?1:rvZoom)*100);
   $('rvPageLabel').textContent=`${rvIndex+1} / ${rvPages.length}`;
-  $('rvZoomLabel').textContent=pct+'%';
+  // Always a numeric ratio readout (100% = fit-to-page baseline, up to 400%) so it
+  // reads as a zoom level, never duplicating the adjacent '맞춤/Fit' action button.
+  $('rvZoomLabel').textContent = Math.round((rvZoom==null?1:rvZoom)*100)+'%';
   $('rvPager').style.display=rvPages.length>1?'':'none';
   $('rvPrev').disabled=rvIndex<=0;
   $('rvNext').disabled=rvIndex>=rvPages.length-1;
-  $('rvZoomOut').disabled=(rvZoom!=null&&rvZoom<=RV_MIN+1e-9);
+  $('rvZoomOut').disabled=(rvZoom==null);                     // fit is the floor — whole page already visible
   $('rvZoomIn').disabled=(rvZoom!=null&&rvZoom>=RV_MAX-1e-9);
   $('rvFit').disabled=(rvZoom==null);
-  host.scrollTop=0; host.scrollLeft=Math.max(0,(cv.width-host.clientWidth)/2);
+  host.scrollTop=0; host.scrollLeft=Math.max(0,(host.scrollWidth-host.clientWidth)/2);
 }
-function rvSetZoom(next){ rvZoom=Math.min(RV_MAX,Math.max(RV_MIN,next)); rvRender(); }
+function rvSetZoom(next){
+  if(next==null||next<=RV_MIN+1e-9) rvZoom=null;              // collapse back to fit
+  else rvZoom=Math.min(RV_MAX,next);
+  rvRender();
+}
+function rvToggleFull(force){
+  const card=$('resultCard'); if(!card) return;
+  rvIsFull=(force==null)? !rvIsFull : !!force;
+  card.classList.toggle('rv-full',rvIsFull);
+  document.body.classList.toggle('rv-lock',rvIsFull);
+  const b=$('rvFull');
+  if(b){ b.textContent=rvIsFull?'✕':'⛶'; b.setAttribute('aria-label', rvIsFull?T().rvExitAria:T().rvFullAria); }
+  rvRender();
+}
 $('rvPrev').addEventListener('click',()=>{ rvIndex--; rvRender(); });
 $('rvNext').addEventListener('click',()=>{ rvIndex++; rvRender(); });
 $('rvZoomIn').addEventListener('click',()=>rvSetZoom((rvZoom==null?1:rvZoom)+RV_STEP));
 $('rvZoomOut').addEventListener('click',()=>rvSetZoom((rvZoom==null?1:rvZoom)-RV_STEP));
-$('rvFit').addEventListener('click',()=>{ rvZoom=null; rvRender(); });
+$('rvFit').addEventListener('click',()=>rvSetZoom(null));
+$('rvFull').addEventListener('click',()=>rvToggleFull());
+document.addEventListener('keydown',e=>{
+  if($('result').style.display==='none') return;
+  if(e.key==='Escape'&&rvIsFull){ rvToggleFull(false); return; }
+  if(!rvIsFull) return;
+  if(e.key==='ArrowLeft'&&rvIndex>0){ rvIndex--; rvRender(); }
+  else if(e.key==='ArrowRight'&&rvIndex<rvPages.length-1){ rvIndex++; rvRender(); }
+});
 $('btnDownload').addEventListener('click',()=>{
   if(!lastOut) return;
   if(lastOut.fmt==='pdf'){ lastOut.pdf.save(lastOut.name); toast(T().tSaved(lastOut.name)); return; }

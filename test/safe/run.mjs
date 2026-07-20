@@ -272,7 +272,15 @@ async function checkCandidateDedup(page) {
       const before = window.__isCandidateContains(cand);
       addEntities([confirm]); renderAll();
       const after = window.__isCandidateContains(cand);
-      return { before, after };
+      // Dedup must be directional: it removes redundant CANDIDATES, never the
+      // CONFIRMED entity that contains them. A reversed containment test (or a
+      // mutual-removal bug) would delete the confirmed name — leaving the value
+      // wholly UNMASKED. Assert the confirmed entity is still present after dedup.
+      // (Location isn't asserted here: these cases inject a superset value with a
+      // token absent from the fixture, so it is intentionally unlocated.)
+      const nc = window.__norm(confirm.value);
+      const confEnt = window.__entitySnapshot().find(e => e.kind !== 'candidate' && window.__norm(e.value) === nc);
+      return { before, after, confirmedSurvives: !!confEnt };
     }, { cand: c.candidate, confirm: c.confirm });
     let pass, actual;
     if (c.expect === 'removed') {
@@ -283,6 +291,10 @@ async function checkCandidateDedup(page) {
       actual = !res.before ? 'not-present-before' : (res.after ? 'kept' : 'DROPPED');
     }
     rec(cd._doc, 'CANDIDATE_DEDUP', `${c.label} [${c.confirm.value}]`, c.expect, actual, pass);
+    // Confirmed-preservation guard (the regression the candidate-only test missed):
+    // the confirmed entity that triggered the dedup must SURVIVE it.
+    rec(cd._doc, 'CONFIRMED_SURVIVES', `confirmed kept [${c.confirm.value}]`, 'survives',
+      res.confirmedSurvives ? 'survives' : 'REMOVED', res.confirmedSurvives);
   }
 }
 

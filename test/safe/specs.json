@@ -67,6 +67,16 @@
       "should_candidate": [],
       "never_candidate": ["Republic of Korea (Koreaz Contest)", "Korea (Koreaz Contest)", "Korea", "Maharaja Agrasen College", "Delhi University"],
       "phone_format": {"+91 9599320477": "+91 95****0477"}
+    },
+    {
+      "doc": "9_resume_2line.pdf", "type": "pdf", "ocr": false, "min_auto": 2, "max_auto": 4,
+      "_note": "Regression for the real-résumé defect where the header name WRAPS onto two visual lines (given names on line 1, surname on its own line 2, same large font). The old name-line assembly grew only horizontally within the anchor row, so it captured 'MANSI GAZAL' and left the whole second line 'TIWARI' exposed — the name surfaced only as a truncated 'MANSI GAZAL' candidate. Detection must assemble the wrapped name whole: the candidate is 'MANSI GAZAL TIWARI' and activating it covers BOTH lines incl. the surname. The smaller-font subtitle 'Software Developer' must NOT be merged into the name (a merge would either mask the subtitle or fail isLikelyName and drop the name).",
+      "activate_name": "MANSI GAZAL TIWARI",
+      "must_mask": ["MANSI GAZAL TIWARI", "TIWARI", "+91 98765 43210", "mansi.tiwari@example.com"],
+      "must_not_mask": ["Software Developer", "Delhi University"],
+      "should_candidate": ["MANSI GAZAL TIWARI"],
+      "never_candidate": ["Software Developer", "Delhi University"],
+      "phone_format": {"+91 98765 43210": "+91 98*** *3210"}
     }
   ],
 
