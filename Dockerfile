@@ -42,6 +42,13 @@ RUN bundle install && \
 # Copy application code
 COPY . .
 
+# Stamp the service-worker cache version with the build time so EVERY image
+# (i.e. every deploy) bumps CACHE_VERSION. This forces returning clients to
+# install the new SW and lets activate() purge stale caches — the manual-bump
+# step that was missed and left an old app shell pinned. No-op if the
+# placeholder is absent, so it can never fail the build.
+RUN sed -i "s/__SW_BUILD__/$(date -u +%Y%m%d%H%M%S)/g" public/safe/sw.js
+
 # Precompile bootsnap code for faster boot times
 RUN bundle exec bootsnap precompile app/ lib/
 

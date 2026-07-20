@@ -1841,8 +1841,20 @@ let _rz; window.addEventListener('resize',()=>{ clearTimeout(_rz); _rz=setTimeou
 (function(){
   // Register the offline-shell service worker. Best-effort; never blocks the UI.
   if ('serviceWorker' in navigator) {
+    // When a NEW service worker takes control, reload once so open tabs pick up
+    // the fresh shell instead of waiting for a manual reload. Guarded so the
+    // first-visit claim (no prior controller) doesn't reload, and against loops.
+    let swReloading = false;
+    const hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadController || swReloading) return;
+      swReloading = true;
+      window.location.reload();
+    });
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/safe/sw.js').catch(()=>{});
+      navigator.serviceWorker.register('/safe/sw.js').then((reg) => {
+        if (reg && reg.update) reg.update();   // proactive update check on each load
+      }).catch(()=>{});
     });
   }
 

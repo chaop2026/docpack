@@ -20,7 +20,10 @@
  * visitors get them instantly from cache. Because the URLs are immutable, there
  * is no staleness risk.
  */
-const CACHE_VERSION = 'v1-2026-07-19';
+// The build-time token below is replaced with the image build timestamp by the
+// Dockerfile (sed), so every deploy bumps the version even when this file is
+// otherwise unchanged. Unstamped (local dev) it stays a valid, stable literal.
+const CACHE_VERSION = 'v2-__SW_BUILD__';
 const SHELL_CACHE = `safefile-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `safefile-runtime-${CACHE_VERSION}`;
 
@@ -50,9 +53,15 @@ const CACHEABLE_CDN = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(SHELL_CACHE).then((cache) =>
-      // addAll is atomic; if any asset 404s the whole install fails, so keep the
-      // list to files we know exist. cache individually to tolerate transient misses.
-      Promise.all(SHELL_ASSETS.map((u) => cache.add(u).catch(() => null)))
+      // Precache with cache:'reload' so a stale HTTP-cache entry (e.g. a legacy
+      // long-max-age shell) can NEVER be baked into the offline cache — that
+      // exact chain pinned an old app shell on returning visitors. cache each
+      // individually to tolerate transient misses (a 404 must not fail install).
+      Promise.all(SHELL_ASSETS.map((u) =>
+        fetch(new Request(u, { cache: 'reload' }))
+          .then((r) => (r && r.ok) ? cache.put(u, r.clone()) : null)
+          .catch(() => null)
+      ))
     ).then(() => self.skipWaiting())
   );
 });
@@ -87,11 +96,21 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
   if (url.origin === self.location.origin && url.pathname.startsWith('/api/')) return;
 
-  // HTML / navigations: network-first so a fresh deploy always wins; cache is
-  // only the offline fallback.
+  // Never intercept the SW script itself — always let it reach the network so
+  // updates are found. (The browser's update fetch already bypasses the SW; this
+  // just stops the same-origin cache-first branch below from ever serving a
+  // stale /safe/sw.js.)
+  if (url.origin === self.location.origin && url.pathname === '/safe/sw.js') return;
+
+  // HTML / navigations: network-first, and force cache:'no-cache' so the SW
+  // ALWAYS revalidates with the server instead of trusting HTTP-cache freshness.
+  // A legacy long-max-age HTML entry can no longer silently satisfy this fetch
+  // and pin an old shell — "network-first" now truly hits the network. (no-cache,
+  // not no-store, so an unchanged shell still gets a cheap 304.) Cache Storage is
+  // the offline-only fallback.
   if (isHtmlRequest(request) && url.origin === self.location.origin) {
     event.respondWith(
-      fetch(request)
+      fetch(request.url, { cache: 'no-cache' })
         .then((resp) => {
           const copy = resp.clone();
           caches.open(SHELL_CACHE).then((c) => c.put(request, copy)).catch(() => {});
