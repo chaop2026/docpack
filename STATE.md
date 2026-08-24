@@ -16,6 +16,12 @@
   자세한 내용은 CLAUDE.md "Deploy note" / "Kamal secrets parser trap" 절.
 - `cb1e67d` 배포 완료 — 드래그앤드롭 기본동작 차단(`dragover`/`drop` preventDefault) + 진단 코드.
   라이브 검증됨: `curl -s https://slimfile.net/ | grep -c dragover` → `1`.
+- **드래그앤드롭 원인 규명 + 수정 완료 (`6b42ec8`, 2026-08-25).** 원인은 두 겹이었다 —
+  ① `upload_controller.js` 가 아예 없었다(뷰는 `data-controller="upload"` 를 선언 중이었으나 파일 부재)
+  ② `#preview-area` 가 컨트롤러 엘리먼트의 형제라 Stimulus 가 타겟을 못 찾았다.
+  결과적으로 네이티브 `<input>` 위에 정확히 떨어뜨렸을 때만 동작했고 점선 영역 나머지는 무반응이었다.
+  이제 zone 전체가 드롭을 받고, 선택 파일이 개별 목록으로 표시된다(누적·중복제외·개별삭제·용량합계).
+  프로덕션에서 34개 항목 검증 통과.
 - SafeFile(`public/safe/index.html`) v2 좌표 기반 마스킹. 최근 작업은 상단바 로고/네비 정리와
   서비스워커 stale-shell 고정, 포맷별 "PDF로 저장" 경로 추가.
 - 블로그 자동화(주제 100개 → Claude API 생성 → MWF 09:00 KST 발행 + Gmail 알림)는
@@ -26,10 +32,10 @@
 1. **ghcr.io PAT 재발급.** 2026-08-25 디버깅 중 `od -c` 로 토큰을 평문 출력해 세션 기록에 남았다.
    교체 후 `.env.production.local` 과 `.env` 두 파일 모두 갱신 (두 파일은 같은 값을 유지해야 함).
 2. **진단 코드 제거.** `app/views/layouts/application.html.erb` 의 `window.__jsErrors` 수집기와
-   `params[:debug]` 로 걸린 `alert()` 블록은 임시다. 드래그앤드롭 원인 규명이 끝나면 지운다.
+   `params[:debug]` 로 걸린 `alert()` 블록은 임시다. 원인 규명이 끝났으므로 이제 지워도 된다.
    `dragover`/`drop` preventDefault 자체는 남긴다.
-3. **드래그앤드롭 이슈 결론 내기.** `?debug` 로 실제 기기에서 UA·Stimulus 로드 여부·importmap 지원·
-   JS 에러를 확인한다. 무엇이 문제였는지 아직 기록되지 않았음 — 확인 후 DECISIONS.md 에 남길 것.
+3. **업로드 목록 실기기 확인.** 자동 검증은 통과했으나 실제 모바일 Safari/Chrome 에서
+   드롭·파일 선택·긴 파일명 생략을 눈으로 한 번 볼 것.
 4. **블로그 자동화 현재 상태 점검.** `kamal app exec 'bin/rails runner "puts Post.group(:status).count; puts BlogTopic.where(used: false).count"'`
    로 발행 현황과 잔여 주제 확인. 2026-04-07 SolidQueue/SMTP 수정 이후 재검증한 기록이 없다.
 
