@@ -15,6 +15,10 @@ const EXT_BY_MIME = {
 // never the part that gets cut. See splitName().
 const TAIL_CHARS = 10
 
+// The list card picks up the page's service colour for its entry highlight.
+// The zone carries the only marker for it, so read it from there.
+const SERVICES = ["compress", "pdf", "social"]
+
 export default class extends Controller {
   static targets = ["input", "preview", "zone"]
 
@@ -26,6 +30,12 @@ export default class extends Controller {
     this.entries = []
     this.duplicateCount = 0
     this.dropError = false
+
+    this.service = SERVICES.find((s) => this.zone.classList.contains(`upload-zone--${s}`))
+
+    // render() rebuilds every row from scratch, so "new" can only be decided by
+    // comparing against the keys the previous render put on screen.
+    this.renderedKeys = new Set()
 
     this.maxFiles = parseInt(this.meta("upload-max-files") || "20", 10)
     this.maxSize = parseInt(this.meta("upload-max-size") || String(10 * 1024 * 1024), 10)
@@ -249,11 +259,14 @@ export default class extends Controller {
       host.appendChild(this.buildNotice(this.i18n("upload-drop-failed"), "upload-notice--error"))
     }
 
+    const seen = this.renderedKeys
+    this.renderedKeys = new Set(this.entries.map((e) => e.key))
+
     if (this.entries.length === 0) return
 
     const totalBytes = this.entries.reduce((sum, e) => sum + e.file.size, 0)
     const wrap = document.createElement("div")
-    wrap.className = "file-list"
+    wrap.className = this.service ? `file-list file-list--${this.service}` : "file-list"
 
     const head = document.createElement("div")
     head.className = "file-list-head"
@@ -280,7 +293,7 @@ export default class extends Controller {
     if (this.entries.length > 5) items.classList.add("is-scrollable")
 
     this.entries.forEach((entry, index) => {
-      items.appendChild(this.buildItem(entry, index))
+      items.appendChild(this.buildItem(entry, index, !seen.has(entry.key)))
     })
 
     wrap.appendChild(items)
@@ -292,9 +305,11 @@ export default class extends Controller {
     host.appendChild(wrap)
   }
 
-  buildItem(entry, index) {
+  buildItem(entry, index, isNew) {
     const li = document.createElement("li")
-    li.className = entry.error ? "file-item file-item--error" : "file-item"
+    li.className = "file-item"
+    if (entry.error) li.classList.add("file-item--error")
+    if (isNew) li.classList.add("file-item--new")
 
     const nameWrap = document.createElement("span")
     nameWrap.className = "file-name"

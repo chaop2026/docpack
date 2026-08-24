@@ -1559,38 +1559,99 @@ p {
 .upload-zone--pdf.upload-zone--over { border-color: var(--pdf); background: var(--pdf-light); }
 .upload-zone--social.upload-zone--over { border-color: var(--social); background: var(--social-light); }
 
+/* This list is the only confirmation that a drop or a pick actually worked, so
+   it wears the page's service colour rather than neutral grey: a 4px accent
+   bar across the top, a service-tinted edge, and a tinted summary band.
+   upload_controller sets the modifier class from the zone's own class, and the
+   two properties below carry the pair of tokens to every rule that needs them:
+     --file-accent        light tone  (--compress-light etc.) — fills
+     --file-accent-strong full tone   (--compress etc.)       — bar and lines
+   The accent bar is the card's own border-top rather than a pseudo-element so
+   it tapers into the 20px corner radius the way the rounding expects; overflow
+   then clips the summary band to that same inner curve. */
 .file-list {
+  --file-accent: var(--bg);
+  --file-accent-strong: var(--border-color);
   background: var(--card-bg);
-  border: var(--card-border);
+  border: 1px solid var(--border-color);
+  /* Muted so the bar stays the primary signal and the edge only supports it.
+     Unsupported color-mix simply leaves the neutral border above in place. */
+  border-color: color-mix(in srgb, var(--file-accent-strong) 38%, transparent);
+  border-top-width: 4px;
+  border-top-color: var(--file-accent-strong);
   border-radius: var(--r-card);
-  padding: 0.875rem 1rem;
-  margin: 0.75rem 0;
+  overflow: hidden;
+  padding: 0 1rem 0.875rem;
+  margin: 1.25rem 0 0.75rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
 }
+.file-list--compress { --file-accent: var(--compress-light); --file-accent-strong: var(--compress); }
+.file-list--pdf { --file-accent: var(--pdf-light); --file-accent-strong: var(--pdf); }
+.file-list--social { --file-accent: var(--social-light); --file-accent-strong: var(--social); }
 
+/* Full-bleed band in the service's light tone, thinned to 55%. At full strength
+   it collided with .upload-notice--warn, which hardcodes --pdf-light: on /pdf
+   the warning stopped reading as a warning. The notice is shared with the
+   degraded-mode message outside this card, so the band yields instead — the
+   accent bar and the border carry the separation signal anyway.
+   The undiluted --file-accent stays on the row-entry flash below. */
 .file-list-head {
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
   flex-wrap: wrap;
-  padding-bottom: 0.625rem;
-  border-bottom: var(--card-border);
+  margin: 0 -1rem;
+  padding: 0.75rem 1rem;
+  background: var(--file-accent);
+  background: color-mix(in srgb, var(--file-accent) 55%, transparent);
+  border-bottom: 1px solid var(--border-color);
+  border-bottom-color: color-mix(in srgb, var(--file-accent-strong) 30%, transparent);
 }
-.file-list-summary { font-size: 13px; font-weight: 600; color: var(--text); letter-spacing: -0.01em; }
-.file-list-dup { font-size: 11px; color: var(--text-sub); }
+.file-list-summary { font-size: 14px; font-weight: 700; color: var(--text); letter-spacing: -0.01em; }
+.file-list-dup {
+  font-size: 11px;
+  color: var(--text-sub);
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-color: color-mix(in srgb, var(--file-accent-strong) 28%, transparent);
+  border-radius: var(--r-chip);
+  padding: 1px 8px;
+}
 
-.file-list-items { list-style: none; margin: 0; padding: 0; }
+/* Rows bleed to the card edge so the divider lines and the entry highlight
+   both run the full width instead of floating inside the padding. */
+.file-list-items { list-style: none; margin: 0 -1rem; padding: 0; }
 .file-list-items.is-scrollable { max-height: 232px; overflow-y: auto; }
 
 .file-item {
   display: flex;
   align-items: center;
   gap: 0.625rem;
-  padding: 0.5rem 0;
+  padding: 0.5rem 1rem;
   border-bottom: var(--card-border);
   font-size: 13px;
   color: var(--text);
 }
 .file-item:last-child { border-bottom: none; }
+
+/* Newly added rows flash the service tint and settle. Capped well under 600ms
+   so dropping twenty files at once doesn't turn into a light show. */
+@keyframes file-item-enter {
+  from { opacity: 0; transform: translateY(-6px); background-color: var(--file-accent); }
+  55% { opacity: 1; transform: none; background-color: var(--file-accent); }
+  to { opacity: 1; transform: none; background-color: transparent; }
+}
+.file-item--new { animation: file-item-enter 520ms ease-out; }
+
+/* Reduced motion keeps the "this row is new" signal but drops the movement —
+   a colour fade is not motion, so the affordance survives. */
+@keyframes file-item-enter-reduced {
+  from { background-color: var(--file-accent); }
+  to { background-color: transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .file-item--new { animation: file-item-enter-reduced 400ms ease-out; }
+}
 
 /* Head shrinks and ellipsises; tail is pinned so the extension always shows. */
 .file-name { display: flex; min-width: 0; flex: 1; }
