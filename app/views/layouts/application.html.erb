@@ -1,6 +1,19 @@
 <!DOCTYPE html>
 <html lang="<%= I18n.locale %>">
   <head>
+    <script>
+      window.__jsErrors = [];
+      window.addEventListener('error', function(e){
+        window.__jsErrors.push((e.message||'?') + ' @ ' + (e.filename||'?') + ':' + (e.lineno||'?'));
+      }, true);
+
+      window.addEventListener('dragover', function(e){ e.preventDefault(); }, false);
+      window.addEventListener('drop', function(e){
+        var t = e.target;
+        if (t && t.tagName === 'INPUT' && t.type === 'file') return;
+        e.preventDefault();
+      }, false);
+    </script>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-1RHNPW0ZTD"></script>
     <script>
@@ -119,5 +132,19 @@
       <button class="bookmark-banner-close" data-action="bookmark-banner#dismiss">&times;</button>
     </div>
     <%= yield %>
+    <% if params[:debug] %>
+  <script>
+    window.addEventListener('load', function(){
+      setTimeout(function(){
+        alert(
+          'UA: ' + navigator.userAgent + '\n\n' +
+          'Stimulus: ' + (typeof window.Stimulus) + '\n' +
+          'importmap 지원: ' + (window.HTMLScriptElement && HTMLScriptElement.supports ? HTMLScriptElement.supports('importmap') : '알수없음') + '\n\n' +
+          'JS 에러:\n' + (window.__jsErrors.join('\n') || '없음')
+        );
+      }, 1500);
+    });
+  </script>
+<% end %>
   </body>
 </html>
