@@ -1551,3 +1551,89 @@ p {
   .blog-ba-grid { grid-template-columns: 1fr 30px 1fr; }
   .blog-ba-size { font-size: 22px; }
 }
+
+/* ── Selected file list (upload_controller) ───────────────────────────── */
+
+.upload-zone--over { border-style: solid; }
+.upload-zone--compress.upload-zone--over { border-color: var(--compress); background: var(--compress-light); }
+.upload-zone--pdf.upload-zone--over { border-color: var(--pdf); background: var(--pdf-light); }
+.upload-zone--social.upload-zone--over { border-color: var(--social); background: var(--social-light); }
+
+.file-list {
+  background: var(--card-bg);
+  border: var(--card-border);
+  border-radius: var(--r-card);
+  padding: 0.875rem 1rem;
+  margin: 0.75rem 0;
+}
+
+.file-list-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding-bottom: 0.625rem;
+  border-bottom: var(--card-border);
+}
+.file-list-summary { font-size: 13px; font-weight: 600; color: var(--text); letter-spacing: -0.01em; }
+.file-list-dup { font-size: 11px; color: var(--text-sub); }
+
+.file-list-items { list-style: none; margin: 0; padding: 0; }
+.file-list-items.is-scrollable { max-height: 232px; overflow-y: auto; }
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0;
+  border-bottom: var(--card-border);
+  font-size: 13px;
+  color: var(--text);
+}
+.file-item:last-child { border-bottom: none; }
+
+/* Head shrinks and ellipsises; tail is pinned so the extension always shows. */
+.file-name { display: flex; min-width: 0; flex: 1; }
+.file-name-head { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.file-name-tail { flex-shrink: 0; white-space: nowrap; }
+
+.file-size { flex-shrink: 0; font-size: 11px; color: var(--text-sub); font-variant-numeric: tabular-nums; }
+
+.file-reason {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--danger);
+  background: #FEE2E2;
+  padding: 2px 8px;
+  border-radius: var(--r-chip);
+}
+
+.file-item--error .file-name { color: var(--danger); }
+
+.file-remove {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  line-height: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-sub);
+  font-size: 17px;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background 0.15s, color 0.15s;
+}
+.file-remove:hover { background: #F1EFE9; color: var(--text); }
+
+.upload-notice {
+  margin: 0.625rem 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--r-banner);
+}
+.upload-notice--error { color: var(--danger); background: #FEE2E2; }
+.upload-notice--warn { color: #92400E; background: var(--pdf-light); }

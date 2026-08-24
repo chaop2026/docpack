@@ -15,14 +15,16 @@
   <%= form_with url: conversions_path, method: :post, data: { progress_target: "form" } do |f| %>
     <%= f.hidden_field :conversion_type, value: "pdf" %>
 
-    <div class="upload-zone upload-zone--pdf" id="upload-zone" data-controller="upload">
-      <p><%= t("pdf.drop_zone") %></p>
-      <%= f.file_field :files, multiple: true, accept: "image/jpeg,image/png,image/heic,image/webp",
-          data: { upload_target: "input", action: "change->upload#preview", progress_target: "fileInput" } %>
-      <p class="upload-hint"><%= t("upload.hint") %></p>
-    </div>
+    <div data-controller="upload">
+      <div class="upload-zone upload-zone--pdf" id="upload-zone" data-upload-target="zone">
+        <p><%= t("pdf.drop_zone") %></p>
+        <%= f.file_field :files, multiple: true, accept: "image/jpeg,image/png,image/heic,image/webp",
+            data: { upload_target: "input", action: "change->upload#preview", progress_target: "fileInput" } %>
+        <p class="upload-hint"><%= t("upload.hint") %></p>
+      </div>
 
-    <div id="preview-area" data-upload-target="preview"></div>
+      <div id="preview-area" data-upload-target="preview"></div>
+    </div>
 
     <div class="progress-area" data-progress-target="progressArea">
       <div class="progress-track">
