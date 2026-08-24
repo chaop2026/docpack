@@ -16,7 +16,7 @@ es:
     footer_privacy: "Política de privacidad"
     footer_blog: "Blog"
   compress:
-    title: "Compresión de imágenes - DocPack"
+    title: "Compresión de imágenes - SlimFile"
     heading: "Compresión de imágenes"
     description: "Comprime imágenes a menos de 2 MB manteniendo la calidad."
     drop_zone: "Arrastra y suelta imágenes aquí o haz clic para seleccionar"
@@ -29,7 +29,7 @@ es:
     slider_target: "Comprimir al"
     slider_desc: "p. ej. 10% = una foto de 3 MB pasa a unos 300 KB"
   pdf:
-    title: "Conversión a PDF - DocPack"
+    title: "Conversión a PDF - SlimFile"
     heading: "Imágenes a PDF"
     description: "Combina varias imágenes en un solo PDF de menos de 2 MB."
     drop_zone: "Arrastra y suelta imágenes aquí o haz clic para seleccionar"
@@ -37,7 +37,7 @@ es:
     processing: "Convirtiendo a PDF..."
     submit: "Convertir a PDF"
   social:
-    title: "Ajustes para redes sociales - DocPack"
+    title: "Ajustes para redes sociales - SlimFile"
     heading: "Ajustes para redes sociales"
     description: "Redimensiona imágenes para las plataformas de redes sociales."
     drop_zone: "Arrastra y suelta imágenes aquí o haz clic para seleccionar"
@@ -48,7 +48,7 @@ es:
     description: "Encuentra y oculta datos personales en tus documentos."
     submit: "Ocultar ahora"
   result:
-    title: "Resultado de la conversión - DocPack"
+    title: "Resultado de la conversión - SlimFile"
     heading: "Resultado de la conversión"
     status: "Estado"
     type: "Tipo"
@@ -105,17 +105,17 @@ es:
   nav_blog: "Blog"
   seo:
     default_description: "Herramienta online gratuita para comprimir imágenes, convertir a PDF y redimensionar para redes sociales. Todo por debajo de 2 MB, sin registro."
-    home_description: "DocPack: compresión de imágenes, conversión a PDF y redimensionado para redes gratis. Rápido, seguro y sin registro."
+    home_description: "SlimFile: compresión de imágenes, conversión a PDF y redimensionado para redes gratis. Rápido, seguro y sin registro."
     compress_description: "Comprime imágenes JPG, PNG y WebP a menos de 2 MB manteniendo la calidad. Compresor de imágenes online gratuito."
     pdf_description: "Convierte varias imágenes en un solo archivo PDF de menos de 2 MB. Conversor de imágenes a PDF online gratuito."
     social_description: "Redimensiona imágenes para Instagram, Facebook y más. Dimensiones perfectas para cada red social."
-    keywords: "compresión de imágenes, conversión a PDF, redimensionar para redes, compresor de imágenes, imágenes a PDF, herramienta online gratuita, DocPack"
-    faq_description: "Preguntas frecuentes sobre DocPack: compresión de imágenes, conversión a PDF y redimensionado para redes sociales."
+    keywords: "compresión de imágenes, conversión a PDF, redimensionar para redes, compresor de imágenes, imágenes a PDF, herramienta online gratuita, SlimFile"
+    faq_description: "Preguntas frecuentes sobre SlimFile: compresión de imágenes, conversión a PDF y redimensionado para redes sociales."
   faq:
-    title: "Preguntas frecuentes - DocPack"
+    title: "Preguntas frecuentes - SlimFile"
     heading: "Preguntas frecuentes"
     items:
-      - q: "¿DocPack es gratis?"
+      - q: "¿SlimFile es gratis?"
         a: "Sí, totalmente gratis. Puedes usarlo enseguida sin registrarte."
       - q: "¿Baja la calidad de la imagen tras comprimir?"
         a: "Comprimimos a menos de 2 MB conservando la calidad al máximo. La diferencia apenas se nota."

@@ -129,7 +129,7 @@ class ConversionsController < ApplicationController
 
     conversion.result_file.attach(
       io: File.open(result.path),
-      filename: "docpack.pdf",
+      filename: "converted.pdf",
       content_type: "application/pdf"
     )
     conversion.update(status: "done", result_size: conversion.result_file.blob.byte_size)

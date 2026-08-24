@@ -16,7 +16,7 @@ ja:
     footer_privacy: "プライバシーポリシー"
     footer_blog: "ブログ"
   compress:
-    title: "画像圧縮 - DocPack"
+    title: "画像圧縮 - SlimFile"
     heading: "画像圧縮"
     description: "画質を保ちながら画像を2MB以下に圧縮します。"
     drop_zone: "ここに画像をドラッグ＆ドロップ、またはクリックして選択"
@@ -29,7 +29,7 @@ ja:
     slider_target: "圧縮後のサイズ"
     slider_desc: "例：10% = 3MBの写真が約300KBになります"
   pdf:
-    title: "PDF変換 - DocPack"
+    title: "PDF変換 - SlimFile"
     heading: "画像をPDFに"
     description: "複数の画像を2MB以下の1つのPDFにまとめます。"
     drop_zone: "ここに画像をドラッグ＆ドロップ、またはクリックして選択"
@@ -37,7 +37,7 @@ ja:
     processing: "PDFに変換しています..."
     submit: "PDFに変換"
   social:
-    title: "SNSプリセット - DocPack"
+    title: "SNSプリセット - SlimFile"
     heading: "SNSプリセット"
     description: "SNSプラットフォームに合わせて画像をリサイズします。"
     drop_zone: "ここに画像をドラッグ＆ドロップ、またはクリックして選択"
@@ -48,7 +48,7 @@ ja:
     description: "文書内の個人情報を自動で見つけて隠します。"
     submit: "今すぐ隠す"
   result:
-    title: "変換結果 - DocPack"
+    title: "変換結果 - SlimFile"
     heading: "変換結果"
     status: "ステータス"
     type: "種類"
@@ -105,17 +105,17 @@ ja:
   nav_blog: "ブログ"
   seo:
     default_description: "画像を圧縮し、PDFに変換し、SNS用にリサイズできる無料オンラインツール。すべて2MB以下、登録不要。"
-    home_description: "DocPack - 無料の画像圧縮、PDF変換、SNSリサイズツール。高速・安全・登録不要。"
+    home_description: "SlimFile - 無料の画像圧縮、PDF変換、SNSリサイズツール。高速・安全・登録不要。"
     compress_description: "JPG, PNG, WebP画像を画質を保ちながら2MB以下に圧縮。無料オンライン画像圧縮ツール。"
     pdf_description: "複数の画像を2MB以下の1つのPDFファイルに変換。無料オンライン画像→PDF変換ツール。"
     social_description: "Instagram、Facebookなどに合わせて画像をリサイズ。あらゆるSNSに最適なサイズ。"
-    keywords: "画像圧縮, PDF変換, SNSリサイズ, 画像圧縮ツール, 画像 PDF 変換, 無料オンラインツール, DocPack"
-    faq_description: "DocPackのよくある質問 — 画像圧縮、PDF変換、SNSリサイズについて。"
+    keywords: "画像圧縮, PDF変換, SNSリサイズ, 画像圧縮ツール, 画像 PDF 変換, 無料オンラインツール, SlimFile"
+    faq_description: "SlimFileのよくある質問 — 画像圧縮、PDF変換、SNSリサイズについて。"
   faq:
-    title: "FAQ - DocPack"
+    title: "FAQ - SlimFile"
     heading: "よくある質問"
     items:
-      - q: "DocPackは無料ですか？"
+      - q: "SlimFileは無料ですか？"
         a: "はい、完全無料です。登録なしですぐにご利用いただけます。"
       - q: "圧縮すると画質は落ちますか？"
         a: "できる限り画質を保ちながら2MB以下に圧縮します。見た目ではほとんど違いがわかりません。"

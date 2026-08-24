@@ -44,6 +44,11 @@
    같이 본다. `color-mix` 미지원 구형 브라우저에서는 테두리가 중립 회색으로 내려앉는 게 정상이다.
 4. **블로그 자동화 현재 상태 점검.** `kamal app exec 'bin/rails runner "puts Post.group(:status).count; puts BlogTopic.where(used: false).count"'`
    로 발행 현황과 잔여 주제 확인. 2026-04-07 SolidQueue/SMTP 수정 이후 재검증한 기록이 없다.
+5. **PWA 작업 시 `app/views/pwa/manifest.json.erb` 처리 결정.** 이 파일은 Rails 8 스캐폴드 잔재다 —
+   `routes.rb` 에 PWA 라우트가 없고, 레이아웃은 `/site.webmanifest`(정적, 이미 SlimFile)를 링크한다.
+   `theme_color: "red"` 가 남아 있는 게 손대지 않은 스캐폴드라는 증거. 2026-08-25 브랜드 치환 때
+   이름만 SlimFile 로 맞춰두고 삭제는 보류했다. PWA 를 손볼 때 **삭제할지 실제로 라우팅해 쓸지**
+   함께 정한다. 쓰기로 하면 `site.webmanifest` 와 둘 중 하나만 남겨야 한다(현재 둘이 공존).
 
 ## 막힌 것 / 기다리는 것
 

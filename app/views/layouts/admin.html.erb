@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="<%= I18n.locale %>">
 <head>
-  <title>DocPack Admin</title>
+  <title>SlimFile Admin</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <%= csrf_meta_tags %>
   <%= csp_meta_tag %>
@@ -152,7 +152,7 @@
     <div class="admin-layout">
       <aside class="admin-sidebar">
         <a href="<%= admin_root_path %>" class="admin-sidebar-logo">
-          DocPack <span>Admin</span>
+          SlimFile <span>Admin</span>
         </a>
         <nav class="admin-nav">
           <a href="<%= admin_posts_path %>" class="<%= 'active' if controller_name == 'posts' %>">Blog Posts</a>

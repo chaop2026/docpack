@@ -16,7 +16,7 @@ en:
     footer_privacy: "Privacy Policy"
     footer_blog: "Blog"
   compress:
-    title: "Image Compression - DocPack"
+    title: "Image Compression - SlimFile"
     heading: "Image Compression"
     description: "Compress images to under 2MB while maintaining quality."
     drop_zone: "Drag & drop images here or click to select"
@@ -29,7 +29,7 @@ en:
     slider_target: "Compress to"
     slider_desc: "e.g. 10% = a 3MB photo becomes about 300KB"
   pdf:
-    title: "PDF Conversion - DocPack"
+    title: "PDF Conversion - SlimFile"
     heading: "Image to PDF"
     description: "Combine multiple images into a single PDF under 2MB."
     drop_zone: "Drag & drop images here or click to select"
@@ -37,7 +37,7 @@ en:
     processing: "Converting to PDF..."
     submit: "Convert to PDF"
   social:
-    title: "Social Media Presets - DocPack"
+    title: "Social Media Presets - SlimFile"
     heading: "Social Media Presets"
     description: "Resize images for social media platforms."
     drop_zone: "Drag & drop images here or click to select"
@@ -48,7 +48,7 @@ en:
     description: "Find & redact personal info in your documents."
     submit: "Redact now"
   result:
-    title: "Conversion Result - DocPack"
+    title: "Conversion Result - SlimFile"
     heading: "Conversion Result"
     status: "Status"
     type: "Type"
@@ -105,17 +105,17 @@ en:
   nav_blog: "Blog"
   seo:
     default_description: "Free online tool to compress images, convert to PDF, and resize for social media. All under 2MB, no signup required."
-    home_description: "DocPack - Free image compression, PDF conversion, and social media resizing tool. Fast, secure, no signup."
+    home_description: "SlimFile - Free image compression, PDF conversion, and social media resizing tool. Fast, secure, no signup."
     compress_description: "Compress JPG, PNG, WebP images to under 2MB while maintaining quality. Free online image compressor."
     pdf_description: "Convert multiple images to a single PDF file under 2MB. Free online image to PDF converter."
     social_description: "Resize images for Instagram, Facebook and more. Perfect dimensions for every social media platform."
-    keywords: "image compression, PDF conversion, social media resize, image compressor, image to PDF, free online tool, DocPack"
-    faq_description: "Frequently asked questions about DocPack — image compression, PDF conversion, social media resizing."
+    keywords: "image compression, PDF conversion, social media resize, image compressor, image to PDF, free online tool, SlimFile"
+    faq_description: "Frequently asked questions about SlimFile — image compression, PDF conversion, social media resizing."
   faq:
-    title: "FAQ - DocPack"
+    title: "FAQ - SlimFile"
     heading: "Frequently Asked Questions"
     items:
-      - q: "Is DocPack free?"
+      - q: "Is SlimFile free?"
         a: "Yes, completely free. You can use it right away without signing up."
       - q: "Does image quality drop after compression?"
         a: "We compress to under 2MB while preserving quality as much as possible. The difference is barely noticeable."
