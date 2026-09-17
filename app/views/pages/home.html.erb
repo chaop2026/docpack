@@ -34,7 +34,15 @@
 
     <%# ?v busts the browser cache for returning visitors who previously cached
         /safe/ under the old 1-year Cache-Control (a new URL = new cache key, so
-        it bypasses the poisoned entry and picks up the new no-cache header). %>
+        it bypasses the poisoned entry and picks up the new no-cache header).
+        SEO note (2026-09-17): this makes /safe/?v=20260719 a second crawlable
+        URL for the same bytes, which is half of why GSC reported /safe/ as a
+        duplicate. It is now consolidated by the <link rel=canonical> on the
+        page itself — the standard fix for query-parameter duplicates.
+        Expiry: the poisoned entries can only have been written between
+        2026-07-15 (SafeFile launch) and 2026-07-19 (bd5a111, the no-cache fix),
+        so they all lapse by 2027-07-19. Drop the ?v after that date and this
+        link becomes the canonical URL outright. %>
     <%= link_to "/safe/?v=20260719", class: "feature-card feature-card--safe" do %>
       <div class="feature-card-icon">🔒</div>
       <span class="feature-card-tag">PRIVACY</span>

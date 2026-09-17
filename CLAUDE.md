@@ -255,6 +255,81 @@ All blog posts use structured JSON generation with psychological marketing hooks
 - AEO: `public/llms.txt` for AI/LLM discoverability, FAQ page with JSON-LD FAQPage schema
 - Blog post hero images set as og:image when attached
 
+## Static-page canonical / URL de-duplication (2026-09-17)
+
+GSC 가 `/safe/` 를 **"사용자가 선택한 표준이 없는 중복 페이지"**(Duplicate without
+user-selected canonical) 로 분류한 건에 대한 조사·수정 기록.
+
+### 발견한 것 — 동일 바이트를 200 으로 돌려주는 URL 이 4개, canonical 태그는 0개
+
+| URL | 어디서 발견되나 | 조사 전 응답 |
+|---|---|---|
+| `/safe/` | sitemap.xml, 상단바 링크 | 200 (127,444 B) |
+| `/safe/?v=20260719` | **홈 카드 링크 (4개 로케일 전부)** | 200 (동일 바이트) |
+| `/safe` | 외부 링크·수동 입력 | 200 (동일 바이트) |
+| `/safe/index.html` | sw.js 프리캐시 목록 | 200 (동일 바이트) |
+
+`public/safe/index.html` 에는 `<link rel="canonical">` 이 **아예 없었다**. 같은 내용을 주는
+URL 이 여럿인데 페이지가 대표 URL 을 스스로 선언하지 않는 상태 — GSC 문구 그대로의 입력 조건이다.
+sitemap 은 `/safe/` 를 신고하는데 홈에서 실제로 링크되는 건 `?v=` 쪽이라, Google 이 다른 URL 을
+대표로 고르고 `/safe/` 를 중복으로 떨어뜨렸다.
+
+### 왜 `/safe` 가 200 이었나 (라우트는 분명히 리다이렉트였는데)
+
+`config/routes.rb` 의 `get "/safe", to: redirect("/safe/")` 는 **한 번도 실행된 적이 없다.**
+`ActionDispatch::Static` 이 라우터보다 **앞**에 있고, `ActionDispatch::FileHandler` 가
+`/safe` 요청을 `public/safe` → `public/safe.html` → `public/safe/index.html` 순으로 탐색해
+마지막에서 200 을 먼저 돌려주기 때문. 라우터까지 요청이 도달하지 않으므로 그 라인은 죽은 코드였다.
+**트레일링 슬래시 정규화는 정적 핸들러보다 앞선 레이어(Rack 미들웨어)에서 해야 한다.**
+
+### 언어별 URL 은 존재하지 않는다 (hreflang 관련 중요)
+
+`/ko/safe/`·`/en/safe/`·`/ja/safe/`·`/es/safe/` 는 전부 404 다 (라이브 확인).
+`routes.rb` 의 로케일 스코프는 `en|ja|es` 로 제한돼 있고 `/safe` 는 그 스코프 **밖**이다.
+`/safe/` 는 **단일 URL 이 4개 언어를 클라이언트에서 전환**하는 구조
+(`localStorage safefile_lang` → `navigator.language`, `I18N` 딕셔너리 + `data-i18n` 속성).
+→ 언어 간 상호참조 hreflang 은 **가리킬 대상 URL 이 없다.** 이 구조에 대해 Google 이 문서화한
+패턴은 `x-default` 자기참조 하나뿐이므로 그것만 넣었다. ko/en/ja/es 알터네이트를 전부 같은 URL 로
+찍는 것은 거짓 신호라 넣지 않았다.
+
+### 수정 내역
+
+- `public/safe/index.html` — self-referencing `canonical` = `https://slimfile.net/safe/`,
+  `hreflang="x-default"` 자기참조, `robots`, og:(type/site_name/url/title/description/image/locale
+  +alternate ×3), twitter:(card/title/description/image). **이것이 1차 수정**이며 `?v=` 쿼리
+  중복까지 Google 이 통합하게 한다.
+- `lib/static_index_redirect.rb` (신규) + `config/initializers/static_index_redirect.rb` —
+  `ActionDispatch::Static` **앞**에 삽입되는 Rack 미들웨어. `/safe`·`/safe/index.html` 및
+  `/privacy`·`/privacy/index.html` 을 트레일링 슬래시 URL 로 **301**. 쿼리스트링 보존,
+  GET/HEAD 만 (POST 는 301 로 바꾸면 메서드·본문이 조용히 사라진다), `cache-control: no-cache`
+  (영구 캐시된 301 은 브라우저에서 사실상 되돌릴 수 없다 — 이 앱은 이미 캐시 고착으로 한 번 당했다).
+- `config/routes.rb` — 죽어 있던 `get "/safe", to: redirect("/safe/")` 제거 + 왜 죽어 있었는지 주석.
+- `public/safe/sw.js` — `SHELL_ASSETS` 에서 `/safe/index.html` 제거(이제 301 이고,
+  `cache.put()` 은 리다이렉트된 Response 를 거부하므로 프리캐시가 조용한 no-op 이 된다).
+  오프라인 폴백을 `caches.match('/safe/')` 로 변경 + `ignoreSearch: true`
+  (홈이 `/safe/?v=…` 로 링크하므로 이게 없으면 그 내비게이션이 캐시를 못 맞춘다).
+- `app/views/pages/sitemap.xml.erb` — `/safe/` 항목에 `x-default` 알터네이트 추가 + 트레일링
+  슬래시가 필수인 이유 주석.
+- `app/views/pages/home.html.erb` — `?v=20260719` 는 **유지**(2026-07-15~07-19 나흘 사이에
+  1년 캐시로 고착된 항목이 2027-07-19 까지 남아 있다). canonical 이 통합하므로 SEO 손실은 없다.
+  그 날짜 이후 제거하라는 주석을 남겼다.
+- `Gemfile` — `minitest "~> 5.25"` 핀. **부수 발견**: minitest 6.0.2 로 해석되면서
+  railties 8.0.4 의 `rails/test_unit/line_filtering.rb`(2-arity `run`)와 충돌해
+  모든 Rails 테스트가 단언 하나 못 돌리고 죽고 있었다("0 tests" 로 조용히 통과처럼 보였다).
+- `test/integration/static_canonical_test.rb` (신규) — 리다이렉트·canonical·hreflang·sitemap
+  회귀 가드 12개.
+
+### 검증 (로컬 `localhost:3001`, 배포 전)
+
+- Rack 단위 17 케이스 통과 (리다이렉트 대상·쿼리 보존·POST 통과·에셋 통과).
+- `bin/rails test` → 12 runs / 35 assertions / 0 failures.
+- Playwright(시스템 Chrome) 렌더 검증: `/safe/`·`/safe`·`/safe/index.html`·`/safe/?v=…`
+  네 진입점 모두 최종 200, canonical·x-default·og:url 동일, hreflang 링크 정확히 1개,
+  히어로·드롭존 렌더, JS 에러 0.
+- 서비스워커 검증: 설치·활성 정상, 셸 캐시에 `/safe/` 있고 `/safe/index.html` 없음,
+  매니페스트 4개 프리캐시, **오프라인에서 `/safe/` 와 `/safe/?v=…` 둘 다 셸 서빙**.
+- 리다이렉트 홉 1회(체인 없음), 전체 라우트 16개 스모크 200.
+
 ## Favicon & PWA Manifest (2026-04-22)
 
 - **Files in `public/`**: `favicon.ico`, `favicon-16x16.png`, `favicon-32x32.png`, `apple-touch-icon.png`, `android-chrome-192x192.png`, `android-chrome-512x512.png`, `site.webmanifest`

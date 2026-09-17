@@ -22,6 +22,12 @@
 | 2026-08-25 | 액센트 바는 `::before` 가 아니라 **카드의 `border-top: 4px`** | `--r-card` 가 20px 이라 가상요소는 라운드에 잘려 양끝이 뾰족한 조각이 된다. border 로 하면 모서리에서 4px→1px 로 자연스럽게 좁아진다. 대신 카드에 `overflow: hidden` 을 걸어 헤더 밴드가 같은 안쪽 곡선으로 잘리게 했다 |
 | 2026-08-25 | 헤더 밴드는 연한 톤을 **55% 로 희석**한다 (액센트 바·테두리는 풀 강도 유지) | 100% 로 두니 `--pdf-light` 를 하드코딩한 `.upload-notice--warn` 과 /pdf 에서 같은 색이 돼 경고가 경고로 안 읽혔다. 경고문은 카드 밖 degraded-mode 안내에도 쓰여 영향 범위가 넓으므로, **이번에 새로 만든 밴드 쪽이 양보**한다. 구분 신호는 바·테두리가 담당한다. 행 진입 하이라이트는 순간 신호라 희석하지 않는다 |
 | 2026-08-25 | 새 행 진입 애니메이션 520ms, `prefers-reduced-motion` 에는 **별도 키프레임**(색 페이드만) | 이동·페이드를 없애되 색 변화는 모션이 아니므로 남긴다 — "이 행이 새로 왔다"는 신호가 완전히 죽지 않는다. `render()` 가 매번 전체를 다시 그리므로 직전 렌더의 key 집합과 비교해 새 행만 표시한다 |
+| 2026-09-17 | `/safe/` 의 대표 URL 은 **트레일링 슬래시가 붙은 `https://slimfile.net/safe/`** 로 고정하고, 페이지에 self-referencing canonical 을 박는다 | 동일 바이트를 주는 URL 이 4개(`/safe/`, `/safe`, `/safe/index.html`, `/safe/?v=20260719`)인데 canonical 태그가 하나도 없어 GSC 가 "사용자가 선택한 표준이 없는 중복 페이지"로 분류했다. sitemap 은 `/safe/` 를 신고하는데 홈에서 실제 링크되는 건 `?v=` 라 신호가 갈렸다 |
+| 2026-09-17 | 트레일링 슬래시 정규화는 **라우터가 아니라 Rack 미들웨어**(`lib/static_index_redirect.rb`)로 한다 | `ActionDispatch::Static` 이 라우터보다 앞에 있고 `FileHandler` 가 `/safe` → `public/safe/index.html` 을 200 으로 먼저 돌려준다. 그래서 `get "/safe", to: redirect("/safe/")` 는 한 번도 실행된 적이 없는 죽은 코드였다. 정적 핸들러보다 앞선 레이어가 아니면 어떤 라우트로도 고칠 수 없다 |
+| 2026-09-17 | `/safe/` 의 hreflang 은 **`x-default` 자기참조 하나만** 넣는다 | 언어별 URL 이 존재하지 않는다(`/en/safe/` 등은 전부 404, 로케일 스코프는 `en\|ja\|es` 이고 `/safe` 는 그 밖이다). 한 URL 이 4개 언어를 클라이언트에서 전환하는 구조라 상호참조 hreflang 은 가리킬 대상이 없다. ko/en/ja/es 알터네이트를 전부 같은 URL 로 찍는 건 거짓 신호다. Google 이 이 구조에 대해 문서화한 패턴이 x-default 자기참조다 |
+| 2026-09-17 | 301 응답에 **`cache-control: no-cache`** 를 붙인다 | 영구 캐시된 301 은 브라우저에서 사실상 되돌릴 수 없다. 이 앱은 이미 1년 `max-age` 로 정적 HTML 이 고착돼 한 번 당했다(`lib/static_html_no_cache.rb`). Google 의 301 처리는 cache-control 과 무관하므로 SEO 손실은 없다 |
+| 2026-09-17 | 홈의 `?v=20260719` 캐시버스터는 **유지**하고 canonical 로 통합한다 | 제거하면 2026-07-15~07-19 나흘 사이 1년 캐시가 고착된 방문자(2027-07-19 까지 잔존)가 옛 셸을 받는다. 쿼리 파라미터 중복은 canonical 이 처리하도록 설계된 바로 그 사례다. 2027-07-19 이후 제거하라는 주석을 코드에 남겼다 |
+| 2026-09-17 | `Gemfile` 에 `minitest "~> 5.25"` 핀 | minitest 6 은 `runnable.run` 을 3인자로 호출하는데 railties 8.0.4 가 2인자 `run` 을 prepend 한다(`rails/test_unit/line_filtering.rb`). 6.x 로 해석되면 모든 Rails 테스트가 단언 하나 못 돌리고 죽으면서 "0 tests" 로 **통과처럼 보인다** — 더 위험하다. Rails 가 minitest 6 을 지원하면 재검토 |
 | 2026-08-25 | `color-mix()` 는 **폴백 선언 뒤에** 둔다 (`border: 1px solid var(--border-color)` → `border-color: color-mix(...)`) | 미지원 브라우저는 뒷줄을 무시하고 중립 회색 테두리로 내려앉는다. 커스텀 속성 안에 `color-mix` 를 넣으면 값이 통째로 무효가 돼 이 안전망이 사라진다 |
 
 ## 기각·보류 (되살리려면 이유부터 다시 볼 것)
@@ -31,3 +37,4 @@
 | (시점 미상) | 블로그 히어로 이미지에 Google Imagen 사용 | 유료 전용. 현재는 Claude API 로 SVG 를 생성한다. 유료 전환 시 `BlogImageService` 에서 Imagen 4.0 으로 교체 가능 |
 | 2026-07-19 | SafeFile 워터마크용 QR/바코드 자동 탐지 | 구현 비용 대비 이득이 낮다고 판단. 여백 규칙 + 안내문으로 대체 |
 | 2026-08-25 | `.kamal/secrets` 에서 셸 환경변수 override 를 허용 (`${VAR:-...}`) | 위 결정 참조 — Kamal 파서가 이 문법을 지원하지 않아 오히려 값을 손상시킨다. override 가 필요하면 파일을 직접 수정할 것 |
+| 2026-09-17 | `/en/safe/`·`/ja/safe/`·`/es/safe/` 언어별 URL 을 새로 만드는 것 | **보류.** GSC 중복 문제를 고치지 못할 뿐 아니라 악화시킬 수 있다 — `/safe/` 는 본문이 전부 `data-i18n` 으로 JS 치환되는 구조라, 새 URL 들이 서빙하는 **원시 HTML 은 넷 다 동일한 한국어**다. Google 이 렌더 전에 보는 바이트가 같으므로 중복 4개가 더 늘어난다. 제대로 하려면 URL 별로 `<title>`·`description`·`lang`·본문이 서버에서 확정돼야 하고, 그건 정적 파일 4벌 생성(빌드 단계) 또는 Rails 렌더링 전환이라 별도 과제다. 되살릴 때 함께 볼 것: `sw.js` 셸 목록·`manifest.*.webmanifest` 의 `start_url`/`scope`·sitemap 확장 |

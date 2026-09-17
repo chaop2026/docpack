@@ -28,9 +28,12 @@ const SHELL_CACHE = `safefile-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `safefile-runtime-${CACHE_VERSION}`;
 
 // Minimal app shell precached on install (UI must open offline).
+// '/safe/index.html' is deliberately absent: since 2026-09-17 it 301s to
+// '/safe/' (lib/static_index_redirect.rb, SEO de-duplication). cache.put()
+// rejects a redirected Response, so precaching it could only ever be a silent
+// no-op — and the offline fallback below now points at '/safe/' instead.
 const SHELL_ASSETS = [
   '/safe/',
-  '/safe/index.html',
   '/safe/manifest.ko.webmanifest',
   '/safe/manifest.en.webmanifest',
   '/safe/manifest.ja.webmanifest',
@@ -116,7 +119,10 @@ self.addEventListener('fetch', (event) => {
           caches.open(SHELL_CACHE).then((c) => c.put(request, copy)).catch(() => {});
           return resp;
         })
-        .catch(() => caches.match(request).then((r) => r || caches.match('/safe/index.html')))
+        // Offline fallback. `ignoreSearch` matters: the home page links to
+        // /safe/?v=… (cache-buster), and without it that navigation would miss
+        // the precached '/safe/' entry and fall through to the shell below.
+        .catch(() => caches.match(request, { ignoreSearch: true }).then((r) => r || caches.match('/safe/')))
     );
     return;
   }

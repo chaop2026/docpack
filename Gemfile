@@ -70,4 +70,12 @@ group :test do
   # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
   gem "capybara"
   gem "selenium-webdriver"
+
+  # Pinned to 5.x: minitest 6 calls `runnable.run(reporter, options, …)` with an
+  # extra argument, but railties 8.0.4 prepends its own 2-arity `run` via
+  # rails/test_unit/line_filtering.rb. Resolving to 6.x makes EVERY Rails test
+  # abort with "wrong number of arguments (given 3, expected 1..2)" before a
+  # single assertion runs — which is why the suite silently reported "0 tests".
+  # Revisit when Rails ships minitest 6 support. (Found 2026-09-17.)
+  gem "minitest", "~> 5.25"
 end

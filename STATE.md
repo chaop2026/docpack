@@ -1,6 +1,6 @@
 # STATE — DocPack / SlimFile
 
-> 마지막 갱신: 2026-08-25
+> 마지막 갱신: 2026-09-17
 > 이 파일은 **자유롭게 덮어쓴다** — 과거 상태는 git 이 기억한다. **100줄 이내 유지**
 > (넘으면 끝난 것을 지운다. 역사 보존용 파일이 아니다).
 
@@ -29,10 +29,24 @@
   `app/`·`public/` 어디에도 없고, 다크로 띄워도 라이트와 바이트 단위로 동일하다.
 - SafeFile(`public/safe/index.html`) v2 좌표 기반 마스킹. 최근 작업은 상단바 로고/네비 정리와
   서비스워커 stale-shell 고정, 포맷별 "PDF로 저장" 경로 추가.
+- **`/safe/` GSC 중복 페이지 수정 완료 (2026-09-17, 아직 미배포).** 동일 바이트를 주는 URL 이
+  4개(`/safe/`, `/safe`, `/safe/index.html`, `/safe/?v=20260719`)인데 canonical 태그가
+  하나도 없었다. `get "/safe", to: redirect("/safe/")` 라우트는 `ActionDispatch::Static` 이
+  라우터보다 앞이라 **한 번도 실행된 적이 없는 죽은 코드**였다. self-referencing canonical +
+  x-default + Rack 301 미들웨어(`lib/static_index_redirect.rb`)로 해결. 언어별 `/xx/safe/`
+  URL 은 **존재하지 않는다**(전부 404) — 단일 URL 클라이언트 i18n 구조라 상호참조 hreflang 은
+  대상이 없다. 자세한 내용은 CLAUDE.md "Static-page canonical / URL de-duplication" 절.
+- **부수 발견: Rails 테스트 스위트가 죽어 있었다.** minitest 6 ↔ railties 8.0.4 비호환으로
+  모든 테스트가 단언 하나 못 돌리고 "0 tests" 로 통과처럼 보였다. `minitest "~> 5.25"` 핀으로 복구.
 - 블로그 자동화(주제 100개 → Claude API 생성 → MWF 09:00 KST 발행 + Gmail 알림)는
   2026-04 검증 이후 **실제 현재 동작 상태 확인 필요** (마지막 발행일·남은 주제 수 미확인).
 
 ## 다음 할 일
+
+0. **`/safe/` canonical 수정 배포 + GSC 재크롤링 요청.** 수정은 로컬에서 검증까지 끝났고
+   커밋돼 있으나 **배포는 아직이다**. `kamal deploy` 후 라이브에서 `/safe` 와
+   `/safe/index.html` 이 301 인지 확인하고, GSC 에서 `/safe/` URL 검사 → 색인 생성 요청,
+   sitemap 재제출. 반영까지 보통 며칠~2주 걸린다.
 
 1. **ghcr.io PAT 재발급.** 2026-08-25 디버깅 중 `od -c` 로 토큰을 평문 출력해 세션 기록에 남았다.
    교체 후 `.env.production.local` 과 `.env` 두 파일 모두 갱신 (두 파일은 같은 값을 유지해야 함).

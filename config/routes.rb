@@ -41,7 +41,12 @@ Rails.application.routes.draw do
 
   # SafeFile — public/safe/index.html은 Rails가 정적 서빙(언어 독립 단일 URL),
   # API는 AI 정밀 검사 중계. 로케일 프리픽스 없음.
-  get  "/safe",          to: redirect("/safe/")
+  #
+  # `get "/safe", to: redirect("/safe/")` 는 여기 있었지만 **한 번도 실행된 적이 없다**
+  # (2026-09-17 제거). ActionDispatch::Static 이 라우터보다 앞에 있고,
+  # FileHandler 가 `/safe` 요청을 `public/safe/index.html` 로 해석해 200 을 먼저
+  # 돌려주기 때문이다. 트레일링 슬래시 정규화는 정적 핸들러보다 앞서야 하므로
+  # Rack 미들웨어(lib/static_index_redirect.rb)로 옮겼다.
   post "/api/safe_scan", to: "api/safe_scan#create"
 
   namespace :admin do

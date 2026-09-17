@@ -66,12 +66,17 @@
   </url>
   <% end %>
 <% end %>
-  <!-- Single-URL static pages (language handled client-side / migrating in stage 2) -->
+  <%# Single-URL static pages. /safe/ serves all four languages from ONE URL
+      (client-side i18n), so there is no per-language URL to cross-reference:
+      x-default self-reference is the only hreflang Google documents for this
+      shape. The trailing slash is mandatory — /safe and /safe/index.html now
+      301 here (lib/static_index_redirect.rb) and must never enter the sitemap. %>
   <url>
     <loc><%= @base_url %>/safe/</loc>
     <lastmod><%= Date.today.iso8601 %></lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="<%= @base_url %>/safe/"/>
   </url>
   <url>
     <loc><%= @base_url %>/privacy/</loc>
