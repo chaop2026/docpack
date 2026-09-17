@@ -330,6 +330,21 @@ sitemap 은 `/safe/` 를 신고하는데 홈에서 실제로 링크되는 건 `?
   매니페스트 4개 프리캐시, **오프라인에서 `/safe/` 와 `/safe/?v=…` 둘 다 셸 서빙**.
 - 리다이렉트 홉 1회(체인 없음), 전체 라우트 16개 스모크 200.
 
+### 외부 교차검증 (Codex CLI, read-only)
+
+- 패키지: `docs/review/CODEX_REVIEW_PACKAGE_2026-09-17.md` (비밀값 0건 확인)
+- 원문: `docs/review/CODEX_RESULT_2026-09-17.md` (codex-cli 0.144.3, 69초, 단일 조각)
+- 대조: `docs/review/CROSS_REVIEW_TRIAGE_2026-09-17.md` — 7건 전부 (a)/(b)/(c) 분류
+- **미해결 (a) 2건 — 배포 전 처리 권장. 이번 세션에서는 고치지 않았다**:
+  1. **AMBER** `sw.js` install 이 `/safe/` 프리캐시 실패를 삼키고 activate 가 구버전 캐시를
+     지운다 → 일시 네트워크 실패 시 오프라인 셸을 잃는다. 근본 결함은 이 커밋 이전부터
+     있었으나, HTML 셸이 `/safe/`·`/safe/index.html` 이중에서 단일로 줄어 여유분이 사라졌다.
+     다음 온라인 방문 시 자가 복구된다. → `/safe/` 를 필수 자산으로 분리해 실패 시 install 실패.
+  2. **GREEN** `static_index_redirect.rb` 의 301 본문이 `QUERY_STRING` 을 이스케이프 없이
+     반사한다. **현재 스택에서는 도달 불가** — raw `<`/`>`/`"` 는 Puma 파서가 400 으로 거르고
+     (실측), 브라우저는 `Location` 있는 301 본문을 렌더하지 않는다. 다만 안전한 이유가 우리
+     코드가 아니라 상류 파서라는 점이 문제다. → 본문에서 URL 반사를 없앨 것.
+
 ## Favicon & PWA Manifest (2026-04-22)
 
 - **Files in `public/`**: `favicon.ico`, `favicon-16x16.png`, `favicon-32x32.png`, `apple-touch-icon.png`, `android-chrome-192x192.png`, `android-chrome-512x512.png`, `site.webmanifest`
