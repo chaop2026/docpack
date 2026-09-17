@@ -8,11 +8,9 @@
 
 - Rails 8.0.4 + PostgreSQL 16, Hotwire/Propshaft/Importmap. Kamal 으로 `5.223.92.4` 에 배포,
   `https://slimfile.net` 서비스 중. 이미지 압축 · PDF 변환 · SNS 리사이즈 3개 서비스.
-- **배포 파이프라인 복구 완료 (2026-08-25).** 3중 결함이 겹쳐 있었다 —
-  ① Kamal 2 가 dotenv 자동 로딩을 제거해 `KAMAL_REGISTRY_PASSWORD` 가 빈 값
-  ② ghcr.io PAT 만료 (`Bad credentials`)
-  ③ 수정 과정에서 넣은 `${VAR:-default}` 를 Kamal 파서가 지원하지 않아 값이 손상.
-  `.kamal/secrets` 가 `.env.production.local` 을 직접 읽도록 바꿔 해결. 이제 `kamal deploy` 만 치면 된다.
+- **배포 파이프라인 복구 완료 (2026-08-25).** 3중 결함(dotenv 미로딩 · PAT 만료 ·
+  Kamal 파서가 `${VAR:-default}` 미지원)이 겹쳐 있었다. `.kamal/secrets` 가
+  `.env.production.local` 을 직접 읽도록 바꿔 해결 — 이제 `kamal deploy` 만 치면 된다.
   자세한 내용은 CLAUDE.md "Deploy note" / "Kamal secrets parser trap" 절.
 - **드래그앤드롭 + 업로드 목록 완료 (`6b42ec8` 외, 2026-08-25, 배포됨).** 원인은
   `upload_controller.js` 부재 + `#preview-area` 가 컨트롤러의 형제라 타겟을 못 찾은 것.
