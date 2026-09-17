@@ -396,6 +396,17 @@ percent-encode 해버려 raw 바이트를 주입할 수 없으므로(그래서 �
 | 라이브 HTTP 형태 | `/safe`·`/safe/index.html`·`/privacy` 301, `/safe/`·`/safe/sw.js` 200 |
 | 실제 Puma 경유 이스케이프 | percent-encoded 그대로 유지, 마크업 미생성 |
 
+### 라운드 2 교차검증 (수정 확인)
+
+- 패키지 `docs/review/CODEX_REVIEW_PACKAGE_2026-09-17_round2.md` (비밀값 0건)
+- 원문 `docs/review/CODEX_RESULT_2026-09-17_round2.md` (codex-cli 0.144.3, 58초)
+- 대조 `docs/review/CROSS_REVIEW_TRIAGE_2026-09-17_round2.md`
+- **A-1 `해소됨` · A-2 `해소됨` · 새 지적 0건. 미해결 항목 없음.**
+  R1~R5(구 캐시 보존 경로 · 빈 캐시 잔존 · 이스케이프의 소재 · 공허한 단언 여부) 전부 우리 판정과 일치.
+- Codex 명시 한계: 줄 번호 대조만 했고 테스트를 재실행하지 않았다 — 실행 검증은 위 표가 담당한다.
+- self-check 로 따로 잡은 것: `String#delete("\r\n")` 은 부분문자열이 아니라 **문자 집합**을
+  지운다(의도대로 동작하나 오해를 부름) → 주석 추가.
+
 ## Favicon & PWA Manifest (2026-04-22)
 
 - **Files in `public/`**: `favicon.ico`, `favicon-16x16.png`, `favicon-32x32.png`, `apple-touch-icon.png`, `android-chrome-192x192.png`, `android-chrome-512x512.png`, `site.webmanifest`

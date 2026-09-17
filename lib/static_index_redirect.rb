@@ -64,6 +64,8 @@ class StaticIndexRedirect
   def redirect_location(env, target)
     # SCRIPT_NAME is "" for a root-mounted app (the case here), but including it
     # keeps the Location correct if this app is ever mounted under a sub-path.
+    # String#delete takes a character SET, not a substring — this removes every
+    # CR and every LF, not just the "\r\n" pair.
     query = env["QUERY_STRING"].to_s.delete("\r\n")
     location = "#{env["SCRIPT_NAME"]}#{target}"
     query.empty? ? location : "#{location}?#{query}"
