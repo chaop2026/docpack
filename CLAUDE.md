@@ -407,6 +407,103 @@ percent-encode 해버려 raw 바이트를 주입할 수 없으므로(그래서 �
 - self-check 로 따로 잡은 것: `String#delete("\r\n")` 은 부분문자열이 아니라 **문자 집합**을
   지운다(의도대로 동작하나 오해를 부름) → 주석 추가.
 
+## 미색인 63개 조사 — noindex 40 / 404 1 / 중복 2 (2026-09-17)
+
+GSC 페이지 색인 리포트(알려진 134 = 색인 71 + 미색인 63) 조사 기록.
+**프로덕션 DB 는 건드리지 않았다** — 전부 라이브 HTTP 실측(202 URL 크롤)과 코드/깃 이력으로 판별.
+
+### noindex 가 붙는 곳 — 전수 목록
+
+| 위치 | 조건 | 영향 |
+|---|---|---|
+| `app/views/posts/show.html.erb:9` | `unless @post_translated` → `noindex,follow` | **유일한 동적 noindex.** 아래 참조 |
+| `app/views/layouts/application.html.erb:36` | `content_for?(:robots)` 일 때만 태그 출력 | 전달 통로. 스스로 판단 안 함 |
+| `public/{400,404,422,500,406-*}.html` | 정적 에러 페이지 | 정상 (색인 대상 아님) |
+| `public/privacy/index.html:9` | `index,follow` | noindex 아님 |
+| `public/robots.txt` | `Disallow: /admin`, `/conversions` | noindex 아님 (크롤 차단) |
+| **X-Robots-Tag 헤더** | **어디에도 없음** (라이브 9개 경로 확인) | — |
+
+게이트는 **draft 승인이 아니라 번역 여부**다 (`Post#translated?`): `ko`→`body_ko`,
+`en`→`body_en`, **`ja`/`es`는 언제나 false**. draft 상태는 noindex 와 무관하다.
+
+### 실측 결과
+
+- 사이트맵 42개 글 **전부 `ko` 단독** — 42개 모두 `body_en` 이 비어 있다.
+- 따라서 글 하나당 noindex URL 3개(en/ja/es) → **라이브 noindex 총 126개** (크롤로 확인:
+  `noindex,follow` 126 = en 42 + ja 42 + es 42, ko 0, 정적 페이지 0).
+- GSC 의 40 은 이 126 중 **구글이 지금까지 크롤한 부분집합**이다. 방치하면 126 까지 늘어난다.
+- 의도가 맞는지 검증: `/en|ja/blog/:slug` 본문이 한국어판과 **97.6~98.8% 동일**, 한글 비율 51~57%
+  → 본문이 번역되지 않은 한국어 그대로다. **noindex 는 옳다.**
+
+### 3분류
+
+**① 정상 (의도된 noindex) — 126 URL**
+판별 기준: *URL 이 표방하는 언어로 본문이 실제 번역돼 있지 않다.*
+예: `/en/blog/resume-privacy`, `/ja/blog/resume-privacy`, `/es/blog/resume-privacy`.
+의도는 `app/models/post.rb:31` 에 기록돼 있다. **수정하지 않았다.**
+
+**② 문제 (의도치 않음) — 6증상 / 5개 수정**
+판별 기준: *신호끼리 서로 모순되거나, 색인돼야 할 URL 이 색인에서 빠진다.*
+
+1. **한국어 정본 URL 이 요청 헤더에 따라 noindex 를 반환했다.** ★가장 심각
+   `curl -H 'Accept-Language: en-US' https://slimfile.net/blog/resume-privacy` →
+   `noindex,follow`. `set_locale` 우선순위가 `URL 프리픽스 → 쿠키 → Accept-Language` 라서,
+   프리픽스 없는 정본 URL 의 로케일이 **요청자에 따라 달라지고** 게이트가 그 값을 읽었다.
+   같은 URL 이 크롤러마다 다른 색인 지시를 보내는 상태였다.
+2. **프리픽스 없는 페이지의 canonical 이 `/en/...` 로 이동했다.** 같은 원인.
+   `/faq`→`/en/faq`, `/`→`/en`, `/compress`→`/en/compress`, `/pdf`, `/social` (5개).
+   `/about`·`/blog` 는 `page_meta` 가 레이아웃에 도달하지 못해 **우연히** 무사했다.
+3. **`/blog/index.html` (+`/en|ja|es` 3개) 404.** `public/blog/index.html` 이 정적 파일이던
+   시절 `/blog`·`/blog/`·`/blog/index.html` 이 모두 200 이었고, `9f8bfff`(2026-07-17)가
+   파일을 지우면서 `/blog/:slug` 의 slug=`index.html` 로 흘러 404 가 됐다.
+   **GSC "찾을 수 없음 1페이지"의 최유력 후보.**
+4. **사이트맵이 `?category=privacy`(×4)를 실었다.** 그 페이지들의 canonical 은 `/blog` 다 —
+   자기 주소를 부정하는 URL 을 사이트맵에 올린 모순.
+5. **페이지 hreflang 이 글마다 4개 로케일을 광고했다.** 사이트맵은 늘 `ko` 하나만 실었다.
+   광고 대상(`/ja/blog/:slug`)은 noindex 이고 canonical 도 한국어판을 가리킨다 —
+   Google 규칙(hreflang 대상은 canonical·색인 가능이어야 함) 위반이자,
+   **126개 noindex URL 이 발견된 경로 자체**다.
+6. **`/blog` 4개 로케일 전부 `<title>`·description 이 없었다.** `PostsController#index` 가
+   `helpers.page_meta` 를 호출했는데 컨트롤러발 `content_for` 는 레이아웃에 닿지 않는다
+   (이미 아는 함정인데 재발). 라이브 `<title>` 이 기본값 `SlimFile` 이었다.
+
+**③ 판단 불가 — 2건**
+- **"Google 에서 사용자와 다른 표준을 선택함" 2페이지가 정확히 어느 URL인지.** 추정만 가능.
+  데이터: `/en/blog`·`/ja/blog`·`/es/blog` 의 본문이 `/blog` 와 **89.5~91.8% 동일**
+  (글 제목이 전부 한국어라 UI 크롬만 다르다). 자기참조 canonical 을 선언하지만 Google 이
+  `/blog` 로 묶었을 가능성이 가장 높다 — 3개 중 2개가 보고된 수와 맞는다.
+  반증된 가설: 글끼리의 중복(42개 전수 쌍 비교, 최대 유사도 0.612 · 중앙값 0.262 — 중복 아님).
+  ②-1/②-2 로 canonical 이 요청마다 흔들린 것도 Google 이 선언을 불신할 이유가 된다.
+- **draft/scheduled 글이 색인됐는지.** `PostsController#show` 는 `draft`·`scheduled` 도 200 으로
+  서빙하고, 한국어 본문이 있으면 **noindex 가 붙지 않는다.** 사이트맵·목록에는 안 나오므로
+  슬러그를 알아야 도달하지만 구조적으로는 열려 있다. 개수는 프로덕션 DB 없이 셀 수 없다.
+
+### 수정 (a등급만)
+
+- `app/helpers/application_helper.rb` — `url_locale` 신설(요청 경로에서 로케일 추출).
+  `page_meta` 가 `locale_prefixed(path, url_locale)` 를 쓴다. **색인 신호는 협상이 아니라 URL 에서 나온다.**
+- `app/controllers/posts_controller.rb` — `@url_locale` 로 게이트 판정, `@hreflang_locales` 전달,
+  `index` 의 죽은 `page_meta` 호출 제거.
+- `app/views/posts/show.html.erb` — canonical 을 `@url_locale` 로 산출.
+- `app/views/posts/index.html.erb` — `page_meta` 를 뷰로 이동.
+- `app/views/layouts/application.html.erb` + `hreflang_alternates(locales = nil)` — 로케일 집합을
+  좁힐 수 있게. `nil`=전체, `[]`=없음(`.presence` 폴백 금지).
+- `config/routes.rb` — `/blog/index.html` → 301 `/blog` (로케일 보존, `/blog/:slug` 보다 위).
+- `app/views/pages/sitemap.xml.erb` — `?category=` 블록 제거.
+
+**수정하지 않은 것**: ①의 126개 noindex(의도대로임), `/xx/blog` 목록 페이지의
+hreflang·canonical(전략 판단), draft 공개 서빙(동작 결정), admin 의 robots.txt 의존.
+
+### 검증
+
+- `bin/rails test` → **46 runs / 190 assertions / 0 failures** (수정 전 25/87).
+  신규 `test/integration/blog_indexing_test.rb` 22개 + `test/fixtures/posts.yml`(ko전용·이중언어 2종).
+- 로컬 전수 감사: 사이트맵 33개 전부 200·자기참조 canonical·noindex 0,
+  내부 링크 대상 103개 전부 해결.
+- Accept-Language 매트릭스(none/en/ja) × 7개 무프리픽스 페이지 → canonical 전부 불변.
+- `/blog` `<title>` = `블로그 - SlimFile`, 사이트맵 `?category=` 0개,
+  `/blog/index.html`·`/en|ja/blog/index.html` 301.
+
 ## Favicon & PWA Manifest (2026-04-22)
 
 - **Files in `public/`**: `favicon.ico`, `favicon-16x16.png`, `favicon-32x32.png`, `apple-touch-icon.png`, `android-chrome-192x192.png`, `android-chrome-512x512.png`, `site.webmanifest`

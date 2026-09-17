@@ -33,6 +33,12 @@
 | 2026-09-17 | 301 본문·Location 의 방어를 **상류 파서에 맡기지 않는다** (`CGI.escapeHTML` + CR/LF 제거) | Puma 가 raw `<`·`>`·`"` 를 400 으로 거르고 브라우저가 301 본문을 렌더하지 않아 현재는 도달 불가지만, 안전의 근거가 우리 코드 밖에 있으면 서버 교체·프록시 추가 한 번에 사라진다. 이 저장소가 반복해 당한 "암묵적 상류 의존" 패턴이다 |
 | 2026-09-17 | 이스케이프 검증은 **통합 테스트가 아니라 Rack 단위 테스트**로 한다 | `ActionDispatch::IntegrationTest` 는 URI 를 percent-encode 해서 미들웨어에 넘긴다. raw 바이트를 주입할 수 없으니 단언이 통과해도 아무것도 보장하지 않는다(공허한 검사). Rack env 를 직접 만들어야 이스케이프가 그 파일의 성질임을 확인할 수 있다 |
 | 2026-09-17 | SW 회귀 테스트는 **수정 전 워커로도 돌려 실패를 확인**한다 (`--old`) | 실패하지 않는 회귀 테스트는 회귀 테스트가 아니다. 이 버그는 업데이트가 "성공"을 보고하므로 특히 그렇다 — 하네스가 실제로 잡는지 증명해야 한다 |
+| 2026-09-17 | **색인 신호(canonical·robots·hreflang)는 `I18n.locale` 이 아니라 URL 에서 파생한다** (`ApplicationHelper#url_locale`) | `set_locale` 우선순위가 `URL 프리픽스 → 쿠키 → Accept-Language` 라, 프리픽스 없는 정본 URL 의 로케일이 요청자마다 달랐다. 그 결과 `/blog/:slug` 가 `Accept-Language: en` 요청에 `noindex,follow` 를 반환하고 `/faq` 의 canonical 이 `/en/faq` 로 바뀌었다(라이브 실측). 한 URL 은 모두에게 같은 색인 지시를 보내야 한다. UI 언어는 계속 협상해도 된다 — 바꾼 것은 신호뿐이다 |
+| 2026-09-17 | 글 페이지의 hreflang 은 `Post#translated_locales` 로 좁힌다 (`@hreflang_locales`) | 페이지는 4개 로케일을 광고하는데 사이트맵은 `ko` 하나만 실었다 — 둘 중 하나는 틀렸고, 광고 대상이 noindex 이며 canonical 도 한국어판을 가리키므로 페이지 쪽이 틀렸다. 이 광고가 126개 noindex URL 이 발견된 경로이기도 하다 |
+| 2026-09-17 | `hreflang_alternates(nil)` = 전체, `hreflang_alternates([])` = 없음 (`.presence` 폴백 금지) | 빈 배열은 "아직 어느 로케일에도 없다"는 **진짜 답**이다. `.presence` 를 쓰면 그 답이 조용히 "전체"로 뒤집힌다 |
+| 2026-09-17 | 사이트맵에서 `?category=` 페이지를 뺀다 | 그 페이지들은 `canonical=/blog` 를 선언한다. 자기 주소를 부정하는 URL 을 사이트맵에 올리면 Google 에 두 가지를 동시에 말하는 것이다. 카테고리 페이지를 독립적으로 노출하려면 **먼저 자기참조 canonical 로 바꾸고** 그 다음에 다시 넣는다 |
+| 2026-09-17 | `/blog/index.html` 은 404 로 두지 않고 `/blog` 로 301 | 정적 파일이던 시절 실제로 색인됐던 주소다(`9f8bfff` 가 파일 삭제). 색인된 URL 을 버리는 것보다 목록으로 넘기는 편이 낫다. `/blog/:slug` 보다 **위**에 있어야 slug=`index.html` 로 새지 않는다 |
+| 2026-09-17 | `page_meta` 는 **뷰에서만** 호출한다 (`posts#index` 의 컨트롤러 호출 제거) | 컨트롤러의 `helpers` 프록시로 건 `content_for` 는 레이아웃에 닿지 않는다. 조용히 무시돼서 `/blog` 4개 로케일이 전부 기본 `<title>SlimFile</title>` 로 나가고 있었다. 이미 `posts/show` 에서 겪은 함정인데 재발했다 |
 | 2026-08-25 | `color-mix()` 는 **폴백 선언 뒤에** 둔다 (`border: 1px solid var(--border-color)` → `border-color: color-mix(...)`) | 미지원 브라우저는 뒷줄을 무시하고 중립 회색 테두리로 내려앉는다. 커스텀 속성 안에 `color-mix` 를 넣으면 값이 통째로 무효가 돼 이 안전망이 사라진다 |
 
 ## 기각·보류 (되살리려면 이유부터 다시 볼 것)

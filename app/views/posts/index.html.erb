@@ -1,3 +1,14 @@
+<%# Moved here from PostsController#index (2026-09-17). content_for set through a
+    controller's `helpers` proxy never reaches the rendered layout, so the call
+    was a silent no-op and all four /blog listings shipped the default
+    "SlimFile" <title> with the generic site description — measured live before
+    the move. Same trap as posts/show.html.erb; keep page_meta in the view. %>
+<% page_meta(
+     title: t("blog.title"),
+     description: t("blog.meta_description"),
+     path: "/blog"
+   ) %>
+
 <div class="container">
   <div class="page-header">
     <div class="page-header-icon" style="background: var(--compress-light);">

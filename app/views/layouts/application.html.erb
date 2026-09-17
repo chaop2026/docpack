@@ -38,7 +38,8 @@
     <% end %>
     <link rel="canonical" href="<%= content_for(:meta_url) || "#{base_url}#{request.path}" %>">
 
-    <% hreflang_alternates.each do |loc, href| %>
+    <%# @hreflang_locales lets a controller narrow the set — see the helper. %>
+    <% hreflang_alternates(@hreflang_locales).each do |loc, href| %>
     <link rel="alternate" hreflang="<%= loc %>" href="<%= href %>">
     <% end %>
     <link rel="alternate" hreflang="x-default" href="<%= "#{base_url}#{localized_path(I18n.default_locale)}" %>">

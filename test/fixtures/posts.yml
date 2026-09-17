@@ -1,0 +1,31 @@
+# Two shapes matter for indexing, and they are the two fixtures here:
+#
+#   korean_only  — the shape every one of the 42 live posts actually has
+#                  (body_ko filled, body_en blank). Its /en, /ja and /es URLs
+#                  serve the Korean article under a translated shell, so they
+#                  carry noindex and canonicalise back to the Korean URL.
+#   bilingual    — body_en filled as well. Exists on no live post yet, but it is
+#                  the shape the translation gate is written for, so the tests
+#                  need it to prove the gate opens and not just that it is shut.
+
+korean_only:
+  title_ko: "한국어 전용 글"
+  body_ko: "<p>한국어 본문입니다.</p>"
+  body_en: ""
+  slug: "korean-only-post"
+  category: "pdf"
+  status: "published"
+  published_at: <%= 3.days.ago.to_fs(:db) %>
+  meta_description_ko: "한국어 전용 글의 설명"
+
+bilingual:
+  title_ko: "번역된 글"
+  title_en: "Translated post"
+  body_ko: "<p>한국어 본문입니다.</p>"
+  body_en: "<p>English body.</p>"
+  slug: "bilingual-post"
+  category: "global"
+  status: "published"
+  published_at: <%= 2.days.ago.to_fs(:db) %>
+  meta_description_ko: "번역된 글의 설명"
+  meta_description_en: "Description of the translated post"

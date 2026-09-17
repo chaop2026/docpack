@@ -31,22 +31,16 @@
   </url>
   <% end %>
 <% end %>
-<%# Category listing pages — currently privacy (SafeFile guides). 4 UI locales. %>
-<% category_pages = %w[privacy] %>
-<% category_pages.each do |cat| %>
-  <% ui_locales.each do |loc| %>
-  <url>
-    <loc><%= @base_url %><%= prefix.(loc, "/blog") %>?category=<%= cat %></loc>
-    <lastmod><%= Date.today.iso8601 %></lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-    <% ui_locales.each do |alt| %>
-    <xhtml:link rel="alternate" hreflang="<%= alt %>" href="<%= @base_url %><%= prefix.(alt, "/blog") %>?category=<%= cat %>"/>
-    <% end %>
-    <xhtml:link rel="alternate" hreflang="x-default" href="<%= @base_url %><%= prefix.(default, "/blog") %>?category=<%= cat %>"/>
-  </url>
-  <% end %>
-<% end %>
+<%# Category listing pages (?category=privacy et al.) are deliberately NOT listed.
+    They used to be, and that contradicted the pages themselves: PostsController#index
+    calls page_meta(path: "/blog"), so /blog?category=privacy declares
+    <link rel="canonical" href="…/blog"> — an address other than its own. A sitemap is
+    a list of canonical URLs, so advertising a URL that disowns its own address tells
+    Google two different things at once. (Measured live 2026-09-17: all four
+    ?category=privacy URLs canonicalised to the unfiltered listing.)
+    Nothing is lost by dropping them — every post they filter to is listed
+    individually below. If category pages should rank in their own right, the fix is
+    to make them self-canonicalise first, and only then re-add them here. %>
 <% Post.published.recent.each do |post| %>
   <% lastmod = (post.updated_at || post.published_at)&.to_date&.iso8601 %>
   <%# Only emit locales the post is actually translated into — untranslated

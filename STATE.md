@@ -43,26 +43,38 @@
 
 ## 다음 할 일
 
-0. **배포 → GSC 재크롤링 요청.** 교차검증 (a) 2건은 **수정·재검증 완료**했다
+0. **배포 → GSC 재크롤링 요청.** (`/safe/` canonical + 미색인 63개 조사 수정이 모두 대기 중)
+   - **미색인 63개 조사 완료 (2026-09-17).** noindex 40 은 **의도대로**다 — 게이트는 draft 가
+     아니라 **번역 여부**이고, 42개 글이 전부 한국어 단독이라 en/ja/es URL 126개가 noindex 다
+     (40 은 그중 크롤된 부분집합, 방치하면 126까지 는다). 그 옆에서 6가지 모순을 찾아 고쳤다 —
+     가장 심각한 건 **한국어 정본 URL 이 `Accept-Language: en` 요청에 noindex 를 반환**하던 것.
+     자세한 내용은 CLAUDE.md "미색인 63개 조사" 절.
+   - 프로덕션 DB 는 건드리지 않았다. 판정은 전부 라이브 HTTP 실측 + 깃 이력.
+
+1. **배포 절차.** 교차검증 (a) 2건은 **수정·재검증 완료**했다
    (SW 필수자산 분리 + 301 본문 이스케이프, CLAUDE.md "교차검증 (a) 2건 수정" 절).
    - `kamal deploy`. 라이브에서 `/safe`·`/safe/index.html` 이 301 인지,
      `/safe/` 에 canonical 이 박혔는지 curl 로 확인.
-   - 그 다음 GSC: `/safe/` URL 검사 → 색인 생성 요청, sitemap 재제출.
-     반영까지 보통 며칠~2주. 브랜치는 `fix/safe-canonical-duplicate` (main 미병합).
+   - 라이브에서 `curl -H 'Accept-Language: en-US' .../blog/<슬러그>` 가 **noindex 없이**
+     오는지, `/faq` canonical 이 `/faq` 로 남는지도 확인 (이번 수정의 핵심 지표).
+   - 그 다음 GSC: `/safe/`·`/blog` URL 검사 → 색인 생성 요청, sitemap 재제출,
+     "찾을 수 없음(404)" 목록에서 `/blog/index.html` 인지 확인. 반영까지 며칠~2주.
    - 배포 후 SW 가 새로 깔리므로, 기존 방문자 한 명이 `/safe/` 를 열고 오프라인에서도
      열리는지 눈으로 한 번 볼 것 (자동 검증은 통과했다).
+   - 선택: 42개 글 중 몇 개라도 `body_en` 을 채우면 그만큼 en URL 이 색인 대상으로 바뀐다.
+     지금은 42개 전부 한국어 단독이라 en/ja/es 126개가 구조적으로 noindex 다.
 
-1. **ghcr.io PAT 재발급.** 2026-08-25 디버깅 중 `od -c` 로 토큰을 평문 출력해 세션 기록에 남았다.
+2. **ghcr.io PAT 재발급.** 2026-08-25 디버깅 중 `od -c` 로 토큰을 평문 출력해 세션 기록에 남았다.
    교체 후 `.env.production.local` 과 `.env` 두 파일 모두 갱신 (두 파일은 같은 값을 유지해야 함).
-2. **진단 코드 제거.** `app/views/layouts/application.html.erb` 의 `window.__jsErrors` 수집기와
+3. **진단 코드 제거.** `app/views/layouts/application.html.erb` 의 `window.__jsErrors` 수집기와
    `params[:debug]` 로 걸린 `alert()` 블록은 임시다. 원인 규명이 끝났으므로 이제 지워도 된다.
    `dragover`/`drop` preventDefault 자체는 남긴다.
-3. **업로드 목록 실기기 확인.** 자동 검증은 통과했으나 실제 모바일 Safari/Chrome 에서
+4. **업로드 목록 실기기 확인.** 자동 검증은 통과했으나 실제 모바일 Safari/Chrome 에서
    드롭·파일 선택·긴 파일명 생략을 눈으로 한 번 볼 것. 시각 강화분(액센트 바·진입 애니메이션)도
    같이 본다. `color-mix` 미지원 구형 브라우저에서는 테두리가 중립 회색으로 내려앉는 게 정상이다.
-4. **블로그 자동화 현재 상태 점검.** `kamal app exec 'bin/rails runner "puts Post.group(:status).count; puts BlogTopic.where(used: false).count"'`
+5. **블로그 자동화 현재 상태 점검.** `kamal app exec 'bin/rails runner "puts Post.group(:status).count; puts BlogTopic.where(used: false).count"'`
    로 발행 현황과 잔여 주제 확인. 2026-04-07 SolidQueue/SMTP 수정 이후 재검증한 기록이 없다.
-5. **PWA 작업 시 `app/views/pwa/manifest.json.erb` 처리 결정.** 이 파일은 Rails 8 스캐폴드 잔재다 —
+6. **PWA 작업 시 `app/views/pwa/manifest.json.erb` 처리 결정.** 이 파일은 Rails 8 스캐폴드 잔재다 —
    `routes.rb` 에 PWA 라우트가 없고, 레이아웃은 `/site.webmanifest`(정적, 이미 SlimFile)를 링크한다.
    `theme_color: "red"` 가 남아 있는 게 손대지 않은 스캐폴드라는 증거. 2026-08-25 브랜드 치환 때
    이름만 SlimFile 로 맞춰두고 삭제는 보류했다. PWA 를 손볼 때 **삭제할지 실제로 라우팅해 쓸지**

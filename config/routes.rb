@@ -36,6 +36,17 @@ Rails.application.routes.draw do
     get "/faq",      to: "pages#faq"
 
     get "/blog",       to: "posts#index", as: :blog
+
+    # The blog index used to be a static file at public/blog/index.html, so
+    # ActionDispatch::Static answered /blog, /blog/ AND /blog/index.html with an
+    # identical 200 and Google indexed all three. 9f8bfff (2026-07-17) deleted
+    # the file when the listing moved into Rails, which left /blog/index.html
+    # falling through to "/blog/:slug" below as slug="index.html" → 404.
+    # 301 it back onto the listing instead of stranding an indexed URL.
+    # MUST stay above "/blog/:slug" — routes match in declaration order.
+    get "/blog/index.html",
+        to: redirect { |params, _req| params[:locale] ? "/#{params[:locale]}/blog" : "/blog" }
+
     get "/blog/:slug", to: "posts#show",  as: :blog_post
   end
 

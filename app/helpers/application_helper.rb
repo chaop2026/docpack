@@ -6,12 +6,24 @@ module ApplicationHelper
     ENV.fetch("BASE_URL", "https://slimfile.net")
   end
 
-  # `path` is the canonical unprefixed path (e.g. "/faq"); the current locale
+  # The locale the URL itself declares, ignoring cookie / Accept-Language
+  # negotiation. Every indexing signal must be derived from this rather than from
+  # I18n.locale: set_locale resolves a *bare* path through the cookie and then
+  # Accept-Language, so the same URL used to answer different crawlers
+  # differently — GET /faq with `Accept-Language: en` declared its canonical to
+  # be /en/faq, and GET /blog/:slug with the same header came back noindex.
+  # A URL has to send one answer to everyone.
+  def url_locale
+    m = request.path.match(%r{\A/(en|ja|es)(?=/|\z)})
+    m ? m[1].to_sym : I18n.default_locale
+  end
+
+  # `path` is the canonical unprefixed path (e.g. "/faq"); the URL's own locale
   # prefix is applied so each localized page self-canonicalizes.
   # `canonical` (when given) is an absolute path already resolved to the correct
   # locale — used to point untranslated blog pages at the Korean original.
   def page_meta(title:, description:, path: nil, image: nil, canonical: nil)
-    canonical_path = canonical || (path ? locale_prefixed(path) : request.path)
+    canonical_path = canonical || (path ? locale_prefixed(path, url_locale) : request.path)
     content_for(:meta_title, title)
     content_for(:meta_description, description)
     content_for(:meta_url, "#{base_url}#{canonical_path}")
@@ -64,7 +76,20 @@ module ApplicationHelper
   end
 
   # [[locale, absolute_url], ...] for hreflang alternates (canonical, no query).
-  def hreflang_alternates
-    I18n.available_locales.map { |loc| [loc, "#{base_url}#{localized_path(loc)}"] }
+  #
+  # `locales` narrows the set for pages that do not genuinely exist in every UI
+  # language. Blog posts are the case: the UI chrome is translated but the body
+  # is not, so /ja/blog/:slug serves the Korean article under a Japanese shell —
+  # it carries noindex and canonicalises to the Korean URL. Advertising it as
+  # the Japanese alternate contradicts both of those signals (Google requires
+  # hreflang targets to be canonical and indexable) and is how those URLs get
+  # discovered in the first place. The sitemap has always used the narrowed set
+  # (Post#translated_locales); this makes the page agree with it.
+  # nil means "not specified" → every UI locale. An empty array is a real answer
+  # ("this page exists in no locale yet") and must stay empty rather than fall
+  # back to all four.
+  def hreflang_alternates(locales = nil)
+    (locales.nil? ? I18n.available_locales : locales)
+      .map { |loc| [loc, "#{base_url}#{localized_path(loc)}"] }
   end
 end

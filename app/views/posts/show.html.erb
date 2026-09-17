@@ -1,6 +1,8 @@
 <%# Page meta must be emitted from the view: content_for set via the controller's
     `helpers` proxy does not propagate to the layout head. %>
-<% canonical_path = @post_translated ? locale_prefixed("/blog/#{@post.slug}") : "/blog/#{@post.slug}" %>
+<%# @url_locale, not I18n.locale — the canonical must follow the URL, not the
+    reader's cookie/Accept-Language. See PostsController#show. %>
+<% canonical_path = @post_translated ? locale_prefixed("/blog/#{@post.slug}", @url_locale) : "/blog/#{@post.slug}" %>
 <% page_meta(
      title: @post.title,
      description: @post.meta_description.presence || @post.title,
