@@ -589,6 +589,18 @@ hreflang 이 ko+en 둘 다로 늘고 사이트맵도 2개로 늘었다. 원복 �
   한국어 정본 글 URL 의 robots 태그 0개 유지.
 - `/blog/index.html`·`/en/blog/index.html`·`/safe`·`/safe/index.html` 301 유지.
 
+### self-check 로 추가 정리한 것
+
+- `Post#title/body/meta_description` 의 `loc` 인자를 **필수로** 만들었다.
+  `= I18n.locale` 기본값이 바로 이 버그를 만든 함정이라, 남겨두면 다음 호출자가 조용히
+  되살린다. 기본값이 없으면 빠뜨리는 순간 호출 지점에서 `ArgumentError` 가 난다.
+  (전 호출처가 이미 명시적으로 넘기고 있어 안전하게 제거 가능했다 — app·lib·db·script 전수 확인)
+- `Post#translated_locales` **삭제**. `indexable_locales` 로 전부 대체돼 호출자가 0이 됐는데,
+  남겨두면 누군가 hreflang 에 다시 써서 미발행 글 유출을 재도입한다.
+  `translated?` 는 canonical 산출에 계속 쓰이므로 남긴다 (canonical 은 발행 여부가 아니라
+  번역 여부를 따라야 한다 — 미발행 한국어 글도 자기 ko 주소로 canonical 을 잡는 게 맞다).
+- `application_helper.rb` 의 주석이 사라진 `translated_locales` 를 가리키고 있어 갱신.
+
 ### 남는 관찰 (수정 안 함)
 
 - `/ja|es/blog/:slug` 는 번역이 없을 때 **영어 폴백**을 보여준다(일본어 UI + 영어 본문).
@@ -604,3 +616,40 @@ hreflang 이 ko+en 둘 다로 늘고 사이트맵도 2개로 늘었다. 원복 �
 - **Layout**: `<link>` tags in `app/views/layouts/application.html.erb` head — favicon (ico + 16/32 png), apple-touch-icon (180x180), manifest
 - **Source**: Generated via favicon.io
 - **Commit**: `a1fd3dc feat: add full favicon set with PWA manifest`
+
+## minitest 6 × railties 호환성 점검 (2026-09-17)
+
+docpack 에서 나온 "테스트가 죽었는데 요약만 보면 통과처럼 보이던" 문제가 다른 곳에도 있는지
+`~/Projects` 전체를 훑었다(Gemfile 에 rails 가 있는 디렉터리 기준 — 활성 8개 + `_archive` 워크트리 1개).
+
+**판정 기준은 버전이 아니라 소스다.** railties `8.0.5` 부터 `rails/test_unit/line_filtering.rb` 에
+`Minitest::VERSION` 분기가 들어갔다 — MT5 는 `run(reporter, options)`, MT6 는 `run_suite(reporter, options)`.
+`8.0.4` 이하에는 2-arity `run` 하나뿐이라 minitest 6 이 `runnable.run(reporter, options, …)` 를
+3인자로 부르면 `wrong number of arguments (given 3, expected 1..2)` 로 **단언 하나 돌기 전에 죽는다**.
+
+> 비호환 = `railties < 8.0.5` **그리고** `minitest >= 6`. 둘 중 하나만으로는 안전하다.
+
+설치된 railties 로 직접 확인: 8.0.0 / 8.0.2 / 8.0.4 → `run_suite` 없음, 8.0.5 / 8.0.5.1 / 8.1.3.1 → 있음.
+
+**이 프로젝트**: railties `8.0.4` / minitest `5.27.0`(핀) → **이미 조치됨. 이번 점검의 대조군.**
+
+`~/Projects` 의 Rails 프로젝트 중 **railties 가 8.0.5 미만인 것은 docpack 하나뿐**이다.
+나머지 7개는 전부 8.0.5 이상이라 같은 사고가 날 수 없다. 즉 **이 문제는 docpack 고유였고,
+다른 프로젝트로 번지지 않았다.** 다만 docpack 은 `rails "~> 8.0.4"` 라 핀을 풀면 다시 위험해진다 —
+핀을 지우려면 그 전에 `rails` 를 8.0.5 이상으로 올려라.
+
+**원증상 재현(격리 프로브로 실측)**: 실제 Gemfile 은 건드리지 않고 `Gemfile.mt6probe` 사본에서만
+minitest 를 `~> 6.0` 으로 풀어 `BUNDLE_GEMFILE` 로 돌렸다(확인 후 프로브 파일 삭제).
+railties 8.0.4 + minitest 6.0.2 조합에서:
+
+```
+railties-8.0.4/lib/rails/test_unit/line_filtering.rb:7:in `run':
+wrong number of arguments (given 3, expected 1..2) (ArgumentError)
+```
+
+**기존 기록 한 줄을 정정한다.** 위에 "`0 tests` 로 조용히 통과처럼 보였다" 고 적어뒀지만,
+실제 출력은 `0 runs, 0 assertions, 0 failures` 를 **찍지 않는다**. 스택 트레이스를 stderr 로 쏟고
+exit code `1` 로 죽는다. stdout 만 보면 `Running 46 tests …` / `# Running:` 에서 **요약 줄 없이 끊긴다**.
+"0 tests 로 통과" 가 아니라 **"요약이 아예 없음"** 이 진짜 신호다 — 조용한 쪽이 아니라 시끄러운 쪽인데,
+tail 만 훑으면 아무 일도 없었던 것처럼 보이는 종류의 시끄러움이다. 참고로 정상(minitest 5)일 때는
+exit code `0`. **다음에 같은 걸 찾을 때는 `0 tests` 가 아니라 `종료코드 != 0` 과 `요약 줄 부재` 를 봐라.**

@@ -15,24 +15,27 @@ class Post < ApplicationRecord
 
   # ── Localized content ───────────────────────────────────────────────────
   #
-  # `loc` is the locale of the URL being rendered, not the one I18n negotiated.
-  # Callers pass ApplicationHelper#url_locale. Defaulting to I18n.locale is what
-  # made an unprefixed /blog/:slug serve an English title and body to anyone
-  # sending `Accept-Language: en` while still declaring the Korean canonical —
-  # one URL with two contents, and an exact duplicate of /en/blog/:slug.
-  # Only a prefixed URL may serve localized content.
+  # `loc` is the locale of the URL being rendered, not the one I18n negotiated —
+  # callers pass ApplicationHelper#url_locale. It is REQUIRED on purpose. These
+  # three used to default to I18n.locale, and that default is the whole bug: an
+  # unprefixed /blog/:slug served an English title and body to anyone sending
+  # `Accept-Language: en` while still declaring the Korean canonical — one URL
+  # with two contents, and an exact duplicate of /en/blog/:slug. A default would
+  # let the next caller reintroduce it in silence; without one, forgetting is an
+  # ArgumentError at the call site. Only a prefixed URL may serve localized
+  # content.
   #
   # The fallback itself is unchanged: any non-Korean locale prefers the English
   # column and drops to Korean when it is empty (ja/es have no columns at all).
-  def title(loc = I18n.locale)
+  def title(loc)
     loc.to_sym == :ko ? title_ko : (title_en.presence || title_ko)
   end
 
-  def body(loc = I18n.locale)
+  def body(loc)
     loc.to_sym == :ko ? body_ko : (body_en.presence || body_ko)
   end
 
-  def meta_description(loc = I18n.locale)
+  def meta_description(loc)
     loc.to_sym == :ko ? meta_description_ko : (meta_description_en.presence || meta_description_ko)
   end
 
@@ -63,11 +66,6 @@ class Post < ApplicationRecord
   # Preview keeps its 200; only the indexing directive changes.
   def indexable?(loc = I18n.locale)
     status == "published" && translated?(loc)
-  end
-
-  # Locales whose body is genuinely present — drives the language switcher copy.
-  def translated_locales
-    [ :ko, :en ].select { |l| translated?(l) }
   end
 
   # Locales this post may actually be indexed under — drives sitemap + hreflang.

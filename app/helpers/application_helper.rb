@@ -88,7 +88,7 @@ module ApplicationHelper
   # the Japanese alternate contradicts both of those signals (Google requires
   # hreflang targets to be canonical and indexable) and is how those URLs get
   # discovered in the first place. The sitemap has always used the narrowed set
-  # (Post#translated_locales); this makes the page agree with it.
+  # (Post#indexable_locales); this makes the page agree with it.
   # nil means "not specified" → every UI locale. An empty array is a real answer
   # ("this page exists in no locale yet") and must stay empty rather than fall
   # back to all four.
