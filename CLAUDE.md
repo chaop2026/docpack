@@ -526,6 +526,77 @@ hreflang·canonical(전략 판단), draft 공개 서빙(동작 결정), admin �
   다음부터 라우트 파일은 전문으로 넣는다. (제기된 우려는 반증됨 —
   `"index.html".parameterize` → `"index-html"` 이라 슬러그 충돌이 생길 수 없다.)
 
+## 교차검증 AMBER 2건 수정 (2026-09-17)
+
+`docs/review/CROSS_REVIEW_TRIAGE_2026-09-17_indexing.md` 의 (a) 2건.
+
+### A-1 — 발행 상태가 색인 게이트에 반영되지 않던 문제
+
+**증상**: `PostsController#show` 가 `draft`·`scheduled` 도 200 으로 서빙하는데,
+게이트(`unless @post_translated`)는 **번역 여부만** 봤다. 한국어 본문이 있는 초안은
+`translated?(:ko)` 가 true 라 noindex 가 안 붙었다 — 미발행 글이 색인 가능한 공개 페이지였다.
+
+**상태별 신호 기준** (`Post#indexable?` 에 표로 박아뒀다):
+
+| status | 접근 | robots | hreflang | sitemap |
+|---|---|---|---|---|
+| `published` + 해당 로케일 번역됨 | 200 | (없음) | `indexable_locales` | 포함 |
+| `published` + 미번역 로케일 | 200 | `noindex,follow` | `indexable_locales` | 제외 |
+| `scheduled` | 200 (미리보기) | `noindex,follow` | **없음** (+x-default 도 없음) | 제외 |
+| `draft` | 200 (미리보기) | `noindex,follow` | **없음** (+x-default 도 없음) | 제외 |
+
+**수정**:
+- `Post#indexable?(loc)` = `status == "published" && translated?(loc)` — 모든 색인 신호의 단일 규칙.
+- `Post#indexable_locales` — 미발행이면 `[]`. **빈 배열은 진짜 답**이므로 그대로 둔다
+  (`hreflang_alternates` 의 `nil`≠`[]` 규칙이 여기서 쓰인다).
+- 레이아웃: alternate 가 0개면 **x-default 도 출력하지 않는다.** 아무도 색인할 수 없는
+  페이지를 가리키는 폴백 포인터는 참인 말이 아니다. (지난 라운드 Codex 의 B-1 지적을 여기서 해소)
+- 사이트맵: `translated_locales` → `indexable_locales`. 위의 `Post.published` 스코프가
+  혹시 바뀌어도 미발행 글이 샐 수 없다.
+- **미리보기 200 은 그대로다.** 바뀐 것은 색인 지시뿐이다.
+
+### A-2 — 절반짜리 수정 완결: 콘텐츠도 URL 기준으로
+
+**증상**: canonical·robots·hreflang 은 `@url_locale` 로 옮겼는데 `Post#title/body/meta_description`
+는 계속 `I18n.locale` 을 읽었다. 무프리픽스 URL 이 `Accept-Language: en` 요청에 **영어 제목·설명·본문**을
+내보내면서 canonical 은 한국어 주소를 가리켰다 — `/en/blog/:slug` 와 같은 내용이 두 번째 주소에 생긴다.
+
+**수정**: `Post#title/body/meta_description` 이 로케일을 인자로 받는다(`def title(loc = I18n.locale)`).
+호출처는 `posts/show.html.erb`(→`@url_locale`) 와 `posts/index.html.erb`(→`url_locale`) 둘뿐이다
+(메일러·어드민은 `_ko` 컬럼을 직접 읽으므로 영향 없음).
+**폴백 의미는 그대로 뒀다** — 비한국어 로케일은 영어 컬럼을 우선하고 비면 한국어로 내려간다.
+바꾼 것은 *로케일의 출처*뿐이다.
+
+### 검증 — `body_en` 을 실제로 채운 상태에서 (개발 DB, 프로덕션 미접촉)
+
+`resume-privacy` 에 `body_en`·`title_en`·`meta_description_en` 을 임시로 채우고 실제 HTTP 로 확인 후 원복:
+
+| URL | Accept-Language | 본문 | canonical | robots |
+|---|---|---|---|---|
+| `/blog/resume-privacy` | none / en / ja | **한국어** | `/blog/resume-privacy` | 없음 |
+| `/en/blog/resume-privacy` | none / **ko** | **영어** | `/en/blog/resume-privacy` | 없음 |
+| `/ja/blog/resume-privacy` | none | 영어 폴백 | `/blog/resume-privacy` | `noindex,follow` |
+
+hreflang 이 ko+en 둘 다로 늘고 사이트맵도 2개로 늘었다. 원복 후 DB 에 `TEMP` 마커 0건,
+사이트맵 `resume-privacy` 항목 1개로 복귀 확인.
+
+### 회귀 검증
+
+- `bin/rails test` → **58 runs / 278 assertions / 0 failures** (수정 전 46/190).
+  신규 픽스처 3종(draft·scheduled·이중언어 발행) + 테스트 14개.
+- 사이트맵 33개 전부 200·자기참조 canonical·noindex 0 / 내부 링크 103개 전부 해결.
+- Accept-Language(none/en/ja/es) × 무프리픽스 8페이지 → canonical 전부 불변,
+  한국어 정본 글 URL 의 robots 태그 0개 유지.
+- `/blog/index.html`·`/en/blog/index.html`·`/safe`·`/safe/index.html` 301 유지.
+
+### 남는 관찰 (수정 안 함)
+
+- `/ja|es/blog/:slug` 는 번역이 없을 때 **영어 폴백**을 보여준다(일본어 UI + 영어 본문).
+  noindex 라 SEO 영향은 없고, 폴백 우선순위를 바꾸는 건 별도 판단이라 손대지 않았다.
+- 무프리픽스 URL 의 **UI 크롬은 여전히 협상**된다(`<html lang="en">` + 한국어 본문).
+  이번 요구사항은 본문·제목·설명에 한정됐다. UI 까지 URL 기준으로 맞추려면
+  영어권 방문자가 `/` 에서 한국어를 보게 되므로 제품 결정이 필요하다.
+
 ## Favicon & PWA Manifest (2026-04-22)
 
 - **Files in `public/`**: `favicon.ico`, `favicon-16x16.png`, `favicon-32x32.png`, `apple-touch-icon.png`, `android-chrome-192x192.png`, `android-chrome-512x512.png`, `site.webmanifest`

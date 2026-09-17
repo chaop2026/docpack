@@ -66,6 +66,129 @@ class BlogIndexingTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # ── publication state gates indexing too ────────────────────────────────
+  #
+  #   status      robots           why
+  #   ---------   --------------   -------------------------------------------
+  #   published   (none)           live, body exists in this locale
+  #   published   noindex,follow   body not translated into this locale
+  #   scheduled   noindex,follow   not live yet, but served for preview
+  #   draft       noindex,follow   served for preview, never indexable
+
+  test "a draft is still served for preview" do
+    get "/blog/draft-post"
+    assert_response :success, "the preview link must keep working"
+    assert_includes response.body, "초안"
+  end
+
+  test "a draft is never indexable, in any locale" do
+    ["/blog/draft-post", "/en/blog/draft-post", "/ja/blog/draft-post"].each do |path|
+      get path
+      assert_equal "noindex,follow", robots(response.body), "#{path} is an unpublished draft"
+    end
+  end
+
+  test "a scheduled post is served for preview but never indexable" do
+    get "/blog/scheduled-post"
+    assert_response :success
+    assert_equal "noindex,follow", robots(response.body)
+  end
+
+  test "an unpublished post advertises no alternates at all" do
+    # [] is a real answer, not "unspecified" — and x-default goes with it, since
+    # a fallback pointer to a page nobody may index says nothing true.
+    %w[/blog/draft-post /blog/scheduled-post].each do |path|
+      get path
+      assert_empty hreflangs(response.body), "#{path} must advertise no locale"
+      assert_nil x_default(response.body), "#{path} must not emit x-default either"
+    end
+  end
+
+  test "publishing is what opens the gate" do
+    # Same Korean body in both; only status differs.
+    get "/blog/korean-only-post"
+    assert_nil robots(response.body)
+    get "/blog/draft-post"
+    assert_equal "noindex,follow", robots(response.body)
+  end
+
+  test "an unpublished post never reaches the sitemap" do
+    get "/sitemap.xml"
+    %w[draft-post scheduled-post].each do |slug|
+      assert_not_includes response.body, "/blog/#{slug}"
+    end
+  end
+
+  # ── content follows the URL, not the reader's browser ────────────────────
+  #
+  # The half-fix this closes: canonical/robots moved onto the URL while
+  # title/description/body kept reading I18n.locale, so an unprefixed URL served
+  # English to an `Accept-Language: en` request — the same content as the /en URL
+  # at a second address, under a Korean canonical.
+
+  test "an unprefixed URL serves Korean whatever the browser asks for" do
+    NEGOTIATION_HEADERS.each do |headers|
+      get "/blog/bilingual-published-post", headers: headers
+      lang = headers.values.first
+
+      assert_includes response.body, "KOBODY", "body switched language for #{lang}"
+      assert_not_includes response.body, "ENBODY", "English body leaked onto the Korean URL for #{lang}"
+      assert_includes response.body, "이중언어 발행 글"
+      assert_not_includes response.body, "Bilingual published post"
+      assert_includes response.body, "KODESC"
+
+      assert_equal "#{BASE}/blog/bilingual-published-post", canonical(response.body)
+      assert_nil robots(response.body)
+    end
+  end
+
+  test "the English URL serves English and canonicalises to itself" do
+    get "/en/blog/bilingual-published-post"
+    assert_includes response.body, "ENBODY"
+    assert_not_includes response.body, "KOBODY"
+    assert_includes response.body, "Bilingual published post"
+    assert_includes response.body, "ENDESC"
+    assert_equal "#{BASE}/en/blog/bilingual-published-post", canonical(response.body)
+    assert_nil robots(response.body)
+  end
+
+  test "the English URL is unmoved by an opposing header" do
+    get "/en/blog/bilingual-published-post",
+        headers: { "HTTP_ACCEPT_LANGUAGE" => "ko-KR,ko;q=0.9" }
+    assert_includes response.body, "ENBODY"
+    assert_equal "#{BASE}/en/blog/bilingual-published-post", canonical(response.body)
+  end
+
+  test "a locale cookie does not move a post's content either" do
+    get "/en/blog/bilingual-published-post"   # sets the locale cookie to en
+    get "/blog/bilingual-published-post"
+    assert_includes response.body, "KOBODY"
+    assert_not_includes response.body, "ENBODY"
+  end
+
+  test "the listing follows the URL's locale too" do
+    get "/blog", headers: { "HTTP_ACCEPT_LANGUAGE" => "en-US,en;q=0.9" }
+    assert_includes response.body, "이중언어 발행 글"
+    assert_not_includes response.body, "Bilingual published post"
+
+    get "/en/blog"
+    assert_includes response.body, "Bilingual published post"
+  end
+
+  test "a translated post is advertised under both locales and each self-canonicalises" do
+    get "/blog/bilingual-published-post"
+    assert_equal [
+      ["ko", "#{BASE}/blog/bilingual-published-post"],
+      ["en", "#{BASE}/en/blog/bilingual-published-post"]
+    ], hreflangs(response.body)
+
+    hreflangs(response.body).each do |_loc, href|
+      get href.sub(BASE, "")
+      assert_equal href, canonical(response.body)
+      assert_nil robots(response.body)
+    end
+  end
+
   # ── hreflang must agree with the noindex gate ───────────────────────────
 
   test "a Korean-only post advertises only the Korean alternate" do

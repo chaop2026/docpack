@@ -40,8 +40,8 @@
           <% end %>
           <div class="blog-card-body">
             <span class="blog-card-cat"><%= t("blog.categories.#{post.category}") %></span>
-            <h2 class="blog-card-title"><%= link_to post.title, blog_post_path(slug: post.slug) %></h2>
-            <p class="blog-card-desc"><%= truncate(post.meta_description.to_s, length: 100) %></p>
+            <h2 class="blog-card-title"><%= link_to post.title(url_locale), blog_post_path(slug: post.slug) %></h2>
+            <p class="blog-card-desc"><%= truncate(post.meta_description(url_locale).to_s, length: 100) %></p>
             <time class="blog-card-date"><%= post.published_at&.strftime("%Y.%m.%d") %></time>
           </div>
         </article>

@@ -46,7 +46,10 @@
   <%# Only emit locales the post is actually translated into — untranslated
       (ja/es always, en unless body_en present) URLs carry noindex, so keeping
       them out of the sitemap avoids indexing empty/mismatched pages. %>
-  <% locales = post.translated_locales %>
+  <%# indexable_locales, not translated_locales: it folds in publication state as
+      well, so the sitemap cannot list an unpublished post even if the loop above
+      ever stops scoping to Post.published. %>
+  <% locales = post.indexable_locales %>
   <% locales.each do |loc| %>
   <url>
     <loc><%= @base_url %><%= prefix.(loc, "/blog/#{post.slug}") %></loc>

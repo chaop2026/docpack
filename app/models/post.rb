@@ -13,23 +13,34 @@ class Post < ApplicationRecord
 
   before_validation :generate_slug, if: -> { slug.blank? && title_ko.present? }
 
-  def title
-    I18n.locale == :ko ? title_ko : (title_en.presence || title_ko)
+  # ── Localized content ───────────────────────────────────────────────────
+  #
+  # `loc` is the locale of the URL being rendered, not the one I18n negotiated.
+  # Callers pass ApplicationHelper#url_locale. Defaulting to I18n.locale is what
+  # made an unprefixed /blog/:slug serve an English title and body to anyone
+  # sending `Accept-Language: en` while still declaring the Korean canonical —
+  # one URL with two contents, and an exact duplicate of /en/blog/:slug.
+  # Only a prefixed URL may serve localized content.
+  #
+  # The fallback itself is unchanged: any non-Korean locale prefers the English
+  # column and drops to Korean when it is empty (ja/es have no columns at all).
+  def title(loc = I18n.locale)
+    loc.to_sym == :ko ? title_ko : (title_en.presence || title_ko)
   end
 
-  def body
-    I18n.locale == :ko ? body_ko : (body_en.presence || body_ko)
+  def body(loc = I18n.locale)
+    loc.to_sym == :ko ? body_ko : (body_en.presence || body_ko)
   end
 
-  def meta_description
-    I18n.locale == :ko ? meta_description_ko : (meta_description_en.presence || meta_description_ko)
+  def meta_description(loc = I18n.locale)
+    loc.to_sym == :ko ? meta_description_ko : (meta_description_en.presence || meta_description_ko)
   end
 
+  # ── Indexing ────────────────────────────────────────────────────────────
+  #
   # Blog posts only carry ko/en body columns. A locale counts as "translated"
   # only when that locale's body column is actually filled in — ja/es never are,
   # and en falls back to ko text (untranslated) unless body_en is present.
-  # Used to gate indexing (noindex,follow) so empty/untranslated locale pages
-  # don't get indexed while AdSense review is in progress.
   def translated?(loc = I18n.locale)
     case loc.to_sym
     when :ko then body_ko.present?
@@ -38,9 +49,32 @@ class Post < ApplicationRecord
     end
   end
 
-  # Locales whose body is genuinely present — drives sitemap + hreflang.
+  # The single rule behind every indexing signal this post emits.
+  #
+  #   status      | robots        | why
+  #   ------------|---------------|--------------------------------------------
+  #   published   | (none)        | live, and the body exists in this locale
+  #   published   | noindex,follow| body not translated into this locale, so the
+  #               |               | URL would put Korean text on an /en|ja|es
+  #               |               | address
+  #   scheduled   | noindex,follow| not live yet — PostsController#show serves it
+  #   draft       | noindex,follow| 200 for preview, but it must never be indexed
+  #
+  # Preview keeps its 200; only the indexing directive changes.
+  def indexable?(loc = I18n.locale)
+    status == "published" && translated?(loc)
+  end
+
+  # Locales whose body is genuinely present — drives the language switcher copy.
   def translated_locales
     [ :ko, :en ].select { |l| translated?(l) }
+  end
+
+  # Locales this post may actually be indexed under — drives sitemap + hreflang.
+  # Empty for anything unpublished, which is a real answer and stays empty:
+  # an unpublished post advertises no alternates at all.
+  def indexable_locales
+    [ :ko, :en ].select { |l| indexable?(l) }
   end
 
   def publish!

@@ -25,11 +25,18 @@ class PostsController < ApplicationController
     @url_locale = helpers.url_locale
     @post_translated = @post.translated?(@url_locale)
 
-    # Only advertise the locales this post actually exists in. The default set
-    # (all four) pointed at /en|ja|es/blog/:slug — URLs that carry noindex and
-    # canonicalise back here, which is both self-contradictory and the route by
-    # which Google discovered 126 no-index URLs. Matches the sitemap, which has
-    # always used translated_locales.
-    @hreflang_locales = @post.translated_locales
+    # The robots gate. Post#indexable? folds in publication state, which the old
+    # gate never looked at: a draft or scheduled post with a Korean body came
+    # back 200 with no noindex, so an unpublished article was an indexable
+    # public page. The 200 stays — preview still works — and only the directive
+    # changes. The signal table lives on Post#indexable?.
+    @post_indexable = @post.indexable?(@url_locale)
+
+    # Only advertise the locales this post can actually be indexed under. The
+    # default set (all four) pointed at /en|ja|es/blog/:slug — URLs that carry
+    # noindex and canonicalise back here, which is both self-contradictory and
+    # the route by which Google discovered 126 no-index URLs. Unpublished posts
+    # advertise nothing at all: [] is a real answer, not "unspecified".
+    @hreflang_locales = @post.indexable_locales
   end
 end

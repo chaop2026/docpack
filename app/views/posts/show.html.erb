@@ -3,12 +3,18 @@
 <%# @url_locale, not I18n.locale — the canonical must follow the URL, not the
     reader's cookie/Accept-Language. See PostsController#show. %>
 <% canonical_path = @post_translated ? locale_prefixed("/blog/#{@post.slug}", @url_locale) : "/blog/#{@post.slug}" %>
+<%# Content follows @url_locale too, not just the canonical. Reading I18n.locale
+    here meant an unprefixed URL served an English title/description/body to an
+    `Accept-Language: en` request while pointing its canonical at the Korean
+    address — the same content as /en/blog/:slug at a second URL. %>
 <% page_meta(
-     title: @post.title,
-     description: @post.meta_description.presence || @post.title,
+     title: @post.title(@url_locale),
+     description: @post.meta_description(@url_locale).presence || @post.title(@url_locale),
      canonical: canonical_path
    ) %>
-<% content_for :robots, "noindex,follow" unless @post_translated %>
+<%# Not @post_translated: a draft or scheduled post is 200 for preview but must
+    never be indexed either. See Post#indexable? for the full signal table. %>
+<% content_for :robots, "noindex,follow" unless @post_indexable %>
 
 <% content_for :head do %>
   <meta property="og:type" content="article">
@@ -22,8 +28,8 @@
   {
     "@context": "https://schema.org",
     "@type": "Article",
-    "headline": "<%= j @post.title %>",
-    "description": "<%= j(@post.meta_description.to_s) %>",
+    "headline": "<%= j @post.title(@url_locale) %>",
+    "description": "<%= j(@post.meta_description(@url_locale).to_s) %>",
     "url": "<%= base_url %>/blog/<%= @post.slug %>",
     "datePublished": "<%= @post.published_at&.iso8601 %>",
     "dateModified": "<%= @post.updated_at&.iso8601 %>",
@@ -58,7 +64,7 @@
   <div class="blog-pain-tag"><%= @post.pain_tag.presence || @post.category.upcase %></div>
 
   <%# 제목 %>
-  <h1 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 6px;"><%= @post.title %></h1>
+  <h1 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 6px;"><%= @post.title(@url_locale) %></h1>
   <% if @post.subtitle_ko.present? %>
     <p class="blog-subhead"><%= @post.subtitle_ko %></p>
   <% end %>
@@ -170,7 +176,7 @@
 
   <%# 본문 HTML (cause, steps, ba, situations, checklist, faq) %>
   <div class="blog-post-body">
-    <%= @post.body.to_s.html_safe %>
+    <%= @post.body(@url_locale).to_s.html_safe %>
   </div>
 
   <%# CTA #2 %>

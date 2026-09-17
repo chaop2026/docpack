@@ -29,3 +29,42 @@ bilingual:
   published_at: <%= 2.days.ago.to_fs(:db) %>
   meta_description_ko: "번역된 글의 설명"
   meta_description_en: "Description of the translated post"
+
+# PostsController#show serves draft and scheduled posts too, so the preview link
+# works before publication. That 200 is deliberate; being indexable was not.
+# Both have a Korean body, which is precisely the case the old gate waved
+# through — translated?(:ko) was true, so no noindex was emitted.
+
+draft_post:
+  title_ko: "초안 글"
+  body_ko: "<p>아직 발행하지 않은 초안입니다.</p>"
+  body_en: ""
+  slug: "draft-post"
+  category: "office"
+  status: "draft"
+  meta_description_ko: "초안 글의 설명"
+
+scheduled_post:
+  title_ko: "예약된 글"
+  body_ko: "<p>발행 예약된 글입니다.</p>"
+  body_en: ""
+  slug: "scheduled-post"
+  category: "student"
+  status: "scheduled"
+  published_at: <%= 3.days.from_now.to_fs(:db) %>
+  meta_description_ko: "예약된 글의 설명"
+
+# A published post translated into English, used to prove the locale split holds
+# once body_en is actually filled in: the unprefixed URL must stay Korean no
+# matter what the reader's browser asks for, and only /en may serve English.
+bilingual_published:
+  title_ko: "이중언어 발행 글"
+  title_en: "Bilingual published post"
+  body_ko: "<p>한국어 본문 고유문자열 KOBODY.</p>"
+  body_en: "<p>English body unique marker ENBODY.</p>"
+  slug: "bilingual-published-post"
+  category: "global"
+  status: "published"
+  published_at: <%= 1.day.ago.to_fs(:db) %>
+  meta_description_ko: "한국어 설명 KODESC"
+  meta_description_en: "English description ENDESC"
