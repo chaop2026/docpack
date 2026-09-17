@@ -335,15 +335,66 @@ sitemap 은 `/safe/` 를 신고하는데 홈에서 실제로 링크되는 건 `?
 - 패키지: `docs/review/CODEX_REVIEW_PACKAGE_2026-09-17.md` (비밀값 0건 확인)
 - 원문: `docs/review/CODEX_RESULT_2026-09-17.md` (codex-cli 0.144.3, 69초, 단일 조각)
 - 대조: `docs/review/CROSS_REVIEW_TRIAGE_2026-09-17.md` — 7건 전부 (a)/(b)/(c) 분류
-- **미해결 (a) 2건 — 배포 전 처리 권장. 이번 세션에서는 고치지 않았다**:
-  1. **AMBER** `sw.js` install 이 `/safe/` 프리캐시 실패를 삼키고 activate 가 구버전 캐시를
-     지운다 → 일시 네트워크 실패 시 오프라인 셸을 잃는다. 근본 결함은 이 커밋 이전부터
-     있었으나, HTML 셸이 `/safe/`·`/safe/index.html` 이중에서 단일로 줄어 여유분이 사라졌다.
-     다음 온라인 방문 시 자가 복구된다. → `/safe/` 를 필수 자산으로 분리해 실패 시 install 실패.
-  2. **GREEN** `static_index_redirect.rb` 의 301 본문이 `QUERY_STRING` 을 이스케이프 없이
-     반사한다. **현재 스택에서는 도달 불가** — raw `<`/`>`/`"` 는 Puma 파서가 400 으로 거르고
-     (실측), 브라우저는 `Location` 있는 301 본문을 렌더하지 않는다. 다만 안전한 이유가 우리
-     코드가 아니라 상류 파서라는 점이 문제다. → 본문에서 URL 반사를 없앨 것.
+- (a) 2건 지적 → **둘 다 수정 완료 (2026-09-17, 아래 절)**
+
+## 교차검증 (a) 2건 수정 (2026-09-17)
+
+### A-1 (AMBER) — 서비스워커가 실패한 업데이트에 오프라인 셸을 잃던 문제
+
+**증상**: `install` 이 모든 프리캐시를 `.catch(() => null)` 로 감싸 `/safe/` fetch 실패를
+성공으로 처리 → `skipWaiting()` 으로 인계 → `activate` 가 구버전 `safefile-*` 캐시를 전부 삭제.
+결과적으로 **양쪽 셸을 다 잃는다.** 업데이트가 "성공"을 보고하므로 밖에서는 보이지 않는다.
+
+**수정** (`public/safe/sw.js`):
+- `SHELL_ASSETS` 를 `REQUIRED_SHELL`(`/safe/`) + `OPTIONAL_SHELL_ASSETS`(아이콘·매니페스트)로 분리.
+  공통 `precache()` 헬퍼가 `!r.ok` 와 **`r.redirected`** 를 모두 실패로 올린다
+  (리다이렉트된 Response 는 `cache.put()` 이 거부하므로 읽을 수 있는 이유로 바꿔준다).
+- `install` 은 `REQUIRED_SHELL` 을 **먼저, 실패를 전파하며** 캐시한다. 실패하면 install 자체가
+  reject → `skipWaiting()` 도 activate 도 일어나지 않고 **구 SW 와 구 캐시가 그대로 살아남는다**.
+  브라우저가 다음 방문에 업데이트를 재시도한다. 옵션 자산은 개별 실패를 계속 허용한다.
+- `activate` 는 삭제 전에 `cache.match(REQUIRED_SHELL)` 로 **새 셸 존재를 확인**한다. 없으면
+  구버전 캐시를 **남긴다** — fetch 폴백의 전역 `caches.match()` 는 오리진의 **모든** 캐시를
+  뒤지므로 구버전 셸로도 앱이 열린다. 삭제는 되돌릴 수 없고 브라우저는 저장공간 압박 시
+  임의로 엔트리를 버릴 수 있으므로, 가정하지 않고 확인한다.
+- 페이지의 `navigator.serviceWorker.register(...)` 에는 이미 `.catch(()=>{})` 가 있어
+  install 실패를 조용히 흡수한다 (확인함, `index.html:1887`).
+
+**검증 — 인위적 네트워크 실패 주입** (`test/sw/`, 신규):
+`/safe/` 를 503 으로 떨어뜨리는 Node 서버 + `__SW_BUILD__` 치환으로 실제 새 워커 버전을 만들어
+실제 Chrome 을 3단계로 몬다. **수정본**: 구버전 캐시 생존 ✅, 오프라인 `/safe/`·`/safe/?v=` 둘 다
+셸 서빙 ✅, 복구 후 신버전 캐시 생성 + 구버전 정리 ✅ (9/9 통과).
+**수정 전 워커로 같은 하네스를 돌리면 3건 실패** — 구버전 캐시가 삭제되고 오프라인 내비게이션이
+`net::ERR_FAILED` 로 죽는다. 테스트가 실제로 이 버그를 잡는다는 증거다 (`--old` 플래그).
+
+### A-2 (GREEN) — 301 본문이 쿼리스트링을 이스케이프 없이 반사하던 문제
+
+현재 스택에서는 도달 불가였다(raw `<`/`>`/`"` 는 Puma 가 400 으로 거부, 브라우저는 `Location`
+있는 301 본문을 렌더하지 않음). **그러나 안전의 근거가 우리 코드가 아니라 상류 파서였다** —
+서버를 바꾸거나 프록시를 앞에 두면 보장이 사라진다. 그래서 고쳤다.
+
+**수정** (`lib/static_index_redirect.rb`):
+- `body_for()` 가 `CGI.escapeHTML(location)` 을 거친다 (`require "cgi/escape"`).
+- `redirect_location()` 이 쿼리스트링에서 `\r`·`\n` 을 제거한다 — 헤더 분리 방어를 파서에
+  맡기지 않는다.
+- 두 동작 모두 **왜 상류에 의존하면 안 되는지**를 주석으로 남겼다.
+
+**검증**: `test/lib/static_index_redirect_test.rb` (신규 13개). 통합 테스트 스택은 URI 를
+percent-encode 해버려 raw 바이트를 주입할 수 없으므로(그래서 단언이 공허해진다),
+**Rack env 를 직접 만들어** 미들웨어 단위로 검증한다 — 이스케이프가 이 파일의 성질임을 확인할 수
+있는 유일한 고도다. `"><script>` · `a" onmouseover=` · `&`·`'` · CRLF · percent-encoded 케이스
+전부 커버.
+
+### 재검증 결과 (회귀 없음, 전부 로컬)
+
+| 검증 | 결과 |
+|---|---|
+| Rack 단위 케이스 | 25/25 통과 (라우팅 17 + SCRIPT_NAME + 이스케이프 4 + CRLF 2 + 가독성 1) |
+| `bin/rails test` | **25 runs / 87 assertions / 0 failures** (수정 전 12/35) |
+| Playwright 렌더 4개 진입점 | 전부 통과 — canonical 동일, hreflang 1개, JS 에러 0 |
+| 서비스워커 설치·오프라인 폴백 | 통과 — `/safe/`·`/safe/?v=` 둘 다 |
+| **SW 네트워크 실패 주입** | **9/9 통과** (수정 전 워커는 3건 실패 — 하네스 실효성 확인) |
+| 라이브 HTTP 형태 | `/safe`·`/safe/index.html`·`/privacy` 301, `/safe/`·`/safe/sw.js` 200 |
+| 실제 Puma 경유 이스케이프 | percent-encoded 그대로 유지, 마크업 미생성 |
 
 ## Favicon & PWA Manifest (2026-04-22)
 

@@ -54,6 +54,14 @@ class StaticCanonicalTest < ActionDispatch::IntegrationTest
     assert_equal "/privacy/", response.headers["location"]
   end
 
+  test "an ordinary query string round-trips readably in the 301 body" do
+    # Escaping of hostile input is covered at the middleware level in
+    # test/lib/static_index_redirect_test.rb — this stack percent-encodes the
+    # query before the middleware sees it, so raw bytes cannot be injected here.
+    get "/safe", params: { v: "20260719" }
+    assert_includes response.body, %(<a href="/safe/?v=20260719">/safe/?v=20260719</a>)
+  end
+
   test "the canonical URL itself is served, not redirected" do
     get "/safe/"
     assert_response :success

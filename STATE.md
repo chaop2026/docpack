@@ -43,14 +43,14 @@
 
 ## 다음 할 일
 
-0. **교차검증에서 나온 (a) 2건 처리 → 배포 → GSC 재크롤링 요청.** 이 순서다.
-   - (a) 2건은 `docs/review/CROSS_REVIEW_TRIAGE_2026-09-17.md` 의 "다음 런 작업 목록".
-     ① AMBER `sw.js` 필수자산 분리 ② GREEN 301 본문 URL 반사 제거. 둘 다 작은 변경이다.
-     교차검증 규약상 **검증 세션에서 고치지 않았다** — 다음 런의 입력이다.
-   - 그 다음 `kamal deploy`. 라이브에서 `/safe`·`/safe/index.html` 이 301 인지,
+0. **배포 → GSC 재크롤링 요청.** 교차검증 (a) 2건은 **수정·재검증 완료**했다
+   (SW 필수자산 분리 + 301 본문 이스케이프, CLAUDE.md "교차검증 (a) 2건 수정" 절).
+   - `kamal deploy`. 라이브에서 `/safe`·`/safe/index.html` 이 301 인지,
      `/safe/` 에 canonical 이 박혔는지 curl 로 확인.
-   - 마지막으로 GSC: `/safe/` URL 검사 → 색인 생성 요청, sitemap 재제출.
+   - 그 다음 GSC: `/safe/` URL 검사 → 색인 생성 요청, sitemap 재제출.
      반영까지 보통 며칠~2주. 브랜치는 `fix/safe-canonical-duplicate` (main 미병합).
+   - 배포 후 SW 가 새로 깔리므로, 기존 방문자 한 명이 `/safe/` 를 열고 오프라인에서도
+     열리는지 눈으로 한 번 볼 것 (자동 검증은 통과했다).
 
 1. **ghcr.io PAT 재발급.** 2026-08-25 디버깅 중 `od -c` 로 토큰을 평문 출력해 세션 기록에 남았다.
    교체 후 `.env.production.local` 과 `.env` 두 파일 모두 갱신 (두 파일은 같은 값을 유지해야 함).

@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "cgi/escape"
+
 # Rack middleware that collapses the duplicate URLs a static-directory page
 # otherwise answers on, into one canonical trailing-slash URL.
 #
@@ -35,11 +37,7 @@ class StaticIndexRedirect
     target = canonical_target(env)
     return @app.call(env) unless target
 
-    # SCRIPT_NAME is "" for a root-mounted app (the case here), but including it
-    # keeps the Location correct if this app is ever mounted under a sub-path.
-    query = env["QUERY_STRING"].to_s
-    location = "#{env["SCRIPT_NAME"]}#{target}"
-    location = "#{location}?#{query}" unless query.empty?
+    location = redirect_location(env, target)
 
     [
       301,
@@ -51,11 +49,35 @@ class StaticIndexRedirect
         # (see lib/static_html_no_cache.rb), so the redirect always revalidates.
         "cache-control" => "no-cache"
       },
-      ["<html><body>Moved Permanently: <a href=\"#{location}\">#{location}</a></body></html>"]
+      [body_for(location)]
     ]
   end
 
   private
+
+  # The Location the client is sent to. The query string is echoed back from the
+  # request, so strip anything that could break out of the header. Puma already
+  # rejects a request line containing CR or LF, but relying on that would make
+  # this middleware's safety a property of the upstream parser rather than of
+  # this code — swap the server or put a proxy in front and the guarantee is
+  # gone. Strip them here so the invariant holds on its own.
+  def redirect_location(env, target)
+    # SCRIPT_NAME is "" for a root-mounted app (the case here), but including it
+    # keeps the Location correct if this app is ever mounted under a sub-path.
+    query = env["QUERY_STRING"].to_s.delete("\r\n")
+    location = "#{env["SCRIPT_NAME"]}#{target}"
+    query.empty? ? location : "#{location}?#{query}"
+  end
+
+  # The 301 body is a courtesy for clients that do not follow Location (browsers
+  # never render it). It still echoes request-controlled input, so escape it:
+  # the same reasoning as above — the raw `<`, `>` and `"` that would make this
+  # an injection are currently stopped by Puma's request-line parser, and that
+  # is not a guarantee this file should depend on.
+  def body_for(location)
+    escaped = CGI.escapeHTML(location)
+    "<html><body>Moved Permanently: <a href=\"#{escaped}\">#{escaped}</a></body></html>"
+  end
 
   # Returns the canonical "/dir/" path when this request is one of the duplicate
   # spellings, or nil when the request should pass through untouched.

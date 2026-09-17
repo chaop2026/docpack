@@ -27,13 +27,21 @@ const CACHE_VERSION = 'v2-__SW_BUILD__';
 const SHELL_CACHE = `safefile-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `safefile-runtime-${CACHE_VERSION}`;
 
-// Minimal app shell precached on install (UI must open offline).
-// '/safe/index.html' is deliberately absent: since 2026-09-17 it 301s to
-// '/safe/' (lib/static_index_redirect.rb, SEO de-duplication). cache.put()
-// rejects a redirected Response, so precaching it could only ever be a silent
-// no-op — and the offline fallback below now points at '/safe/' instead.
-const SHELL_ASSETS = [
-  '/safe/',
+// The one asset the offline UI cannot open without. Precaching it is REQUIRED:
+// if it fails, install fails (see below) rather than silently producing a
+// version that can never open offline.
+//
+// It used to have a twin, '/safe/index.html', which is deliberately gone: since
+// 2026-09-17 that URL 301s to '/safe/' (lib/static_index_redirect.rb, SEO
+// de-duplication) and cache.put() rejects a redirected Response, so precaching
+// it could only ever be a silent no-op. Losing the twin also lost the
+// redundancy that used to absorb a failed '/safe/' fetch — which is exactly why
+// the required/optional split below exists.
+const REQUIRED_SHELL = '/safe/';
+
+// Best-effort extras. A transient miss on an icon must NOT block the update:
+// the UI still opens offline without them.
+const OPTIONAL_SHELL_ASSETS = [
   '/safe/manifest.ko.webmanifest',
   '/safe/manifest.en.webmanifest',
   '/safe/manifest.ja.webmanifest',
@@ -53,32 +61,64 @@ const CACHEABLE_CDN = [
   'fonts.gstatic.com',
 ];
 
+// Precache with cache:'reload' so a stale HTTP-cache entry (e.g. a legacy
+// long-max-age shell) can NEVER be baked into the offline cache — that exact
+// chain pinned an old app shell on returning visitors.
+function precache(cache, url) {
+  return fetch(new Request(url, { cache: 'reload' })).then((r) => {
+    // A redirected Response would make cache.put() reject, so surface it as a
+    // plain failure with a readable reason instead.
+    if (!r || !r.ok || r.redirected) {
+      throw new Error(`precache ${url}: ${r ? (r.redirected ? 'redirected' : r.status) : 'no response'}`);
+    }
+    return cache.put(url, r.clone());
+  });
+}
+
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(SHELL_CACHE).then((cache) =>
-      // Precache with cache:'reload' so a stale HTTP-cache entry (e.g. a legacy
-      // long-max-age shell) can NEVER be baked into the offline cache — that
-      // exact chain pinned an old app shell on returning visitors. cache each
-      // individually to tolerate transient misses (a 404 must not fail install).
-      Promise.all(SHELL_ASSETS.map((u) =>
-        fetch(new Request(u, { cache: 'reload' }))
-          .then((r) => (r && r.ok) ? cache.put(u, r.clone()) : null)
-          .catch(() => null)
-      ))
-    ).then(() => self.skipWaiting())
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(SHELL_CACHE);
+
+    // REQUIRED first, and let a failure reject the whole install. Without this
+    // a transient network blip during install produced a "successful" SW that
+    // then took over (skipWaiting) and evicted the previous version's caches in
+    // activate — costing a returning visitor a working offline shell. A failed
+    // install instead leaves the OLD service worker active with its caches
+    // intact, and the browser retries the update on a later visit.
+    await precache(cache, REQUIRED_SHELL);
+
+    // Optional extras: tolerate individual misses (a 404 must not fail install).
+    await Promise.all(OPTIONAL_SHELL_ASSETS.map((u) => precache(cache, u).catch(() => null)));
+
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
+  event.waitUntil((async () => {
+    // Evicting the previous version's caches is irreversible, so confirm this
+    // version's shell is actually present before doing it. install already
+    // guarantees that, but the browser may drop cache entries under storage
+    // pressure at any time — verify rather than assume.
+    //
+    // When the shell is missing we keep the old caches. That is safe: the
+    // offline fallback in fetch() uses the global caches.match(), which
+    // searches EVERY cache in the origin, so a previous version's shell still
+    // opens the app. The next version's activate clears the backlog.
+    const cache = await caches.open(SHELL_CACHE);
+    const shellReady = !!(await cache.match(REQUIRED_SHELL));
+
+    if (shellReady) {
+      const keys = await caches.keys();
+      await Promise.all(
         keys
           .filter((k) => k.startsWith('safefile-') && k !== SHELL_CACHE && k !== RUNTIME_CACHE)
           .map((k) => caches.delete(k))
-      )
-    ).then(() => self.clients.claim())
-  );
+      );
+    }
+
+    await self.clients.claim();
+  })());
 });
 
 // Let the page trigger an immediate takeover after an update if it wants to.
@@ -119,10 +159,14 @@ self.addEventListener('fetch', (event) => {
           caches.open(SHELL_CACHE).then((c) => c.put(request, copy)).catch(() => {});
           return resp;
         })
-        // Offline fallback. `ignoreSearch` matters: the home page links to
-        // /safe/?v=… (cache-buster), and without it that navigation would miss
-        // the precached '/safe/' entry and fall through to the shell below.
-        .catch(() => caches.match(request, { ignoreSearch: true }).then((r) => r || caches.match('/safe/')))
+        // Offline fallback. Two details matter:
+        //   - `ignoreSearch`: the home page links to /safe/?v=… (cache-buster),
+        //     and without it that navigation would miss the precached shell.
+        //   - the global `caches.match` searches EVERY cache in the origin, not
+        //     just SHELL_CACHE — so when activate deliberately keeps a previous
+        //     version's caches (missing shell), that older shell still opens
+        //     the app offline.
+        .catch(() => caches.match(request, { ignoreSearch: true }).then((r) => r || caches.match(REQUIRED_SHELL)))
     );
     return;
   }
