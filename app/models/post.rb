@@ -67,7 +67,12 @@ class Post < ApplicationRecord
     where(status: "scheduled")
       .where.not(published_at: nil)
       .where(
-        "publish_error IS NOT NULL AND published_at <= :now OR published_at <= :cutoff",
+        # Parenthesised deliberately. SQL binds AND tighter than OR, so the bare
+        # form would parse the way this reads anyway (confirmed against Postgres:
+        # `true AND false OR true` = `(true AND false) OR true`) — but the reader
+        # has to know that to trust the line, and a later edit could reorder the
+        # branches and silently change the meaning.
+        "(publish_error IS NOT NULL AND published_at <= :now) OR published_at <= :cutoff",
         now: Time.current, cutoff: Time.current - grace
       )
   }
