@@ -93,6 +93,20 @@ class Post < ApplicationRecord
 
   before_validation :generate_slug, if: -> { slug.blank? && title_ko.present? }
 
+  # A recorded publish failure describes the record as it was when the job tried.
+  # The moment a person edits the post, that description may be a lie — measured:
+  # fix a blank body_ko in the admin and the reason still read "본문(한국어)을(를)
+  # 입력해 주세요" until the next daily run, with the admin banner repeating it.
+  #
+  # So any ordinary save clears it. The post stays listed by Post.publish_stuck
+  # (it is still past due and still scheduled) — it just falls back to the grace
+  # window, which is the honest state: the old evidence is gone and we are
+  # waiting for the next run again.
+  #
+  # PublishScheduledPostsJob writes and clears publish_error with update_column,
+  # which skips callbacks, so this never fights the job over the same field.
+  before_save :clear_stale_publish_error, if: -> { publish_error.present? && changed? }
+
   # ── Localized content ───────────────────────────────────────────────────
   #
   # `loc` is the locale of the URL being rendered, not the one I18n negotiated —
@@ -161,6 +175,12 @@ class Post < ApplicationRecord
   end
 
   private
+
+  # See the before_save above. Only ever clears — the job owns writing it, via
+  # update_column so this callback does not run for the job's own writes.
+  def clear_stale_publish_error
+    self.publish_error = nil
+  end
 
   def generate_slug
     base = title_ko.to_s.parameterize

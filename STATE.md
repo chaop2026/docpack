@@ -63,7 +63,9 @@
         `blog:migrate_privacy` 가 create-or-update 로 **단일 소유자**가 되고,
         제목·메타·본문은 **덮지 않는다**(카테고리만 소유). 신선한 DB 재생성도 실측 확인.
 
-1. **배포 절차.** 미해결 (a) **0건**. 교차검증 3라운드에서 나온 5건 전부 처리했다.
+1. **배포 절차.** 교차검증 4라운드에서 나온 (a) 7건 중 **6건 처리 완료.**
+   남은 1건은 GREEN(영향 미미): `publish_stuck` 이 시계를 네 번 읽는다(39μs 편차) —
+   `docs/review/CROSS_REVIEW_TRIAGE_2026-09-18_amber2b.md`. 배포를 막지 않는다.
    - `kamal deploy`. 라이브에서 `/safe`·`/safe/index.html` 이 301 인지,
      `/safe/` 에 canonical 이 박혔는지 curl 로 확인.
    - **반복 슬래시도 라이브에서 확인**: `/safe//`·`/safe/sw.js/`·`//about`·`/en//about`
@@ -88,8 +90,8 @@
    `dragover`/`drop` preventDefault 자체는 남긴다.
 4. **업로드 목록 실기기 확인.** 자동 검증은 통과했으나 실제 모바일 Safari/Chrome 에서
    드롭·파일 선택·긴 파일명 생략을 눈으로 한 번 볼 것.
-5. **블로그 자동화 현재 상태 점검.** `kamal app exec 'bin/rails runner "puts Post.group(:status).count; puts BlogTopic.where(used: false).count"'`
-   로 발행 현황과 잔여 주제 확인. 2026-04-07 SolidQueue/SMTP 수정 이후 재검증한 기록이 없다.
+5. **블로그 자동화 현재 상태 점검.** `kamal app exec 'bin/rails blog:stuck'` +
+   `jobs:failed` + `runner "puts Post.group(:status).count"`. 2026-04-07 이후 재검증 기록 없음.
 6. **PWA 작업 시 `app/views/pwa/manifest.json.erb` 처리 결정.** Rails 8 스캐폴드 잔재다 —
    라우트가 없고 레이아웃은 `/site.webmanifest`(정적)를 링크한다(`theme_color: "red"` 가 증거).
    **삭제할지 실제로 라우팅해 쓸지** 정한다. 쓰면 둘 중 하나만 남긴다.

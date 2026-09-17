@@ -174,4 +174,37 @@ class PostTest < ActiveSupport::TestCase
     assert_nil posts(:korean_only).publish_overdue_by
     assert_nil posts(:draft_post).publish_overdue_by
   end
+  test "an ordinary save clears a recorded publish failure" do
+    # The reason describes the record as it was when the job tried. Measured
+    # before this callback existed: fix a blank body_ko in the admin and the
+    # banner went on saying "본문(한국어)을(를) 입력해 주세요" until the next daily
+    # run. A person editing the post invalidates the old diagnosis.
+    post = scheduled_at(2.hours.ago, slug: "stale-cleared", error: "old reason")
+    assert post.publish_stuck?, "the recorded reason should make it stuck immediately"
+
+    post.update!(title_ko: "사람이 고친 제목")
+
+    assert_nil post.reload.publish_error
+    assert_not post.publish_stuck?, "with the evidence gone it falls back to the grace window"
+  end
+
+  test "clearing the reason does not un-stick a post that is genuinely overdue" do
+    # Falling back to the grace window must not hide a post that is past it.
+    post = scheduled_at(5.days.ago, slug: "stale-still-stuck", error: "old reason")
+
+    post.update!(title_ko: "사람이 고친 제목")
+
+    assert_nil post.reload.publish_error
+    assert post.publish_stuck?, "5 days overdue is stuck with or without a reason"
+    assert_includes Post.publish_stuck.map(&:slug), "stale-still-stuck"
+  end
+
+  test "a save that changes nothing leaves the reason alone" do
+    # The callback is guarded on `changed?`, so a no-op save is not an edit.
+    post = scheduled_at(2.hours.ago, slug: "stale-noop", error: "old reason")
+
+    post.save!
+
+    assert_equal "old reason", post.reload.publish_error
+  end
 end
