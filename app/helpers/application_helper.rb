@@ -1,5 +1,9 @@
 module ApplicationHelper
   LOCALE_NAMES = { ko: "한국어", en: "English", ja: "日本語", es: "Español" }.freeze
+  # The prefixes that appear in a URL. Must stay in step with the route
+  # constraint in config/routes.rb (`scope "(:locale)", locale: /en|ja|es/`) —
+  # Korean is the default and never carries a prefix.
+  LOCALE_PREFIX = %r{\A/(en|ja|es)(?=/|\z)}.freeze
   OG_LOCALES   = { ko: "ko_KR", en: "en_US", ja: "ja_JP", es: "es_ES" }.freeze
 
   def base_url
@@ -14,7 +18,7 @@ module ApplicationHelper
   # be /en/faq, and GET /blog/:slug with the same header came back noindex.
   # A URL has to send one answer to everyone.
   def url_locale
-    m = request.path.match(%r{\A/(en|ja|es)(?=/|\z)})
+    m = request.path.match(LOCALE_PREFIX)
     m ? m[1].to_sym : I18n.default_locale
   end
 
@@ -48,7 +52,7 @@ module ApplicationHelper
 
   # Current request path with any locale prefix stripped (always starts with "/").
   def path_without_locale
-    request.path.sub(%r{\A/(en|ja|es)(?=/|\z)}, "").presence || "/"
+    request.path.sub(LOCALE_PREFIX, "").presence || "/"
   end
 
   # Path for the current page under a given locale. Korean (default) is unprefixed.

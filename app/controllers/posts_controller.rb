@@ -22,7 +22,7 @@ class PostsController < ApplicationController
     # keying on I18n.locale made the Korean canonical URL answer `noindex,follow`
     # to anyone sending `Accept-Language: en` — including any crawler that does.
     # Measured live 2026-09-17 on /blog/resume-privacy.
-    @url_locale = (params[:locale].presence || I18n.default_locale).to_sym
+    @url_locale = helpers.url_locale
     @post_translated = @post.translated?(@url_locale)
 
     # Only advertise the locales this post actually exists in. The default set
