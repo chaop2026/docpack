@@ -674,3 +674,12 @@ exit code `1` 로 죽는다. stdout 만 보면 `Running 46 tests …` / `# Runni
 "0 tests 로 통과" 가 아니라 **"요약이 아예 없음"** 이 진짜 신호다 — 조용한 쪽이 아니라 시끄러운 쪽인데,
 tail 만 훑으면 아무 일도 없었던 것처럼 보이는 종류의 시끄러움이다. 참고로 정상(minitest 5)일 때는
 exit code `0`. **다음에 같은 걸 찾을 때는 `0 tests` 가 아니라 `종료코드 != 0` 과 `요약 줄 부재` 를 봐라.**
+
+**외부 교차검증 (Codex CLI `gpt-5.5`, read-only, 88초)**: 패키지
+[`docs/review/CODEX_REVIEW_PACKAGE_2026-09-17_minitest-sweep.md`](docs/review/CODEX_REVIEW_PACKAGE_2026-09-17_minitest-sweep.md) ·
+원문 [`CODEX_RESULT_2026-09-17_minitest-sweep.md`](docs/review/CODEX_RESULT_2026-09-17_minitest-sweep.md) ·
+대조 [`CROSS_REVIEW_TRIAGE_2026-09-17_minitest-sweep.md`](docs/review/CROSS_REVIEW_TRIAGE_2026-09-17_minitest-sweep.md).
+지적 4건 중 **(a) 진짜 문제 1건**(판정 기준 `minitest >= 6` 이 과함 — 8.0.5 의 분기에 `else` 가 없어
+**minitest 7 은 LineFiltering 이 아예 안 붙고 줄 필터링이 조용히 죽는다**), **(b) 의견 차이 2건**,
+**(c) 오탐 1건**(lock↔로드 괴리 주장 — 실은 minitest 5.27.0 이 `VERSION = "5.26.2"` 로 상수를 잘못 박은 것.
+`bundle list` 로 8개 전수 재확인해 lock 과 전부 일치함을 확인했다). **이 세션에서 (a) 는 고치지 않았다.**
