@@ -1014,6 +1014,192 @@ Static 이 내보내는 캐시 헤더를 고쳐쓰는 것이 존재 이유라, S
 - **운영 메모**: `codex exec` 는 `< /dev/null` 이 필요하다. 첫 시도가
   `Reading additional input from stdin...` 에서 10분간 아무 일도 하지 않고 멈췄다.
 
+## 교차검증 새 AMBER 2건 수정 (2026-09-18)
+
+`docs/review/CROSS_REVIEW_TRIAGE_2026-09-18_amber3.md` 의 (a) 2건. 프로덕션 DB 미접촉, 미배포.
+**이번 라운드는 문서에 적는 모든 인용을 실제 파일에서 다시 확인했다** — 직전 라운드에서
+자기 커밋 rationale 의 사실 오류가 리뷰에 잡혔기 때문이다.
+
+### B-1 (AMBER) — 알림이 메일 발송 성공에 의존하던 문제
+
+직전 수정은 건너뛴 글을 **메일로만** 알렸다. 그게 부족하다는 지적이 옳았고, 근거는 가설이
+아니라 이 앱의 이력이다:
+
+| 확인한 사실 | 근거 (재확인함) |
+|---|---|
+| Solid Queue 는 **스스로 재시도하지 않는다** | `ClaimedExecution#perform` 이 실패 시 `failed_with(result.error)` 후 즉시 re-raise (`solid_queue-1.4.0/app/models/solid_queue/claimed_execution.rb:65-73`). `FailedExecution#retry` 는 **수동 호출 전용** (`failed_execution.rb:21-29`) |
+| 재시도 정책이 **아예 없었다** | `ApplicationJob` 의 `retry_on`·`discard_on` 이 **주석 처리된 스캐폴드**였고 `rescue_handlers == []` (런타임 실측). 즉 예외를 던진 잡은 재시도 0회로 `solid_queue_failed_executions` 로 직행 |
+| 그 테이블을 **아무도 읽지 않았다** | `app/`·`config/`·`lib/` 전체에 `rescue_from`·`failed_executions` 처리 0건 |
+| 프로덕션 큐 | `config.active_job.queue_adapter = :solid_queue` (`config/environments/production.rb:53`) |
+| **SMTP 실패 선례** | CLAUDE.md:145 — 2026-04-07 `GMAIL_PASSWORD` 빈 값 → `SMTPAuthenticationError 535-5.7.8` |
+
+#### 먼저 정한 것 — 어떤 상태를, 어디에, 어떻게 기록하고, 관리자는 어디서 보는가
+
+**상태 정의**: `Post.publish_stuck` = `status == "scheduled"` **이면서** 예약 시각이 지난 글.
+
+**핵심 설계 결정: 권위 있는 신호는 파생(derived)이다** — 잡이 쓰는 플래그가 아니다.
+닫으려는 실패가 "보고해야 할 메커니즘 자체가 죽었다" 이므로, 신호가 그 메커니즘에 의존하면
+안 된다. 파생 스코프는 **글 행 외에 아무것에도 의존하지 않으므로** 플래그보다 엄격히 많이 잡는다:
+
+| 실패 | 잡이 쓰는 플래그 | 파생 스코프 |
+|---|---|---|
+| 검증이 글을 거부 | ✓ | ✓ |
+| **잡이 아예 안 돌았다** (2026-04-07 `SOLID_QUEUE_IN_PUMA=false` 로 실제 발생) | ✗ | ✓ |
+| 잡이 그 글에 닿기 전에 죽었다 | ✗ | ✓ |
+
+**두 가지 인내심** (테스트가 끌어낸 설계 수정):
+- **이유가 기록된 경우**(`publish_error` 있음) → 증거이므로 **예약 시각이 지나는 즉시** 집계.
+- **아무것도 기록되지 않은 경우** → 다음 런을 기다리는 중일 수 있다. 잡은 하루 한 번(09:00 KST)
+  도니 09:30 예약 글은 정당하게 약 23.5시간 기다린다 → **26시간(`PUBLISH_GRACE`) 유예**.
+
+  처음에는 26시간 단일 규칙이었는데, 테스트가 **잡이 이미 거부한 글이 하루 동안 안 보이는**
+  것을 드러냈다. 그 하루가 바로 이 장치가 없애려는 지연이다.
+
+**이유의 기록 위치**: `posts.publish_error` (text, nullable, 신규 마이그레이션).
+잡이 `update_column` 으로 쓴다 — 검증을 **의도적으로** 우회한다(레코드가 유효하지 않은 것이
+바로 쓰는 이유다). 발행 성공 시 지운다. **이유가 없어도 글은 목록에 뜬다**("이유 미기록").
+
+**관리자가 보는 곳 — 서로 독립인 3곳 + 보조 1곳**:
+
+| # | 어디 | 무엇에 의존하는가 |
+|---|---|---|
+| 1 | `/admin/posts` 상단 **빨간 배너** (모든 필터에서 표시) | DB 만 |
+| 2 | **`Stuck (n)` 필터 칩** | DB 만 |
+| 3 | **`rake blog:stuck`** — 막힌 글이 있으면 **exit 1** | DB 만. 브라우저·어드민 비밀번호 불필요 → `kamal app exec` 로 확인 가능, 나중에 모니터에 붙일 수 있다 |
+| 4 | 메일 (`BlogMailer#publish_failed`) | SMTP + 큐 — **보조로 남겼다** |
+
+**`/up` 은 쓰지 않았다**: Kamal 배포 헬스체크 경로다(`config/deploy.yml` 에 `healthcheck.path`
+가 없어 kamal-proxy 기본값을 쓴다 — `kamal-2.11.0/lib/kamal/configuration/proxy.rb:80` 이
+`proxy_config.dig("healthcheck","path")` 를 그대로 넘긴다). 막힌 글로 `/up` 이 실패하면
+**배포가 막힌다.** 애플리케이션 데이터에 배포 게이트를 묶지 않는다.
+
+#### 재시도 정책 — 이 앱의 실제 잡 구성에 맞춰 정리
+
+**실패한 잡이 보이는 곳**: `rake jobs:failed` (신규) 가 `solid_queue_failed_executions` 를
+읽어 잡 클래스·예외·메시지·수동 재시도 방법을 출력하고, 있으면 exit 1.
+dev 에서는 큐 DB 가 없으므로(`AsyncAdapter`) 안내만 출력한다 — **상수가 아니라 테이블 존재로
+가드한다**(먼저 상수로 썼다가 `PG::UndefinedTable` 로 죽는 것을 측정하고 고쳤다).
+
+**정책을 `ApplicationJob` 에 일괄로 두지 않았다.** 재시도 안전성은 잡마다 다른 성질이다:
+
+| 잡 | 정책 | 이유 |
+|---|---|---|
+| `PublishScheduledPostsJob` | `retry_on Deadlocked`·`ConnectionNotEstablished` (3회, polynomial) | **재생이 무해하다** — `scheduled_ready` 가 발행된 글을 즉시 제외하므로 두 번째 패스는 아무것도 재발행·재알림하지 않는다 (테스트로 고정) |
+| `AutoGenerateBlogPostJob` | **재시도 없음** (누락이 의도) | 멱등이 아니다. 유료 Claude API 를 먼저 호출하므로 재생이 글 하나에 두 번 지불하고, `Post.create!` 후 `topic.update!` 전에 실패하면 재생이 같은 주제로 두 번째 글(`-1` 접미)을 만든다 |
+| `ApplicationJob` | `discard_on DeserializationError` 만 (로그 남김) | 모든 잡에 안전한 것만. 레코드가 사라졌으면 어떤 재시도도 성공할 수 없다 |
+
+**메일은 `ApplicationJob` 이 커버하지 않는다 — 이것이 이 작업의 함정이었다.**
+`ActionMailer::MailDeliveryJob` 은 `ActiveJob::Base` 를 상속한다(실측: 조상이
+`[MailDeliveryJob, ActiveJob::Base, …]`). **스캐폴드 주석을 그냥 해제하는 "수정" 은
+메일 발송에 아무 효과가 없으면서 처리된 것처럼 보인다.** 그래서
+`ApplicationMailDeliveryJob < ActionMailer::MailDeliveryJob` (신규) 을 만들고
+`config.action_mailer.delivery_job` 로 연결했다(`config/application.rb`):
+- 일시적 SMTP·네트워크 오류는 5회 재시도.
+- **영구 거부는 재시도하지 않는다** — `SMTPAuthenticationError`(=2026-04-07 의 그 오류)는
+  자격증명 문제라 몇 번을 보내도 실패한다. 로그를 남기고 **re-raise** 해서
+  `solid_queue_failed_executions` 에 남게 한다.
+
+### B-2 (AMBER, 프로덕션 데이터) — 폐기된 시드가 마이그레이션을 되돌리던 문제
+
+**실측 재현** (개발 DB): 마이그레이션이 끝난 상태에서 시드를 돌리면 `resume-privacy` 가
+`privacy` → `student` 로 돌아가고, 제목·영문제목·메타 설명이 시드의 하드코딩 값으로 덮인다.
+그 쓰기는 `abort` **전에** 일어난다(항목1 저장 → 항목2·3 거부 → abort).
+
+**판단: 가드가 아니라 제거.** 근거:
+- 이 파일을 로드하는 곳은 `lib/tasks/blog.rake` 의 태스크 **하나뿐**이었다
+  (`db/seeds.rb` 는 `blog_topics`·`blog_styles` 만 로드한다 — 확인).
+- 3개 글은 **이미 프로덕션에 있다** (라이브 사이트맵 확인).
+- **어떤 가드든 우회할 수 있다. 존재하지 않는 태스크는 우회할 수 없다.**
+
+**다만 삭제만 하면 신선한 DB 에서 이 3개 글을 만들 경로가 사라진다**
+(`blog:migrate_privacy` 는 기존 레코드만 고쳤다). 그래서 마이그레이션을
+**create-or-update** 로 만들어 **단일 소유자**가 되게 했다. 제목·메타는 시드에서 옮겼다
+(시드·개발 DB·라이브 3곳이 일치하는 것을 먼저 확인했다).
+
+**소유 범위를 명시했다** — 이것이 시드의 결함을 물려받지 않는 지점이다:
+
+| 필드 | create | update |
+|---|---|---|
+| `slug`(개명)·`category` | 설정 | **설정** (이 태스크가 소유) |
+| `title_*`·`meta_description_*` | 설정 | **건드리지 않음** — 덮어쓰는 것이 시드가 잘못한 바로 그것 |
+| `body_ko` | 파일에서 설정 | **비어 있을 때만** 파일에서 채운다 |
+
+`body_ko` 를 "비어 있을 때만" 으로 바꾼 것은 **동작 변경**이다. 전에는 항상 파일로 덮었다.
+이 태스크의 헤더가 스스로 "DB 를 단일 진실 원천으로 만든다" 고 적고 있으므로, 한 번 채운 뒤에는
+파일이 할 일을 다 한 것이다 — 영구 소유자가 어드민 편집을 파일로 되돌리는 것은
+"마이그레이션 이름을 쓴 되돌리기 버튼" 이다.
+
+**같은 위험의 다른 시드 전수 확인 — 실측으로** (읽기만 하지 않았다). 각 시드가 쓰는
+레코드의 필드를 마커로 바꾼 뒤 시드를 돌려 마커가 살아남는지 봤다:
+
+| 시드 | 패턴 | 결과 |
+|---|---|---|
+| `db/seeds.rb` (배너) | `find_or_create_by!(…) do \|b\| … end` — 블록은 **생성 시에만** 실행 | **PRESERVED** (안전) |
+| `db/seeds/blog_topics.rb` | 동일 | **PRESERVED** (안전) |
+| `db/seeds/blog_styles.rb` | 동일 | **PRESERVED** (안전) |
+| `db/seeds/safefile_posts.rb` | `find_or_initialize_by` + **블록 밖** `assign_attributes` + `save!` | **OVERWRITTEN** ← 유일한 위험 |
+
+⚠️ **첫 프로브는 결함이 있었다**: safefile 시드의 마커를 `"student"` 로 썼는데 그건 시드가
+쓰는 값과 같아서 덮어쓰기와 보존이 구분되지 않았다("PRESERVED" 라는 거짓 통과). 시드가 쓰지
+않는 유효한 값(`"office"`)으로 다시 재서 `student` 로 덮이는 것을 확인했다.
+**마커는 반드시 대상이 쓰는 값과 달라야 한다.**
+
+`blog:regenerate_scheduled` 도 본문을 덮지만 `status: "scheduled"` 만 대상이고
+마이그레이션이 만드는 글은 `published` 이므로 되돌릴 수 없다(코드 확인).
+
+### 검증
+
+| 검증 | 결과 |
+|---|---|
+| `bin/rails test` | **156 runs / 1171 assertions / 0 failures** (직전 110/835) |
+| 신규 `test/jobs/retry_policy_test.rb` | 8개 |
+| 신규 `test/integration/stuck_posts_visibility_test.rb` | 13개 |
+| 신규 `test/integration/privacy_guide_ownership_test.rb` | 8개 |
+| 확장 `test/jobs/publish_scheduled_posts_job_test.rb` | 22개 (직전 14) |
+| 확장 `test/models/post_test.rb` | 16개 (직전 7) |
+| **새 테스트가 직전 코드를 잡는가** | **67개 중 57개 실패/에러** (6 failures + 51 errors). 원인별: `publish_stuck` 부재 41 · `PUBLISH_GRACE` 부재 2 · `publish_overdue_by` 부재 1 · `ApplicationMailDeliveryJob` 부재 3 · `rescue_handlers == []` 2 · 마이그레이션이 생성 못 함 1 · 마이그레이션이 본문을 덮음 1 |
+| **메일이 완전히 죽은 상태에서 막힌 글이 드러나는가** | 통과 — `post_published`·`publish_failed` 양쪽을 raise 로 만들고 `deliveries` 가 빈 것을 단언한 뒤, 배너와 스코프에서 글을 찾는다 |
+| 엔드투엔드 (실제 HTTP) | 잡 실행 → `publish_error` 기록 → `rake blog:stuck` exit 1 · 배너 "발행되지 못한 글 1건" · `Stuck (1)` 칩 · 한국어 이유 전부 확인 |
+| 마이그레이션 생성 경로 | 개발 DB 에서 3개 글을 **실제로 지우고** 재생성 — 카테고리·본문·제목·메타·발행일 전부 정확 |
+| 마이그레이션이 편집을 지키는가 | 5개 필드를 사람이 고친 것처럼 바꾼 뒤 재실행 — `saved_changes` 가 `[category, updated_at]` 뿐 |
+| 프로덕션 미들웨어·정본 URL (직전 라운드) | 137경로 중복 200 **0개**, 루프 0, 홉 `{1: 89, 2: 1}` |
+| 사이트맵 30 / 내부 링크 64 / Accept-Language 8페이지 | 전부 문제 0 |
+| SW 네트워크 실패 주입 | **9/9** |
+| rubocop | **신규 위반 0** (변경 파일 17개에서 10건, 직전 커밋 사본에 돌린 baseline 도 같은 10건) |
+| 프로덕션 DB | **미접촉** |
+
+### self-check / 이번 라운드에 잡힌 자기 실수
+
+- 🔴 **`git checkout -- .` 로 커밋하지 않은 작업을 날렸다.** "상태를 리셋" 하려고 돌렸는데
+  그 시점의 소스 수정 11개 파일이 함께 사라졌다(테스트·마이그레이션은 untracked 라 생존).
+  전부 다시 작성해 복구했고 테스트 수·단언 수가 사고 전과 동일함을 확인했다.
+  **교훈: 파괴적 git 명령 전에 커밋한다.** 이후의 "구 코드 대조" 는 먼저 체크포인트 커밋을
+  만들고 나서 실행했다 — 그래야 `git checkout HEAD -- <파일>` 로 되돌릴 수 있다.
+- `rake jobs:failed` 를 `defined?(SolidQueue::FailedExecution)` 로 가드했다가 dev 에서
+  `PG::UndefinedTable` 로 죽는 것을 측정했다. 젬이 모든 환경에 로드되므로 상수는 항상 있다 —
+  **테이블 존재**로 가드해야 한다.
+- 시드 덮어쓰기 프로브의 마커가 대상이 쓰는 값과 같아 거짓 통과가 나왔다(위 ⚠️).
+- `retry_policy_test.rb` 의 re-raise 단언을
+  `assert_raises(SameError) { handler_call || raise(SameError) }` 로 썼다가 고쳤다 —
+  핸들러가 삼켜도 **테스트가 스스로 예외를 공급**하므로 통과하는 공허한 단언이었다.
+  동일 객체(`assert_same`)로 바꿨다.
+- 잡 테스트를 자식 프로세스(`bin/rails blog:stuck`)로 돌렸더니 아무것도 보고하지 않았다 —
+  테스트의 레코드가 **커밋되지 않은 트랜잭션** 안에 있어 자식이 볼 수 없었다.
+  초록 단언과 안 보이는 DB 가 밖에서 같아 보인다. `test/support/rake_task_helper.rb` 로
+  **같은 프로세스에서** 실행하고 `abort` 의 `SystemExit` 를 종료코드로 번역한다.
+- `publish_stuck` 이 26시간 단일 규칙이던 것을 테스트가 잡았다(위 "두 가지 인내심").
+- 스코프와 술어(`publish_stuck?`) 두 구현이 어긋나지 않도록 **8개 조합 전수 대조** 테스트를 뒀다.
+
+### 남는 관찰 (수정 안 함)
+
+- `rake jobs:failed` 는 사람이 돌려야 보인다. 정기 확인을 자동화하려면 `recurring.yml` 에
+  넣거나 외부 모니터를 붙여야 한다 — 알림 채널을 또 만드는 판단이라 이번 범위에서 뺐다.
+- `blog:generate`·`regenerate_scheduled` 는 여전히 exit 0 (사람이 보는 앞에서 도는 생성
+  태스크라는 기존 관례). 자동화에 들어가면 조용한 실패가 된다 — Codex 가 직전 라운드에
+  올린 관찰 그대로다.
+- Banner·BlogTopic·Conversion 의 속성명은 ko 번역이 없어 영어 humanize 로 나온다.
+- `<html lang>`·`og:locale`·UI 크롬은 여전히 협상된다. 제품 결정.
+
 ## Favicon & PWA Manifest (2026-04-22)
 
 - **Files in `public/`**: `favicon.ico`, `favicon-16x16.png`, `favicon-32x32.png`, `apple-touch-icon.png`, `android-chrome-192x192.png`, `android-chrome-512x512.png`, `site.webmanifest`

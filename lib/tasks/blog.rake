@@ -66,10 +66,17 @@ namespace :blog do
     load Rails.root.join("db/seeds/blog_topics.rb")
   end
 
-  desc "Seed SafeFile guide posts (static pages) into blog index from db/seeds/safefile_posts.rb"
-  task seed_safefile_posts: :environment do
-    load Rails.root.join("db/seeds/safefile_posts.rb")
-  end
+  # blog:seed_safefile_posts is GONE (2026-09-18), along with
+  # db/seeds/safefile_posts.rb. It created the three SafeFile privacy guides
+  # with pre-rename slugs and no body, so on a migrated database it fought
+  # blog:migrate_privacy over the same three rows — measured: it flipped
+  # resume-privacy's category from `privacy` back to `student` and overwrote its
+  # title and meta_description with hardcoded values, including admin edits,
+  # *before* aborting.
+  #
+  # Removed rather than guarded. Any guard can be argued past at 2am; a task
+  # that does not exist cannot be run by mistake. blog:migrate_privacy now
+  # creates as well as updates, so nothing was lost — see that file.
 
   desc "Generate and immediately publish 1 test post from unused topic"
   task publish_test: :environment do

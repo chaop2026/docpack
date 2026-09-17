@@ -73,4 +73,105 @@ class PostTest < ActiveSupport::TestCase
     assert_equal "Translated post", post.title(:ja)
     assert_equal "한국어 본문입니다.", post.body(:ko).strip.delete("<p>/")
   end
+
+  # ── publish_stuck ───────────────────────────────────────────────────────
+  #
+  # This scope is the primary channel for a post that could not be published.
+  # It has to be derived from the posts table alone: the email that used to
+  # carry the news needs SMTP, which failed in production on 2026-04-07, and
+  # Solid Queue does not retry on its own. So these tests are about the scope
+  # answering correctly without anything else being alive.
+
+  def scheduled_at(when_, slug:, error: nil)
+    post = Post.create!(title_ko: "예약 #{slug}", slug: slug, category: "pdf",
+                        status: "scheduled", published_at: when_, body_ko: "<p>x</p>")
+    post.update_column(:publish_error, error) if error
+    post
+  end
+
+  test "a post still waiting for its next run is not stuck" do
+    # The job fires once a day, so being a few hours past due is normal.
+    post = scheduled_at(2.hours.ago, slug: "stuck-waiting")
+
+    assert_not post.publish_stuck?
+    assert_not_includes Post.publish_stuck.map(&:slug), "stuck-waiting"
+  end
+
+  test "a post past due by more than the grace window is stuck even with no reason recorded" do
+    # This is the case a job-written flag could never catch: the job never ran.
+    post = scheduled_at(3.days.ago, slug: "stuck-no-reason")
+
+    assert post.publish_stuck?
+    assert_includes Post.publish_stuck.map(&:slug), "stuck-no-reason"
+    assert_nil post.publish_error
+  end
+
+  test "a recorded failure counts immediately, without waiting out the grace window" do
+    # A reason on the record is evidence, not suspicion. Sitting on it for a day
+    # would be sitting on a known answer.
+    post = scheduled_at(10.minutes.ago, slug: "stuck-with-reason",
+                        error: "2026-09-18T00:00:00Z ActiveRecord::RecordInvalid: 본문 없음")
+
+    assert post.publish_stuck?
+    assert_includes Post.publish_stuck.map(&:slug), "stuck-with-reason"
+  end
+
+  test "a recorded failure on a post that is not due yet is still not stuck" do
+    # Guards the boundary from the other side: the OR branch must stay anchored
+    # to published_at, or a future post with a stale error would be reported.
+    post = scheduled_at(2.days.from_now, slug: "stuck-future-reason", error: "old error")
+
+    assert_not post.publish_stuck?
+    assert_not_includes Post.publish_stuck.map(&:slug), "stuck-future-reason"
+  end
+
+  test "the grace boundary is exactly PUBLISH_GRACE" do
+    inside = scheduled_at(Post::PUBLISH_GRACE.ago + 5.minutes, slug: "stuck-inside")
+    outside = scheduled_at(Post::PUBLISH_GRACE.ago - 5.minutes, slug: "stuck-outside")
+
+    assert_not inside.publish_stuck?, "5 minutes inside the window must not report"
+    assert outside.publish_stuck?, "5 minutes past the window must report"
+
+    slugs = Post.publish_stuck.map(&:slug)
+    assert_not_includes slugs, "stuck-inside"
+    assert_includes slugs, "stuck-outside"
+  end
+
+  test "published and draft posts are never stuck" do
+    # Only `scheduled` can be stuck. A draft has no publish time to miss.
+    assert_not posts(:korean_only).publish_stuck?
+    assert_not posts(:draft_post).publish_stuck?
+
+    Post.where(slug: "draft-post").update_all(published_at: 5.days.ago)
+    assert_not_includes Post.publish_stuck.map(&:slug), "draft-post"
+  end
+
+  test "a scheduled post with no publish time is not stuck" do
+    # nil published_at cannot be past due; the SQL must not treat it as zero.
+    post = Post.create!(title_ko: "시각 없음", slug: "stuck-nil-date", category: "pdf",
+                        status: "scheduled", body_ko: "<p>x</p>")
+
+    assert_not post.publish_stuck?
+    assert_not_includes Post.publish_stuck.map(&:slug), "stuck-nil-date"
+  end
+
+  test "the scope and the predicate agree on every case above" do
+    # Two implementations of one rule drift. This pins them together.
+    [ 2.hours.ago, 3.days.ago, 2.days.from_now, Post::PUBLISH_GRACE.ago - 1.minute ].each_with_index do |t, i|
+      [ nil, "some error" ].each_with_index do |err, j|
+        post = scheduled_at(t, slug: "stuck-agree-#{i}-#{j}", error: err)
+        in_scope = Post.publish_stuck.exists?(id: post.id)
+        assert_equal in_scope, post.publish_stuck?,
+          "scope and predicate disagree for published_at=#{t}, error=#{err.inspect}"
+      end
+    end
+  end
+
+  test "publish_overdue_by measures from the scheduled time and is nil off the scheduled path" do
+    post = scheduled_at(3.hours.ago, slug: "stuck-overdue")
+
+    assert_in_delta 3.hours, post.publish_overdue_by, 60
+    assert_nil posts(:korean_only).publish_overdue_by
+    assert_nil posts(:draft_post).publish_overdue_by
+  end
 end

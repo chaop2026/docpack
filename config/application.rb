@@ -21,6 +21,17 @@ module Docpack
     config.i18n.default_locale = :ko
     config.i18n.fallbacks = [:ko]
 
+    # Route deliver_later through a job that has a retry policy.
+    #
+    # The default is ActionMailer::MailDeliveryJob, which inherits from
+    # ActiveJob::Base rather than ApplicationJob — so nothing declared on
+    # ApplicationJob reaches mail delivery. Without this line, adding retries
+    # "to the app's jobs" leaves outgoing mail exactly as fragile as before
+    # while appearing to have covered it. See app/jobs/application_mail_delivery_job.rb.
+    #
+    # A string so it resolves after autoloading rather than at boot.
+    config.action_mailer.delivery_job = "ApplicationMailDeliveryJob"
+
     # Configuration for the application, engines, and railties goes here.
     #
     # These settings can be overridden in specific environments using the files

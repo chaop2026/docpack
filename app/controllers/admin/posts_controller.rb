@@ -3,8 +3,21 @@ module Admin
     before_action :set_post, only: [:edit, :update, :destroy, :generate, :improve, :publish]
 
     def index
+      # Loaded unconditionally, not behind the filter: a post stuck at
+      # `scheduled` is the one thing on this page nobody went looking for, so it
+      # has to appear whichever view is selected. This is the primary channel for
+      # that state — the publish-failure email is the secondary one, and this
+      # app's production SMTP has already failed once (2026-04-07).
+      @stuck_posts = Post.publish_stuck.order(:published_at)
+
       @posts = Post.recent
-      @posts = @posts.where(status: params[:status]) if params[:status].present?
+      @posts = if params[:status] == "stuck"
+        @posts.publish_stuck
+      elsif params[:status].present?
+        @posts.where(status: params[:status])
+      else
+        @posts
+      end
       @posts = @posts.by_category(params[:category]) if params[:category].present?
     end
 

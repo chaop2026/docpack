@@ -51,24 +51,27 @@
        중복 2개를 조용히 만들었다. 패턴만 고치고 시드의 존재 이유 정리는 보류(DECISIONS.md).
      - 부수: `ko.yml` 에 검증 메시지 블록 추가. 없어서 검증 실패가 `Translation missing…` 으로
        나왔고, 그건 **발행 실패 알림의 "이유" 칸**이라 알림이 동작하지 않는 상태였다.
-   - ⚠️ **교차검증에서 새 (a) 2건** (`docs/review/CROSS_REVIEW_TRIAGE_2026-09-18_amber3.md`).
-     A-2·A-3 은 `해소됨`, A-1 은 `부분 해소`. 둘 다 우리가 "확신 없음" 으로 올린 항목이다:
-     ① **AMBER** 발행 실패 알림이 **메일 전달 성공에 의존**한다 — `ApplicationJob` 에
-        `retry_on`/`rescue_from` 이 없어 실패한 메일은 아무도 안 보는 테이블로 간다.
-        **SMTP 실패 선례 있음**(2026-04-07). → 메일과 무관한 **상태** 채널을 둘 것.
-     ② **AMBER (프로덕션 데이터)** `db/seeds/safefile_posts.rb` 가 마이그레이션 결과를
-        되돌린다 — `privacy`→`student` + 제목·메타를 하드코딩 값으로 덮는다(실측).
-        **프로덕션에서 이 시드를 돌리기 전에 처리할 것.**
+   - 교차검증 새 (a) **2건 전부 수정·재검증 완료** (2026-09-18,
+     CLAUDE.md "교차검증 새 AMBER 2건 수정" 절):
+     ① 막힌 글이 이제 **알림이 아니라 상태**다 — `Post.publish_stuck`(파생 스코프)을
+        **DB 만 의존하는 3곳**에서 읽는다: 어드민 배너 · `Stuck (n)` 필터 · `rake blog:stuck`
+        (exit 1, 브라우저·비밀번호 불필요). 메일은 보조. 이유는 `posts.publish_error` 에.
+        **메일 양쪽을 raise 로 만든 상태에서도 글이 드러나는 것을 테스트로 고정했다.**
+        재시도 정책도 정리 — 잡마다 선언(발행잡은 재시도 O / 생성잡은 X, 유료 API),
+        메일은 별도 잡(`ApplicationMailDeliveryJob`), 실패한 잡은 `rake jobs:failed`.
+     ② **시드 제거** — `db/seeds/safefile_posts.rb` 와 `blog:seed_safefile_posts` 를 지웠다.
+        `blog:migrate_privacy` 가 create-or-update 로 **단일 소유자**가 되고,
+        제목·메타·본문은 **덮지 않는다**(카테고리만 소유). 신선한 DB 재생성도 실측 확인.
 
-1. **배포 절차.** 배포를 막는 (a) 는 없다 (위 새 2건은 배포와 무관하다 — 다만 ②는
-   프로덕션에서 그 시드를 돌리기 전에 처리해야 한다).
+1. **배포 절차.** 미해결 (a) **0건**. 교차검증 3라운드에서 나온 5건 전부 처리했다.
    - `kamal deploy`. 라이브에서 `/safe`·`/safe/index.html` 이 301 인지,
      `/safe/` 에 canonical 이 박혔는지 curl 로 확인.
    - **반복 슬래시도 라이브에서 확인**: `/safe//`·`/safe/sw.js/`·`//about`·`/en//about`
      ·`/blog//<슬러그>` 가 전부 301 1홉인지 (로컬 137경로에서 중복 200 = 0 이었다).
-   - 🔴 **`blog:seed_safefile_posts` 를 프로덕션에서 돌리지 말 것.** 대체됐고(→
-     `blog:migrate_privacy`), 실패하기 **전에** `resume-privacy` 의 카테고리·제목·메타를
-     하드코딩 값으로 덮는다(실측). 정리 전까지는 `migrate_privacy` 만 돌린다.
+   - **`blog:migrate_privacy` 를 돌린다** (이제 create-or-update, 멱등, 3개 글의 단일 소유자).
+     `blog:seed_safefile_posts` 는 **삭제됐다** — 마이그레이션을 되돌리던 태스크다.
+   - **배포 후 `rake blog:stuck` 과 `rake jobs:failed` 를 한 번 돌려볼 것.** 둘 다 읽기
+     전용이고, 문제가 있으면 exit 1 이다 (`kamal app exec 'bin/rails blog:stuck'`).
    - 라이브에서 `curl -H 'Accept-Language: en-US' .../blog/<슬러그>` 가 **noindex 없이**
      오는지, `/faq` canonical 이 `/faq` 로 남는지도 확인 (이번 수정의 핵심 지표).
    - 그 다음 GSC: `/safe/`·`/blog` URL 검사 → 색인 생성 요청, sitemap 재제출,

@@ -25,6 +25,67 @@ class Post < ApplicationRecord
   scope :by_category, ->(cat) { where(category: cat) if cat.present? }
   scope :recent, -> { order(published_at: :desc, created_at: :desc) }
 
+  # ── Stuck posts ─────────────────────────────────────────────────────────
+  #
+  # A post whose time to be published has come and gone. This is the state that
+  # makes a skipped publish visible, and it is DERIVED on purpose.
+  #
+  # PublishScheduledPostsJob skips a post it cannot publish so the rest of the
+  # batch survives; the post then stays `scheduled`, possibly forever. The job
+  # also emails about it — but this app's production SMTP has already failed
+  # once (2026-04-07, 535-5.7.8), Solid Queue does not retry on its own
+  # (ClaimedExecution#perform calls failed_with and re-raises), and nothing read
+  # its failed-executions table. A lost alert is a premise here, not a risk.
+  #
+  # Computing the signal from `status` and `published_at` means it depends on
+  # nothing but the row itself, and so it catches strictly more than a flag the
+  # job would have had to write:
+  #
+  #   validation rejected the post   → flag ✓   derived ✓
+  #   the job never ran at all       → flag ✗   derived ✓   (happened here:
+  #                                                          SOLID_QUEUE_IN_PUMA
+  #                                                          was false, 2026-04-07)
+  #   the job died before this post  → flag ✗   derived ✓
+  #
+  # There are two ways to know a post is stuck, and they need different patience.
+  #
+  #   * A failure was RECORDED (publish_error present). The job tried and the
+  #     record was rejected — that is evidence, not suspicion, so it counts the
+  #     moment the post is past due. Waiting would mean sitting on a known
+  #     answer.
+  #   * NOTHING was recorded. Past due might just mean "waiting for the next
+  #     run": the job fires once a day at 09:00 KST, so a post scheduled for
+  #     09:30 honestly waits ~23.5 hours. Here a grace period is required, and
+  #     26 hours clears that maximum honest wait with room to spare.
+  #
+  # This split came out of a test: with a single 26-hour rule, a post the job had
+  # just rejected stayed invisible for a day, which is precisely the delay this
+  # whole mechanism exists to remove.
+  PUBLISH_GRACE = 26.hours
+
+  scope :publish_stuck, ->(grace = PUBLISH_GRACE) {
+    where(status: "scheduled")
+      .where.not(published_at: nil)
+      .where(
+        "publish_error IS NOT NULL AND published_at <= :now OR published_at <= :cutoff",
+        now: Time.current, cutoff: Time.current - grace
+      )
+  }
+
+  def publish_stuck?(grace = PUBLISH_GRACE)
+    return false unless status == "scheduled" && published_at.present?
+    return published_at <= Time.current if publish_error.present?
+
+    published_at <= Time.current - grace
+  end
+
+  # How overdue, for the admin list. nil when the post is not scheduled.
+  def publish_overdue_by
+    return nil unless status == "scheduled" && published_at.present?
+
+    Time.current - published_at
+  end
+
   before_validation :generate_slug, if: -> { slug.blank? && title_ko.present? }
 
   # ── Localized content ───────────────────────────────────────────────────

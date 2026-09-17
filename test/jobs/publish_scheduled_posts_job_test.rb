@@ -15,6 +15,7 @@ class PublishScheduledPostsJobTest < ActiveJob::TestCase
     # The fixtures include a scheduled post, but its published_at is in the
     # future, so scheduled_ready is empty until a test fills it.
     assert_empty Post.scheduled_ready, "expected no ready posts before the test sets them up"
+    assert_empty Post.publish_stuck, "expected no stuck posts before the test sets them up"
     ActionMailer::Base.deliveries.clear
   end
 
@@ -206,15 +207,110 @@ class PublishScheduledPostsJobTest < ActiveJob::TestCase
     assert_equal "published", good.reload.status
   end
 
+  # ── the state channel, which does not depend on mail ────────────────────
+  #
+  # This is the part the first version of the fix got wrong. Skipping a post was
+  # reported by email alone, and email is not a channel this app can lean on:
+  # production SMTP failed on 2026-04-07 (535-5.7.8) and Solid Queue does not
+  # retry of its own accord. The assertions below are written so that mail is
+  # *broken* in the ones that matter.
+
+  test "a skipped post is visible as state even when mail cannot be sent at all" do
+    ready_post(slug: "job-state-bad", body_ko: "")
+    good = ready_post(slug: "job-state-good")
+
+    # Every mail path down: the per-post notification AND the failure report.
+    BlogMailer.stub(:post_published, ->(_p) { raise StandardError, "smtp down" }) do
+      BlogMailer.stub(:publish_failed, ->(_f) { raise StandardError, "smtp down" }) do
+        assert_nothing_raised { PublishScheduledPostsJob.perform_now }
+      end
+    end
+
+    perform_enqueued_jobs
+    assert_empty ActionMailer::Base.deliveries, "this test is only meaningful with mail broken"
+
+    # ...and the stuck post is still discoverable, from the database alone.
+    assert_equal [ "job-state-bad" ], Post.publish_stuck.map(&:slug)
+    assert_equal "published", good.reload.status
+  end
+
+  test "the reason is recorded on the post, not only in the log" do
+    ready_post(slug: "job-reason-bad", body_ko: "")
+
+    PublishScheduledPostsJob.perform_now
+
+    post = Post.find_by(slug: "job-reason-bad")
+    assert post.publish_error.present?, "the admin banner has nothing to show without this"
+    assert_match(/RecordInvalid/, post.publish_error)
+  end
+
+  test "a post with no recorded reason is still reported as stuck" do
+    # The job may never have reached it — Solid Queue was down, the scheduler
+    # never fired, the process died. The derived scope must not need the job to
+    # have run, because "the job never ran" is the failure that happened here in
+    # April 2026.
+    post = ready_post(slug: "job-never-tried")
+    post.update_columns(published_at: 3.days.ago, publish_error: nil)
+
+    assert_includes Post.publish_stuck.map(&:slug), "job-never-tried"
+    assert_nil post.reload.publish_error
+  end
+
+  test "a stale reason is cleared once the post publishes" do
+    post = ready_post(slug: "job-recovered", body_ko: "")
+    PublishScheduledPostsJob.perform_now
+    assert post.reload.publish_error.present?
+
+    # The body gets filled in, the way a person would fix it.
+    post.update_column(:body_ko, "<p>이제 본문이 있다</p>")
+    PublishScheduledPostsJob.perform_now
+
+    assert_equal "published", post.reload.status
+    assert_nil post.publish_error, "the banner would keep explaining a failure that is over"
+  end
+
+  test "publishing normally leaves no stuck posts behind" do
+    ready_post(slug: "job-clean-state-a")
+    ready_post(slug: "job-clean-state-b")
+
+    PublishScheduledPostsJob.perform_now
+
+    assert_empty Post.publish_stuck
+  end
+
+  # ── retry policy ────────────────────────────────────────────────────────
+
+  test "this job retries transient database errors because replaying it is a no-op" do
+    handled = PublishScheduledPostsJob.rescue_handlers.map(&:first)
+    assert_includes handled, "ActiveRecord::Deadlocked"
+    assert_includes handled, "ActiveRecord::ConnectionNotEstablished"
+  end
+
+  test "replaying the job publishes nothing twice" do
+    # The property the retry policy rests on: scheduled_ready stops returning a
+    # post the moment it is published, so a second pass is a no-op.
+    ready_post(slug: "job-replay-a")
+    ready_post(slug: "job-replay-b")
+
+    PublishScheduledPostsJob.perform_now
+    published_at_values = Post.where(slug: %w[job-replay-a job-replay-b]).order(:slug).pluck(:published_at)
+
+    PublishScheduledPostsJob.perform_now
+    perform_enqueued_jobs
+
+    assert_equal published_at_values,
+      Post.where(slug: %w[job-replay-a job-replay-b]).order(:slug).pluck(:published_at)
+    assert_equal 2, mails_titled(NOTICE_SUBJECT).size, "a replay must not re-announce"
+  end
+
   # ── infrastructure errors must NOT be isolated ──────────────────────────
 
-  # Only errors meaning "this record cannot be saved" are caught. A dropped
-  # connection has to propagate: swallowing it would report every post as
-  # invalid and let the job exit successfully, throwing away the Solid Queue
-  # retry that would have published them.
-  def with_connection_dropped
+  # Only errors meaning "this record cannot be saved" are isolated. Anything
+  # else must leave the per-post rescue — either to be retried by this job's own
+  # retry_on, or to propagate and be recorded.
+  def with_error_from_update(error_class, message = "boom")
     victim = Post.new(slug: "job-infra", title_ko: "x")
-    victim.define_singleton_method(:update!) { |*| raise ActiveRecord::ConnectionNotEstablished, "db gone" }
+    victim.define_singleton_method(:update!) { |*| raise error_class, message }
 
     relation = Object.new
     relation.define_singleton_method(:find_each) { |&block| block.call(victim) }
@@ -222,18 +318,39 @@ class PublishScheduledPostsJobTest < ActiveJob::TestCase
     Post.stub(:scheduled_ready, relation) { yield }
   end
 
-  test "an error that is not a rejected record propagates so the queue can retry" do
-    with_connection_dropped do
-      assert_raises(ActiveRecord::ConnectionNotEstablished) { PublishScheduledPostsJob.perform_now }
+  test "a transient database error is retried, not mistaken for an invalid record" do
+    # Before the retry policy this propagated. Now the job re-enqueues itself.
+    # Either way the thing that must NOT happen is it being filed as a rejected
+    # record: that would let the run finish "successfully" having published
+    # nothing, and report perfectly good posts as broken.
+    assert_enqueued_with(job: PublishScheduledPostsJob) do
+      with_error_from_update(ActiveRecord::ConnectionNotEstablished, "db gone") do
+        assert_nothing_raised { PublishScheduledPostsJob.perform_now }
+      end
     end
+
+    assert_empty mails_titled(REPORT_SUBJECT)
+    assert_nil Post.find_by(slug: "job-infra"), "nothing should have been written"
   end
 
-  test "a dropped connection is not reported as a validation failure" do
-    with_connection_dropped do
-      assert_raises(ActiveRecord::ConnectionNotEstablished) { PublishScheduledPostsJob.perform_now }
+  test "an error outside both lists propagates and is recorded, not swallowed" do
+    # Solid Queue does not retry on its own — ClaimedExecution#perform calls
+    # failed_with and re-raises — so propagating is what puts this failure in
+    # solid_queue_failed_executions, where `rake jobs:failed` can find it.
+    # Swallowing it would leave no trace anywhere.
+    with_error_from_update(ActiveRecord::StatementInvalid, "syntax error") do
+      assert_raises(ActiveRecord::StatementInvalid) { PublishScheduledPostsJob.perform_now }
     end
 
     perform_enqueued_jobs
     assert_empty mails_titled(REPORT_SUBJECT)
+  end
+
+  test "a transient error does not leave a post looking stuck for the wrong reason" do
+    with_error_from_update(ActiveRecord::ConnectionNotEstablished, "db gone") do
+      PublishScheduledPostsJob.perform_now
+    end
+
+    assert_empty Post.publish_stuck, "a database blip is not a stuck post"
   end
 end

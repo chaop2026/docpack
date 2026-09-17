@@ -1,11 +1,59 @@
 <% content_for :admin_title, "Blog Posts" %>
 
+<%#
+  Stuck posts, shown on every view of this page.
+
+  A post that PublishScheduledPostsJob could not publish stays `scheduled`
+  indefinitely, and the thing that used to report it was an email — which is not
+  a channel this app can lean on (production SMTP failed 2026-04-07, and Solid
+  Queue does not retry of its own accord). So the state is derived from the posts
+  table by Post.publish_stuck and read here, where it needs no mailer, no queue,
+  and not even the job to have run. `rake blog:stuck` reads the same scope from
+  the command line for anyone without a browser.
+%>
+<% if @stuck_posts.any? %>
+  <div style="background: #FCEBEB; border: 1px solid #A32D2D; border-left: 4px solid #A32D2D; border-radius: 14px; padding: 1rem 1.25rem; margin-bottom: 1.5rem;">
+    <p style="margin: 0 0 0.75rem; font-size: 15px; font-weight: 600; color: #A32D2D; letter-spacing: -0.01em;">
+      발행되지 못한 글 <%= @stuck_posts.size %>건 — 예약 시각이 지났는데 아직 예약 상태입니다
+    </p>
+    <p style="margin: 0 0 0.75rem; font-size: 13px; color: #6B6963; line-height: 1.55;">
+      가장 흔한 원인은 <strong>한국어 본문(body_ko)이 비어 있는 것</strong>입니다 — 발행된 글은
+      반드시 한국어 본문을 가져야 합니다. 본문을 채우고 저장하면 다음 실행(매일 09:00 KST)에 발행됩니다.
+      잡이 아예 돌지 않는 경우에도 여기에 나타납니다.
+    </p>
+    <% @stuck_posts.each do |stuck| %>
+      <div style="background: #ffffff; border: 0.5px solid #E5E3DC; border-radius: 10px; padding: 0.6rem 0.85rem; margin-bottom: 0.4rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+          <div>
+            <strong style="font-size: 13px; color: #1A1918;"><%= stuck.slug %></strong>
+            <span style="font-size: 12px; color: #6B6963;">
+              &middot; 예약 <%= stuck.published_at&.strftime("%Y-%m-%d %H:%M") || "(미지정)" %>
+              <% if stuck.publish_overdue_by %>
+                &middot; <%= distance_of_time_in_words(stuck.publish_overdue_by) %> 경과
+              <% end %>
+            </span>
+          </div>
+          <a href="<%= edit_admin_post_path(stuck) %>" class="admin-btn admin-btn-sm admin-btn-primary">편집</a>
+        </div>
+        <div style="font-size: 12px; color: #A32D2D; margin-top: 0.35rem; word-break: break-word;">
+          <%= stuck.publish_error.presence || "이유 미기록 — 잡이 이 글에 닿지 못했거나 아직 한 번도 시도하지 않았습니다" %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+<% end %>
+
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
   <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
     <a href="<%= admin_posts_path %>" class="admin-btn admin-btn-sm <%= 'admin-btn-primary' if params[:status].blank? && params[:category].blank? %>">All</a>
     <% %w[draft scheduled published].each do |s| %>
       <a href="<%= admin_posts_path(status: s) %>" class="admin-btn admin-btn-sm <%= 'admin-btn-primary' if params[:status] == s %>"><%= s.capitalize %></a>
     <% end %>
+    <a href="<%= admin_posts_path(status: "stuck") %>"
+       class="admin-btn admin-btn-sm <%= 'admin-btn-primary' if params[:status] == 'stuck' %>"
+       style="<%= 'border-color: #A32D2D; color: #A32D2D;' if params[:status] != 'stuck' && @stuck_posts.any? %>">
+      Stuck<%= " (#{@stuck_posts.size})" if @stuck_posts.any? %>
+    </a>
     <span style="color: var(--border-color);">|</span>
     <% %w[image pdf office student freelancer global].each do |c| %>
       <a href="<%= admin_posts_path(category: c) %>" class="admin-btn admin-btn-sm <%= 'admin-btn-primary' if params[:category] == c %>"><%= c.capitalize %></a>

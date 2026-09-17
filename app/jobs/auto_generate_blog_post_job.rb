@@ -1,3 +1,13 @@
+# Takes NO retries, deliberately and by omission — see ApplicationJob for why
+# the policy is per-job rather than shared.
+#
+# This job is not idempotent in two ways that cost something real. It calls the
+# Claude API (paid) before it writes anything, so a replay pays twice for one
+# article. And a failure between `Post.create!` and `topic.update!` would, on
+# replay, pick the same still-unused topic and create a second post whose slug
+# collides and gets suffixed `-1`. Neither is a retry's decision to make: when
+# this fails it fails visibly (`rake jobs:failed`) and a human decides whether
+# the article is worth paying for again.
 class AutoGenerateBlogPostJob < ApplicationJob
   queue_as :default
 
