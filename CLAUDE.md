@@ -755,6 +755,215 @@ sitemap 은 `/about` 하나만, **hreflang 은 0개**(영어 단일 문서가 �
 - **이번 패키지의 빈틈**: 잡·서비스 계층을 넣지 않았다. Codex 의 유일한 "경로 요청"이
   `PublishScheduledPostsJob` 이었고 그것이 위 1번을 끌어냈다. 다음 패키지엔 포함한다.
 
+## 교차검증 (a) 3건 수정 (2026-09-18)
+
+`docs/review/CROSS_REVIEW_TRIAGE_2026-09-18_gsc3.md` 의 (a) 3건. 프로덕션 DB 미접촉, 미배포.
+전부 **수정 전에 먼저 재현**하고 **수정 후 다시 측정**했다.
+
+### A-1 (AMBER) — 한 글의 검증 실패가 배치 전체의 발행을 막던 문제
+
+**직전 커밋이 만든 트레이드오프다.** `validates :body_ko, if: published` 를 넣기 전에는 본문
+없는 글이 *발행돼 버렸고*(잘못이지만 배치는 계속됐다), 넣은 뒤에는 `find_each` 안의 rescue 없는
+`update!` 가 `RecordInvalid` 를 던져 **그 뒤의 글이 전부 발행되지 않는다.** 정확성은 올랐고
+가용성은 내려갔는데 그 교환을 인지하지 못한 채 바꿨다.
+
+**먼저 정한 것 — 어떤 실패를 어떻게 드러내는가** (구현보다 이 표가 먼저다):
+
+| 실패 | 격리 | 드러내는 방법 | 왜 |
+|---|---|---|---|
+| `update!` 가 레코드를 거부 (`RecordInvalid`·`RecordNotSaved`) | 그 글만 건너뛰고 배치 계속 | 글마다 `logger.error` **+ 런 끝에 관리자 메일 1통** | 이 수정의 **새 실패 모드가 "그 글이 영구히 미발행"** 이다. 로그만 두면 그 "영구히" 를 아무도 모른다 |
+| 알림 메일 enqueue 실패 | 메일만 포기, **발행은 되돌리지 않음** | `logger.error` | 글은 이미 공개됐다. 알림을 정직하게 만들려고 발행을 롤백하면 공개된 페이지를 숨기는 것이 된다 |
+| 그 외 전부 (DB 연결 끊김 등) | **격리하지 않음 — 그대로 전파** | 잡이 실패하고 Solid Queue 가 재시도 | 삼키면 모든 글이 "검증 실패" 로 보고되고 잡은 **성공으로 종료** 된다 — 발행해줄 재시도를 버리는 셈 |
+| 실패 보고 메일 자체의 실패 | rescue (메일 호출만 좁게) | `logger.error` | 알림의 알림은 없다. 이미 발행한 것까지 잃을 수는 없다 |
+
+**메일이 핵심이다.** 실패 1건이든 10건이든 **런당 1통** — 시스템적 문제가 메일 폭탄이 되면
+안 된다. 잡은 매일 09:00 KST 에 돌므로 **고쳐지기 전까지 매일 한 통**이 온다. 그 잔소리가
+안전망이다. 메일은 슬러그·검증 메시지·`/admin/posts/:id/edit` 링크를 담는다
+(`BlogMailer#publish_failed` + `app/views/blog_mailer/publish_failed.html.erb`, 신규).
+
+`RECORD_REJECTED` 를 두 예외로 **좁게** 잡은 것이 설계의 나머지 절반이다 — 넓게 잡으면
+인프라 장애가 "글 문제" 로 오분류되고 잡이 성공으로 끝난다.
+
+### A-1 부수: 알림이 한국어로 말하지 못하던 문제 (같은 수정의 일부)
+
+첫 테스트가 바로 드러냈다 — `config/locales/ko.yml` 에 `activerecord.errors` 블록이 **없고**
+ko 가 기본 로케일이라, 검증 실패가 자기 조회 흔적을 그대로 출력했다:
+
+```
+RecordInvalid#message → "Translation missing: ko.activerecord.errors.messages.record_invalid"
+errors.full_messages  → "Body ko Translation missing. Options considered were: …"
+```
+
+**이유 칸에 "Translation missing" 이 찍히는 알림은 동작하지 않는 알림이다.** 그래서 이건
+장식이 아니라 A-1 의 일부다. 이 문자열을 사람이 읽는 곳은 두 군데 —
+어드민 폼(`admin/posts/_form`·`admin/banners/_form` 이 `errors.full_messages` 를 출력)과
+이번에 추가한 발행 실패 메일.
+
+이 앱이 실제로 쓰는 검증자 3종(presence·uniqueness·inclusion) + `record_invalid` 래퍼 +
+Post·Banner 속성명으로 **범위를 좁혀** 넣었다. `errors.format` 은 공백 없는
+`"%{attribute}%{message}"` — 한국어 조사는 명사에 붙으므로 기본 포맷은 단어 중간에 공백을 만든다.
+`rails-i18n` 젬은 없다(넣으면 이 블록은 대체된다). **`en.yml` 은 건드리지 않았다** —
+Rails 기본 en 이 이미 "Body ko can't be blank" 를 준다(확인함).
+
+| | 수정 전 | 수정 후 |
+|---|---|---|
+| `RecordInvalid#message` | `Translation missing: ko.activerecord.errors.messages.record_invalid` | `저장할 수 없습니다: 본문(한국어)을(를) 입력해 주세요` |
+| `full_messages` | `Body ko Translation missing. Options considered were: …` | `본문(한국어)을(를) 입력해 주세요` |
+
+### A-1 전수 확인 — "rescue 없는 bang 메서드가 순회 안에" 5건
+
+`app`·`lib`·`db`·`script` 전체를 스캔(들여쓰기로 감싸는 블록을 추적하는 스크립트 + 수동 확인):
+
+| # | 위치 | 판정 | 조치 |
+|---|---|---|---|
+| 1 | `app/jobs/publish_scheduled_posts_job.rb:6` | **무인 실행·실패 비가시** | 위 A-1 |
+| 2 | `lib/tasks/blog.rake:34` `Post.create!` in `count.times` | 루프가 이미 생성 실패에 `next` 한다 — 의도가 이미 "건너뛰고 계속" | 글 단위 rescue 추가 |
+| 3 | `lib/tasks/blog.rake:176` `post.update!` in `each_with_index` | 동일 | 동일 |
+| 4 | `lib/tasks/blog_migrate_privacy.rake:43` `post.save!` in `each` | 동일 (+ 멱등 태스크) | 항목 단위 rescue + **끝에 `abort`** |
+| 5 | `db/seeds/safefile_posts.rb:40` `post.save!` in `each` | **이번 스캔이 새로 찾은 것 — 실제로 깨져 있었다** | 아래 별항 |
+
+2·3 에 `abort` 를 넣지 않은 이유: 사람이 터미널에서 돌리는 생성 태스크이고 이미
+`puts "FAILED — skipping"` + exit 0 가 기존 관례다. 4·5 는 **배포 후 실행 명령 목록**
+(CLAUDE.md "Post-deploy commands") 에 있어 exit code 가 자동화에 읽힌다 — 그래서 모든 항목에
+기회를 준 **다음** 실패한다.
+
+**격리하지 않은 것** (순회 안이 아니므로 예외가 올바른 결과):
+`auto_generate_blog_post_job`(런당 글 1개, 뒤에 아무것도 없음 — 예외 → 재시도가 맞다),
+`app/controllers/**`(요청 스코프, 예외 = 500 = 즉시 보임; `banners#swap_order` 는 트랜잭션 안
+2개 업데이트라 둘 다 성공해야 한다), `Post#publish!`.
+
+부수 확인: `posts_controller.rb:11` 의 `increment!(:view_count)` 는 **검증을 우회**한다
+(`update_counters` = 직접 SQL). 실측함 — 본문 없는 글의 공개 페이지가 500 이 되지 않는다.
+
+### A-1 별항 — `blog:seed_safefile_posts` 는 직전 커밋으로 실제로 깨져 있었다
+
+**실측**: `rake blog:seed_safefile_posts` → 두 번째 항목에서
+`ActiveRecord::RecordInvalid` 로 **중단**, 세 번째는 시도조차 못 한다.
+
+원인은 두 겹이고 둘 다 이 시드보다 나중에 생겼다:
+1. 시드의 원래 전제는 주석에 있던 "본문은 `public/blog/<slug>/index.html` 이 담당한다" 였다 —
+   그래서 **본문 없는 published 레코드**를 만드는 게 의도였다. `9f8bfff`(2026-07-17) 가
+   `public/blog/` 를 삭제하고 `blog:migrate_privacy` 가 본문을 DB 로 옮기며 슬러그를
+   **개명**했다(`rrn-masking`→`resident-number-masking`,
+   `contract-checklist`→`contract-sharing-checklist`). 시드는 개명 **전** 슬러그를 쓰므로
+   마이그레이션이 끝난 DB 에서는 기존 글을 못 찾고 **중복 글을 새로 만들려 한다**.
+2. 2026-09-18 의 검증이 그 생성을 거부한다.
+
+**즉 검증이 이 시드의 버그를 잡아준 것이다** — 검증 전에는 본문 없는 published 중복 2개를
+조용히 만들어 `/blog` 목록과 사이트맵을 오염시켰다. 확인: 수정 후 재실행해도 DB 에 중복 0건.
+
+조치는 **패턴 수정까지만** 했다 — 항목 단위 rescue + 이유를 밝히는 경고 + 전 항목 처리 후
+`abort`(exit 1). **이 파일을 어떻게 정리할지(마이그레이션에 합치기 / 본문을
+`db/blog_privacy/` 에서 읽게 하기 / 삭제)는 별도 결정이라 손대지 않았다.** 관련 관찰:
+마이그레이션 후에 시드를 돌리면 기존 글의 `category` 를 `privacy`→`student` 로 되돌려
+두 태스크가 서로 싸운다(실행 로그로 확인).
+
+### A-2 (GREEN) — 반복 슬래시가 미들웨어를 빠져나가던 문제 (**지적보다 넓었다**)
+
+교차검증은 트레일링 반복(`/safe//`, `/safe//index.html`, `/safe//sw.js`, `/privacy//`) 을
+지적했다. 재현하면서 **두 가족을 더 찾았다**:
+
+| 새로 찾은 것 | 실측 |
+|---|---|
+| `/safe/sw.js/` — 정적 디렉터리 **밑 에셋의 트레일링 슬래시** | 200, `/safe/sw.js` 와 8979 바이트 동일. 옛 코드의 "정적 디렉터리 밑은 절대 손대지 않는다" 분기가 통과시켰다 |
+| **경로 중간** 반복 슬래시 — `//about`·`/en//about`·`/en///about`·`//en/about`·`//faq`·`//blog`·`//sitemap.xml`·`//robots.txt`·`/blog//:slug`·`/en//blog//:slug` | 전부 진짜 200. CSRF 토큰만 빼면 정본과 **바이트 동일**(`/en//about` 대조 확인). 라우터가 반복 슬래시를 없는 것처럼 매칭한다 |
+
+**트레일링 슬래시를 얼마나 벗겨도 경로 중간은 못 잡는다** — 지적된 `squeeze` 위치 조정이
+아니라 **순서 자체**를 바꿔야 했다.
+
+**수정** (`lib/canonical_path_redirect.rb`): `canonical_target` 을 얇게 두고
+`canonical_spelling(path)` 를 신설 — **① 정규화(`squeeze("/")` + 트레일링 `/+` 제거) → ②
+그 결과를 정본 주소로 매핑** 의 두 단계. 이 **순서**가 핵심이다:
+
+- 정규화를 먼저 하면 `DIRS` 분기에서 "밑의 에셋은 통과" 라는 특례가 **필요 없어진다**
+  (코드가 줄었다). `/safe/` 의 슬래시는 `/safe` → `/safe/` 매핑이 되살린다.
+- **1홉이 보장된다.** `/safe//index.html/` 이 301 두 번이 아니라 곧바로 `/safe/` 로 간다.
+- 이 메서드가 돌려줄 수 있는 모든 값이 **자기 자신의 고정점**이다 — 그래서 체인도 루프도
+  구조적으로 불가능하다. 논증에 기대지 않고 두 가지로 고정했다:
+  ① 미들웨어가 내보낸 Location 을 **다시 자기에게 먹여** 200 인지 확인(40경로),
+  ② `canonical_spelling` 의 **멱등성**을 순수 함수 수준에서 단언.
+
+### A-3 (GREEN) — 미들웨어가 `public_file_server.enabled` 에 묶여 있던 문제
+
+가드는 **정적 디렉터리만 다룰 때는 옳았다** — Static 이 없으면 할 일도 없었다. 2026-09-18 에
+라우팅 페이지(`/about/`·`/blog/:slug/`·`/sitemap.xml/`) 정규화를 맡은 순간부터 틀렸다.
+
+**추정하지 않고 실측했다** — 프로덕션 환경으로 스택을 뽑았다:
+
+| 구성 | 수정 전 | 수정 후 |
+|---|---|---|
+| `RAILS_SERVE_STATIC_FILES=true` (실제 배포 형태) | `CanonicalPathRedirect` 1개 | 1개 (Static 바로 앞) |
+| 변수 미설정 (Rails 8 기본 참) | 1개 | 1개 (Static 바로 앞) |
+| **`public_file_server.enabled = false`** (프록시가 public/ 서빙) | **0개** | **1개 (스택 최상단)** |
+
+0개였다 — public/ 을 nginx 뒤로 옮기면 **사이트 전체 정본 URL 정규화가 에러도 로그도 없이
+사라진다.** 이 저장소가 반복해 당한 조용한 실패 모양 그대로다.
+
+**수정**: 가드를 없애지 않고 **역할을 바꿨다** — 이제 삽입 **위치**만 고른다.
+Static 이 있으면 `insert_before`(반드시 앞이어야 한다 — 파일 핸들러가 `/safe` 를 먼저 답한다),
+없으면 `unshift`. 무조건 `insert_before` 는 `"No such middleware to insert before"` 로
+**부팅을 깨뜨린다** — 배포 구성 변경이 크래시가 된다. `unshift` 는 `ActionDispatch::SSL` 보다
+위에 놓이는데, 홉 수는 양쪽 다 2(스킴·철자 순서만 바뀜)이고 Location 이 경로만 담으므로
+SSL 이 자기 차례를 잃지 않는다.
+
+`static_html_no_cache.rb` 의 가드는 **같은 실수가 아니라서 그대로 뒀다** — 그 미들웨어는
+Static 이 내보내는 캐시 헤더를 고쳐쓰는 것이 존재 이유라, Static 이 없으면 진짜로 할 일이 없다.
+두 초기화 파일 주석에 이 구분을 적었다.
+
+### 검증
+
+| 검증 | 결과 |
+|---|---|
+| `bin/rails test` | **109 runs / 793 assertions / 0 failures** (직전 87/502) |
+| 신규 `test/jobs/publish_scheduled_posts_job_test.rb` | 14개 / 80 단언 |
+| 확장 `test/lib/canonical_path_redirect_test.rb` | 25개 / 208 단언 (직전 17개) |
+| 확장 `test/integration/canonical_urls_test.rb` | 14개 / 232 단언 |
+| **반복 슬래시 회귀 테스트가 수정 전 코드를 잡는가** | **22/25 단언 실패** (root 3건은 원래도 동작) |
+| **잡 테스트가 수정 전 잡을 잡는가** | **9/14 테스트 실패** (나머지 5건은 원래 맞던 동작) |
+| 로컬 경로 스윕 137개 (리다이렉트 미추적) | **중복 200: 0개**, 루프 0, 3홉 이상 0. 홉 분포 `{1: 89, 2: 1}` |
+| 그 2홉 1건 | `/blog/contract-checklist/` → `/blog/contract-checklist` → `/blog/contract-sharing-checklist` — 철자(미들웨어) + 이동(라우터). DECISIONS.md 2026-09-18 에서 수용한 그 건 |
+| 사이트맵 30개 | 전부 200 · 자기참조 canonical · noindex 0 · 리다이렉트 0 |
+| 내부 링크 64개 (로컬 DB 는 글 3개 — 라이브 42개 기준 102개와 다르다) | 깨짐 0 · 리다이렉트 0 |
+| Accept-Language(none/en/ja/es/ko) × 무프리픽스 8페이지 | canonical·robots 전부 불변 |
+| **SW 프리캐시 URL 11개가 직접 200 인가** | 전부 200 — 새 301 이 프리캐시 경로에 끼어들지 않았다. (끼어들면 `r.redirected` 를 실패로 올리는 `precache()` 가 install 을 실패시켜 SW 업데이트가 멈춘다) |
+| SW 네트워크 실패 주입 (`test/sw/offline_resilience.mjs`) | **9/9 통과** — 회귀 없음 |
+| 프로덕션 미들웨어 스택 3형태 | 위 A-3 표 |
+| rubocop (변경 파일 10개) | 신규 위반 0 (남은 12건은 HEAD 사본에 rubocop 을 돌려 **전부 기존 것**임을 확인) |
+| 프로덕션 DB | **미접촉** |
+
+⚠️ **이니셜라이저·`lib/` 는 dev 에서 리로드되지 않는다** (직전 세션이 이미 당한 것).
+미들웨어를 바꾼 뒤 `docker compose restart web` 하기 전 측정은 전부 "수정 전" 값이다.
+이번에도 매 측정 전에 재시작했고, 회귀 테스트를 위해 옛 파일을 넣었다 뺄 때도 재시작했다.
+
+### self-check 로 추가 정리한 것
+
+- `report` 의 rescue 범위를 **메일 호출만**으로 좁혔다. 처음에는 메서드 전체를 감싸서
+  요약 로그까지 rescue 안에 있었다 — 로거가 실패하면 rescue 안에서 또 로거를 부르는 모양이라
+  의도가 흐렸다. 무엇이 "없어도 되는 것" 인지가 코드에서 보여야 한다.
+- `publish` 의 `begin/rescue/else` 를 평범한 `begin/rescue` + 조기 `return false` 로 바꿨다.
+  메서드 레벨 `else` 의 반환값 규칙은 맞게 동작하지만 읽는 사람이 한 번 멈춘다.
+- `describe_failure` 가 **문자열·정수만** 담는다. Post 나 예외 객체를 담으면 `deliver_later`
+  직렬화가 **프로덕션에서만** 터진다(잡 테스트는 초록으로 끝난다). 그래서 테스트가
+  `perform_enqueued_jobs` 까지 돌려 메일이 실제로 렌더·발송되는 것을 본다.
+- 잡 테스트의 로그 캡처에 **severity 를 포함하는 formatter** 를 붙였다. 기본 formatter 는
+  메시지만 쓰므로 `/ERROR.*/` 단언이 어떤 레벨에도 통과하는 **공허한 단언**이 된다.
+- 반복 슬래시 통합 테스트가 공허하지 않은지 확인했다 — 옛 미들웨어로 돌리면 실패한다.
+  즉 `ActionDispatch::IntegrationTest` 는 `//` 를 정규화하지 않고 그대로 넘긴다.
+- 미들웨어가 스택에 **실제로 꽂혀 있는지**를 단언하는 테스트를 추가했다(Static 앞 위치까지).
+  이 파일의 나머지 단언 전부가 그 전제에 기대고 있다. Static 이 없는 분기는 스택이 부팅 때
+  한 번만 만들어져 in-process 로 못 재현하므로, 위 A-3 실측이 담당한다고 주석에 적었다.
+
+### 남는 관찰 (수정 안 함)
+
+- `blog:seed_safefile_posts` 의 존재 이유 정리 (위 별항) — 어느 태스크가 이 3개 글을
+  소유하는지 결정해야 한다.
+- `auto_generate_blog_post_job` 에서 `topic.update!(used: true)` 가 실패하면 주제가 unused 로
+  남아 다음 런에 다시 뽑힌다(슬러그 유일성 때문에 `-1` 접미 글이 생긴다). 순회 안이 아니라
+  이번 패턴은 아니다. 또한 `Post.create!` 실패 시 재시도가 **API 비용을 다시 쓴다**.
+- Banner·BlogTopic·Conversion 의 속성명은 ko 번역이 없어 여전히 영어 humanize 로 나온다
+  (메시지 본문은 이제 한국어). 어드민 폼이 있는 Post·Banner 만 넣었다.
+- `<html lang>`·`og:locale`·UI 크롬은 여전히 협상된다 (이전 세션들의 관찰 그대로). 제품 결정.
+
 ## Favicon & PWA Manifest (2026-04-22)
 
 - **Files in `public/`**: `favicon.ico`, `favicon-16x16.png`, `favicon-32x32.png`, `apple-touch-icon.png`, `android-chrome-192x192.png`, `android-chrome-512x512.png`, `site.webmanifest`

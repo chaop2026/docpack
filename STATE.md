@@ -29,15 +29,13 @@
   `app/`·`public/` 어디에도 없고, 다크로 띄워도 라이트와 바이트 단위로 동일하다.
 - SafeFile(`public/safe/index.html`) v2 좌표 기반 마스킹. 최근 작업은 상단바 로고/네비 정리와
   서비스워커 stale-shell 고정, 포맷별 "PDF로 저장" 경로 추가.
-- **`/safe/` GSC 중복 페이지 수정 완료 (2026-09-17, 아직 미배포).** 동일 바이트를 주는 URL 이
-  4개(`/safe/`, `/safe`, `/safe/index.html`, `/safe/?v=20260719`)인데 canonical 태그가
-  하나도 없었다. `get "/safe", to: redirect("/safe/")` 라우트는 `ActionDispatch::Static` 이
-  라우터보다 앞이라 **한 번도 실행된 적이 없는 죽은 코드**였다. self-referencing canonical +
-  x-default + Rack 301 미들웨어(`lib/canonical_path_redirect.rb`)로 해결. 언어별 `/xx/safe/`
-  URL 은 **존재하지 않는다**(전부 404) — 단일 URL 클라이언트 i18n 구조라 상호참조 hreflang 은
-  대상이 없다. 자세한 내용은 CLAUDE.md "Static-page canonical / URL de-duplication" 절.
+- **SEO 정본 URL 정리 완료 (2026-09-17~18, 전부 미배포).** `/safe/` 중복 4개 · 미색인 63개 ·
+  GSC 지명 3개 · 트레일링/반복 슬래시를 모두 잡았다. 한 URL = 한 주소가 `lib/canonical_path_redirect.rb`
+  (Rack 301, `ActionDispatch::Static` 앞) + self-referencing canonical 로 보장된다.
+  자세한 내용은 CLAUDE.md 의 해당 4개 절. 언어별 `/xx/safe/` 는 존재하지 않는다(전부 404).
 - **부수 발견: Rails 테스트 스위트가 죽어 있었다.** minitest 6 ↔ railties 8.0.4 비호환으로
-  모든 테스트가 단언 하나 못 돌리고 "0 tests" 로 통과처럼 보였다. `minitest "~> 5.25"` 핀으로 복구.
+  단언 하나 못 돌고 죽었다(`minitest "~> 5.25"` 핀으로 복구). **다음에 같은 걸 찾을 때는
+  "0 tests" 가 아니라 `종료코드 != 0` + `요약 줄 부재` 를 봐라** — 실제 신호는 그쪽이다.
 - 블로그 자동화(주제 100개 → Claude API 생성 → MWF 09:00 KST 발행 + Gmail 알림)는
   2026-04 검증 이후 **실제 현재 동작 상태 확인 필요** (마지막 발행일·남은 주제 수 미확인).
 
@@ -52,23 +50,31 @@
    - 프로덕션 DB 는 건드리지 않았다. 판정은 전부 라이브 HTTP 실측 + 깃 이력.
    - 교차검증 (a) 2건 **수정·재검증 완료** (CLAUDE.md "교차검증 AMBER 2건 수정" 절):
      ① 색인 게이트가 발행 상태를 본다 ② 콘텐츠도 URL 로케일을 따른다.
-     **`body_en` 을 채워도 안전하다** — 개발 DB 에 실제로 채워 무프리픽스=한국어 /
-     `/en`=영어 로 갈리는 것까지 확인하고 원복했다.
-   - 교차검증 (a) 2건 + **GSC 실제 URL 3건 수정·재검증 완료** (2026-09-18,
+     **`body_en` 을 채워도 안전하다** — 개발 DB 에 실제로 채워 확인하고 원복했다.
+   - **GSC 실제 URL 3건 수정·재검증 완료** (2026-09-18,
      CLAUDE.md "GSC 실제 URL 3건 + Codex 신규 2건" 절). **직전 추정 3건은 전부 틀렸었다** —
      404 는 `/api/safe_scan`(인라인 JS 문자열에서 수확됨), 중복 2건은 `/en/about`
      (하드코딩 영어라 4로케일 92~94% 동일) 과 `/blog/contract-checklist/`(트레일링 슬래시).
      트레일링 슬래시 중복이 **글 168개 + 그 외 32경로**로 전면적이었고 전부 301 로 통합했다.
-   - ⚠️ **교차검증에서 새 (a) 3건** (`docs/review/CROSS_REVIEW_TRIAGE_2026-09-18_gsc3.md`):
-     ① **AMBER** `PublishScheduledPostsJob` 이 새 `body_ko` 검증에 걸리면 배치 전체가 멈춘다
-     — **이번 커밋이 만든 트레이드오프, 배포 전 처리 권장**
-     ② GREEN `/safe//` 류 반복 슬래시가 미들웨어를 빠져나간다
-     ③ GREEN 미들웨어 가드가 `public_file_server.enabled` 에 묶여 있다(현재는 무해, 확인함)
+   - 교차검증 (a) **3건 전부 수정·재검증 완료** (2026-09-18, CLAUDE.md "교차검증 (a) 3건 수정" 절):
+     ① `PublishScheduledPostsJob` 이 글 단위로 격리되고, 건너뛴 글은 **런당 관리자 메일 1통**으로
+        드러난다(로그만 두면 "영구히 미발행" 을 아무도 모른다). 인프라 예외는 일부러 전파한다.
+     ② 반복 슬래시 — **지적보다 넓었다.** `/safe/sw.js/` 와 **경로 중간**(`//about`·`/en//about`
+        ·`/blog//:slug`)까지 진짜 200 이었다. 정규화→매핑 순서로 바꿔 1홉 보장.
+     ③ 미들웨어를 무조건 삽입하고 가드는 **위치만** 고른다(`enabled=false` 에서 0개였음 — 실측).
+     - 부수: **`blog:seed_safefile_posts` 가 직전 커밋으로 실제로 깨져 있었다**(실측, 두 번째
+       항목에서 중단). 검증이 이 시드의 오래된 버그를 잡아준 것 — 전에는 본문 없는 published
+       중복 2개를 조용히 만들었다. 패턴만 고치고 시드의 존재 이유 정리는 보류(DECISIONS.md).
+     - 부수: `ko.yml` 에 검증 메시지 블록 추가. 없어서 검증 실패가 `Translation missing…` 으로
+       나왔고, 그건 **발행 실패 알림의 "이유" 칸**이라 알림이 동작하지 않는 상태였다.
 
-1. **배포 절차.** 교차검증 (a) 2건은 **수정·재검증 완료**했다
-   (SW 필수자산 분리 + 301 본문 이스케이프, CLAUDE.md "교차검증 (a) 2건 수정" 절).
+1. **배포 절차.** 교차검증 (a) 는 이제 **미해결 0건**이다 (직전 3건까지 전부 처리).
    - `kamal deploy`. 라이브에서 `/safe`·`/safe/index.html` 이 301 인지,
      `/safe/` 에 canonical 이 박혔는지 curl 로 확인.
+   - **반복 슬래시도 라이브에서 확인**: `/safe//`·`/safe/sw.js/`·`//about`·`/en//about`
+     ·`/blog//<슬러그>` 가 전부 301 1홉인지 (로컬 137경로에서 중복 200 = 0 이었다).
+   - **`blog:seed_safefile_posts` 는 exit 1 로 실패하는 것이 정상이다** — 이 시드는
+     `blog:migrate_privacy` 로 대체됐다. 배포 후 명령 목록에서 **후자만** 돌릴 것.
    - 라이브에서 `curl -H 'Accept-Language: en-US' .../blog/<슬러그>` 가 **noindex 없이**
      오는지, `/faq` canonical 이 `/faq` 로 남는지도 확인 (이번 수정의 핵심 지표).
    - 그 다음 GSC: `/safe/`·`/blog` URL 검사 → 색인 생성 요청, sitemap 재제출,
@@ -84,8 +90,7 @@
    `params[:debug]` 로 걸린 `alert()` 블록은 임시다. 원인 규명이 끝났으므로 이제 지워도 된다.
    `dragover`/`drop` preventDefault 자체는 남긴다.
 4. **업로드 목록 실기기 확인.** 자동 검증은 통과했으나 실제 모바일 Safari/Chrome 에서
-   드롭·파일 선택·긴 파일명 생략을 눈으로 한 번 볼 것. 시각 강화분(액센트 바·진입 애니메이션)도
-   같이 본다. `color-mix` 미지원 구형 브라우저에서는 테두리가 중립 회색으로 내려앉는 게 정상이다.
+   드롭·파일 선택·긴 파일명 생략을 눈으로 한 번 볼 것.
 5. **블로그 자동화 현재 상태 점검.** `kamal app exec 'bin/rails runner "puts Post.group(:status).count; puts BlogTopic.where(used: false).count"'`
    로 발행 현황과 잔여 주제 확인. 2026-04-07 SolidQueue/SMTP 수정 이후 재검증한 기록이 없다.
 6. **PWA 작업 시 `app/views/pwa/manifest.json.erb` 처리 결정.** 이 파일은 Rails 8 스캐폴드 잔재다 —

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { margin: 0; padding: 0; background-color: #F8F7F4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .container { max-width: 560px; margin: 32px auto; background: #ffffff; border: 1px solid #E5E3DC; border-radius: 20px; overflow: hidden; }
+    .header { background: #A32D2D; padding: 28px 32px; }
+    .header h1 { margin: 0; color: #ffffff; font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+    .body { padding: 28px 32px; }
+    .notice { background: #FCEBEB; border-radius: 14px; padding: 14px 18px; font-size: 13px; color: #A32D2D; line-height: 1.6; margin-bottom: 20px; }
+    .item { border: 1px solid #E5E3DC; border-left: 4px solid #A32D2D; border-radius: 14px; padding: 14px 18px; margin-bottom: 12px; }
+    .item-slug { font-size: 15px; font-weight: 600; color: #1A1918; letter-spacing: -0.01em; margin: 0 0 6px; }
+    .item-errors { font-size: 13px; color: #6B6963; line-height: 1.55; margin: 0 0 10px; }
+    .btn { display: inline-block; background: #0A6E8A; color: #ffffff; text-decoration: none; padding: 8px 18px; border-radius: 12px; font-size: 13px; font-weight: 600; }
+    .stats { background: #F8F7F4; border-radius: 14px; padding: 14px 18px; margin-top: 20px; font-size: 13px; color: #6B6963; line-height: 1.6; }
+    .footer { padding: 20px 32px; text-align: center; font-size: 12px; color: #6B6963; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>SlimFile 블로그 발행 실패</h1>
+    </div>
+
+    <div class="body">
+      <div class="notice">
+        예약된 글 <strong><%= @failures.size %>건</strong>이 검증에 걸려 발행되지 않았습니다.
+        해당 글은 <strong>예약(scheduled) 상태로 그대로 남아</strong> 있고, 나머지 글은 정상 발행됐습니다.
+        고치지 않으면 이 메일이 매일 다시 옵니다.
+      </div>
+
+      <% @failures.each do |failure| %>
+        <div class="item">
+          <p class="item-slug"><%= failure["slug"].presence || "(슬러그 없음)" %></p>
+          <p class="item-errors"><%= failure["errors"].presence || "(검증 메시지 없음)" %></p>
+          <% if failure["id"].present? %>
+            <a href="https://slimfile.net/admin/posts/<%= failure["id"] %>/edit" class="btn">편집 →</a>
+          <% end %>
+        </div>
+      <% end %>
+
+      <div class="stats">
+        가장 흔한 원인은 <strong>한국어 본문(body_ko)이 빈 것</strong>입니다 —
+        발행된 글은 반드시 한국어 본문을 가져야 합니다
+        (<code>/blog/:slug</code> 가 다른 모든 로케일의 canonical 이자 x-default 대상이기 때문).<br>
+        본문을 채우고 저장하면 다음 실행에서 발행됩니다.
+      </div>
+    </div>
+
+    <div class="footer">
+      SlimFile &mdash; slimfile.net · PublishScheduledPostsJob
+    </div>
+  </div>
+</body>
+</html>

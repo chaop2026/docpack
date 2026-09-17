@@ -15,6 +15,29 @@ class CanonicalUrlsTest < ActionDispatch::IntegrationTest
   def robots(body) = body[/<meta name="robots" content="([^"]*)"/, 1]
   def hreflangs(body) = body.scan(/<link rel="alternate" hreflang="([^"]+)"/).flatten
 
+  # ── the middleware is actually installed ────────────────────────────────
+
+  test "CanonicalPathRedirect is in the stack, ahead of the static file server" do
+    # Every assertion in this file is worthless if the middleware silently
+    # stops being inserted — which is exactly what its old
+    # `if public_file_server.enabled` guard could have caused the day public/
+    # moved behind a proxy (measured: the middleware appeared zero times).
+    #
+    # This covers the branch this environment boots with (Static present). The
+    # other branch cannot be exercised in-process, since the stack is built
+    # once at boot; it was verified by booting the production environment with
+    # public_file_server.enabled forced false and reading `bin/rails middleware`
+    # — recorded in CLAUDE.md.
+    names = Rails.application.middleware.map { |m| m.name.to_s }
+
+    assert_includes names, "CanonicalPathRedirect"
+    assert_includes names, "ActionDispatch::Static",
+      "this environment is expected to serve public/ itself"
+    assert_operator names.index("CanonicalPathRedirect"), :<,
+      names.index("ActionDispatch::Static"),
+      "the static handler would answer /safe before the middleware could redirect it"
+  end
+
   # ── /api/safe_scan ──────────────────────────────────────────────────────
 
   test "the API endpoint is blocked from crawling in robots.txt" do
@@ -95,9 +118,50 @@ class CanonicalUrlsTest < ActionDispatch::IntegrationTest
     assert_redirected_to "/en/blog/resident-number-masking"
   end
 
+  # ── repeated slashes ────────────────────────────────────────────────────
+  #
+  # Both layers behind the middleware are blind to a repeated slash:
+  # FileHandler resolves /safe//index.html to the same file as
+  # /safe/index.html, and the router matches /en//about as /en/about. Measured
+  # locally 2026-09-18 before the fix: every path below answered a 200 whose
+  # body was byte-identical to its canonical twin, and /safe//index.html walked
+  # past the /safe/index.html rule entirely.
+  #
+  # These go through the full stack, so they prove the *app* has one address per
+  # page. The middleware's own rules are pinned at the Rack level in
+  # test/lib/canonical_path_redirect_test.rb, where the path can be handed over
+  # verbatim.
+
+  test "repeated slashes collapse onto the canonical address" do
+    {
+      "/safe//" => "/safe/",
+      "/safe///" => "/safe/",
+      "/safe//index.html" => "/safe/",
+      "/safe/index.html/" => "/safe/",
+      "/privacy//" => "/privacy/",
+      "/privacy//index.html" => "/privacy/",
+      "/safe//sw.js" => "/safe/sw.js",
+      "/safe/sw.js/" => "/safe/sw.js",
+      "//about" => "/about",
+      "/en//about" => "/en/about",
+      "//faq" => "/faq",
+      "//blog" => "/blog",
+      "/blog//contract-sharing-checklist" => "/blog/contract-sharing-checklist",
+      "//sitemap.xml" => "/sitemap.xml"
+    }.each do |path, target|
+      get path
+      assert_response :moved_permanently, "#{path} should not answer directly"
+      assert_equal target, response.headers["location"], path
+    end
+  end
+
   test "no redirect chain loops or exceeds two hops" do
     %w[/about/ /blog/ /en/faq/ /blog/contract-checklist/ /safe /safe/index.html
-       /blog/index.html /blog/rrn-masking/].each do |path|
+       /blog/index.html /blog/rrn-masking/
+       /safe// /safe/// /safe//index.html /safe/index.html/ /safe//sw.js
+       /safe/sw.js/ /privacy// //about /en//about /en///about //faq
+       /blog//contract-checklist /blog//contract-checklist/ //sitemap.xml
+       // ///].each do |path|
       get path
       seen = [path]
       hops = 0

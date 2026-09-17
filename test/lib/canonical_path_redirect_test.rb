@@ -84,6 +84,122 @@ class CanonicalPathRedirectTest < ActiveSupport::TestCase
     assert_equal "/about", headers["location"]
   end
 
+  # ── repeated slashes anywhere in the path ───────────────────────────────
+  #
+  # The layers behind this one cannot see a repeated slash: FileHandler resolves
+  # `/safe//index.html` to the same file as `/safe/index.html`, and the Rails
+  # router matches `/en//about` as `/en/about`. Every extra slash was therefore
+  # another address serving identical bytes. Measured locally 2026-09-18 before
+  # the fix — every path below answered 200 with a byte-identical body, and
+  # `/safe//index.html` slipped past the `/safe/index.html` rule entirely.
+
+  test "repeated slashes under a static directory collapse onto its canonical URL" do
+    {
+      "/safe//" => "/safe/",
+      "/safe///" => "/safe/",
+      "/safe//index.html" => "/safe/",
+      "/safe///index.html" => "/safe/",
+      "/safe/index.html/" => "/safe/",
+      "/privacy//" => "/privacy/",
+      "/privacy//index.html" => "/privacy/"
+    }.each do |path, target|
+      status, headers, = call(path)
+      assert_equal 301, status, path
+      assert_equal target, headers["location"], path
+    end
+  end
+
+  test "repeated slashes in front of a static asset collapse onto the single asset URL" do
+    {
+      "/safe//sw.js" => "/safe/sw.js",
+      "/safe///sw.js" => "/safe/sw.js",
+      "/safe//manifest.ko.webmanifest" => "/safe/manifest.ko.webmanifest",
+      # A trailing slash on an asset is a duplicate too: /safe/sw.js/ served the
+      # same 8979 bytes as /safe/sw.js. The old code's "never touch anything
+      # under a static dir" branch let this through.
+      "/safe/sw.js/" => "/safe/sw.js",
+      "/privacy//style.css" => "/privacy/style.css"
+    }.each do |path, target|
+      status, headers, = call(path)
+      assert_equal 301, status, path
+      assert_equal target, headers["location"], path
+    end
+  end
+
+  test "repeated slashes mid-path on a routed page collapse in one hop" do
+    # Not trailing — no amount of trailing-slash stripping would catch these.
+    {
+      "//about" => "/about",
+      "/en//about" => "/en/about",
+      "/en///about" => "/en/about",
+      "//en/about" => "/en/about",
+      "//faq" => "/faq",
+      "//blog" => "/blog",
+      "//sitemap.xml" => "/sitemap.xml",
+      "/blog//some-slug" => "/blog/some-slug",
+      "/en//blog//some-slug" => "/en/blog/some-slug",
+      "//robots.txt" => "/robots.txt"
+    }.each do |path, target|
+      status, headers, = call(path)
+      assert_equal 301, status, path
+      assert_equal target, headers["location"], path
+    end
+  end
+
+  test "repeated slashes at the root collapse onto /" do
+    { "//" => "/", "///" => "/", "////" => "/" }.each do |path, target|
+      status, headers, = call(path)
+      assert_equal 301, status, path
+      assert_equal target, headers["location"], path
+    end
+  end
+
+  # ── no chains, no loops ─────────────────────────────────────────────────
+  #
+  # Normalising the path before mapping it is what bounds this to a single hop.
+  # Rather than trust that argument, follow the middleware's own output back
+  # into itself: if any Location it emits would redirect again, the fix has
+  # created a chain, and if one ever returns to its input it has created a loop.
+  # (config/routes.rb may add a second hop for an old slug — that is the router,
+  # deliberately accepted, and out of this middleware's reach. DECISIONS.md
+  # 2026-09-18.)
+
+  test "no Location this middleware emits redirects again" do
+    paths = %w[
+      / // /// //// /safe /safe/ /safe// /safe/// /safe/index.html /safe//index.html
+      /safe/index.html/ /safe/sw.js /safe/sw.js/ /safe//sw.js /privacy /privacy/
+      /privacy// /privacy//index.html /about /about/ /about// /about/// //about
+      /en//about /en///about //en/about /faq/ //faq /blog/ //blog /blog//some-slug
+      /en//blog//some-slug /sitemap.xml/ //sitemap.xml /robots.txt //robots.txt
+      /api/safe_scan /blog/safe /safety /en /en/
+    ]
+
+    paths.each do |path|
+      status, headers, = call(path)
+      next if status == 200
+
+      location = headers["location"]
+      follow_status, follow_headers, = call(location)
+      assert_equal 200, follow_status,
+        "#{path} -> #{location} -> #{follow_headers["location"]} is a redirect chain"
+      assert_not_equal path, location, "#{path} redirects to itself"
+    end
+  end
+
+  test "every canonical spelling is a fixed point" do
+    # The same invariant stated directly on the pure function, so a regression
+    # is reported at the rule rather than at one of its symptoms.
+    mw = CanonicalPathRedirect.new(PASSTHROUGH)
+    %w[
+      / // /safe /safe/ /safe// /safe/index.html /safe/sw.js/ /privacy//
+      /about/ //about /en//about /blog//some-slug /sitemap.xml/ ////
+    ].each do |path|
+      once = mw.send(:canonical_spelling, path)
+      twice = mw.send(:canonical_spelling, once)
+      assert_equal once, twice, "canonical_spelling is not idempotent for #{path}"
+    end
+  end
+
   test "a static directory keeps its slash while routed paths lose theirs" do
     # The two rules point in opposite directions, which is why one middleware
     # owns both. /safe/ is a real directory under public/; /about/ is not.

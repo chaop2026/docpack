@@ -70,22 +70,50 @@ class CanonicalPathRedirect
     return nil unless SAFE_METHODS.include?(env["REQUEST_METHOD"])
 
     path = env["PATH_INFO"].to_s
-    return nil if path.empty? || path == "/"
+    return nil if path.empty?
 
-    # Static directories: canonical WITH the slash.
+    canonical = canonical_spelling(path)
+    canonical == path ? nil : canonical
+  end
+
+  # The single canonical address for a path, in two steps that must happen in
+  # this order: reduce the path to its bare form, then map that form onto the
+  # address it belongs to.
+  #
+  # Normalising FIRST is what makes this correct, and it is the fix for the
+  # duplicate family the earlier version left open. Repeated slashes are
+  # invisible to the layers behind this one — ActionDispatch::FileHandler
+  # resolves `/safe//index.html` to the same file as `/safe/index.html`, and the
+  # Rails router matches `/en//about` as `/en/about` — so every extra slash was
+  # another address serving identical bytes, and `/safe//index.html` walked
+  # straight past the `/safe/index.html` rule. Measured locally 2026-09-18,
+  # before the fix, byte-identical 200s across the board:
+  #
+  #   /safe//  /safe///  /safe//index.html  /safe//sw.js  /safe/sw.js/
+  #   /privacy//  /privacy//index.html
+  #   //about  /en//about  /en///about  //faq  //blog  //sitemap.xml
+  #   /blog//some-slug  /en//blog//some-slug
+  #
+  # The last two rows are mid-path, not trailing, and no amount of trailing-slash
+  # stripping would have caught them.
+  #
+  # Doing it in this order also bounds the fix to ONE hop: `/safe//index.html/`
+  # reaches `/safe/` directly instead of through two 301s. Every value this
+  # method can return is a fixed point of it — `/safe/` reduces to `/safe` which
+  # maps back to `/safe/`, and a bare routed path maps to itself — so a redirect
+  # can never chain or loop. That is asserted in the tests.
+  def canonical_spelling(path)
+    bare = path.squeeze("/").sub(%r{/+\z}, "")
+    return "/" if bare.empty?
+
+    # Static directories are canonical WITH the trailing slash (that is what
+    # `public/safe/` actually is); routed pages are canonical without it, which
+    # is what `bare` already holds.
     DIRS.each do |dir|
-      return "#{dir}/" if path == dir || path == "#{dir}/index.html"
-      # Already canonical, or an asset underneath it — never touched. This also
-      # keeps the trailing-slash rule below from stripping `/safe/` itself.
-      return nil if path.start_with?("#{dir}/")
+      return "#{dir}/" if bare == dir || bare == "#{dir}/index.html"
     end
 
-    # Routed pages: canonical WITHOUT the slash. Strip every trailing slash so
-    # `/about//` resolves in one hop rather than redirecting twice.
-    stripped = path.sub(%r{/+\z}, "")
-    return nil if stripped == path
-
-    stripped.empty? ? "/" : stripped
+    bare
   end
 
   # The Location the client is sent to. The query string is echoed back from the

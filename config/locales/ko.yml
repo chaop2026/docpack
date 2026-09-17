@@ -127,3 +127,60 @@ ko:
         a: "JPG, PNG, HEIC, WebP 등 주요 이미지 형식을 모두 지원합니다."
       - q: "SNS 리사이즈는 어떤 규격을 지원하나요?"
         a: "인스타그램 1:1 (1080x1080), 4:5 (1080x1350) / 페이스북 1.91:1 (1200x630), 9:16 (1080x1920) 규격을 지원합니다."
+
+  # ── Validation messages ─────────────────────────────────────────────────
+  #
+  # There was no activerecord block here at all, and ko is the default locale,
+  # so every validation failure rendered as its own lookup trace:
+  #
+  #   ActiveRecord::RecordInvalid#message
+  #     → "Translation missing: ko.activerecord.errors.messages.record_invalid"
+  #   errors.full_messages
+  #     → "Body ko Translation missing. Options considered were: …"
+  #
+  # Two places read those strings where a person is meant to understand them:
+  # the admin post/banner forms, and — since 2026-09-18 — the failure report
+  # PublishScheduledPostsJob mails when a post cannot be published. An alert
+  # whose reason field says "Translation missing" is an alert that does not
+  # work, so this block is part of that fix rather than a cosmetic aside.
+  #
+  # Scoped to the three validators this app actually uses (presence, uniqueness,
+  # inclusion) plus the record_invalid wrapper. There is no rails-i18n gem here;
+  # if one is ever added it supersedes this block.
+  errors:
+    # No space between attribute and message: Korean particles attach to the
+    # noun ("본문(한국어)을(를) …", "카테고리에 …"), so the default
+    # "%{attribute} %{message}" would put a gap in the middle of a word.
+    format: "%{attribute}%{message}"
+    messages:
+      blank: "을(를) 입력해 주세요"
+      taken: "은(는) 이미 사용 중입니다"
+      inclusion: "에 허용되지 않는 값이 들어왔습니다"
+  activerecord:
+    errors:
+      messages:
+        record_invalid: "저장할 수 없습니다: %{errors}"
+        blank: "을(를) 입력해 주세요"
+        taken: "은(는) 이미 사용 중입니다"
+        inclusion: "에 허용되지 않는 값이 들어왔습니다"
+    models:
+      post: "블로그 글"
+      banner: "배너"
+    attributes:
+      post:
+        title_ko: "제목(한국어)"
+        title_en: "제목(영어)"
+        body_ko: "본문(한국어)"
+        body_en: "본문(영어)"
+        meta_description_ko: "메타 설명(한국어)"
+        meta_description_en: "메타 설명(영어)"
+        slug: "슬러그"
+        category: "카테고리"
+        status: "상태"
+        published_at: "발행일시"
+      banner:
+        title_en: "제목(영어)"
+        title_ko: "제목(한국어)"
+        position: "위치"
+        page: "페이지"
+        banner_type: "배너 종류"

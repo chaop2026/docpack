@@ -24,6 +24,8 @@ namespace :blog do
         slug: "contract-sharing-checklist", file: "contract-sharing-checklist.html" }
     ]
 
+    rejected = []
+
     posts.each do |spec|
       post = Post.where(slug: spec[:match_slugs]).order(:id).first
       unless post
@@ -40,7 +42,16 @@ namespace :blog do
       post.published_at ||= Time.current
 
       if post.changed?
-        post.save!
+        # The `next` above already establishes that one bad spec must not stop
+        # the others. A rejected record follows the same rule — and this task is
+        # idempotent, so re-running after a fix costs nothing.
+        begin
+          post.save!
+        rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved => e
+          rejected << "#{spec[:slug]}: #{e.message}"
+          warn "  ! #{spec[:slug]} (id=#{post.id}) rejected — #{e.message} — skipping"
+          next
+        end
         puts "  ✓ #{spec[:slug]} (id=#{post.id}) updated [#{post.saved_changes.keys.join(', ')}]"
       else
         puts "  = #{spec[:slug]} (id=#{post.id}) already current"
@@ -48,5 +59,11 @@ namespace :blog do
     end
 
     puts "Done. privacy posts: #{Post.where(category: 'privacy').pluck(:slug).sort.join(', ')}"
+
+    # Every spec got its turn first; now fail, because this task is on the
+    # post-deploy command list and a migration that silently migrated nothing
+    # must not exit 0. (A missing record is NOT a failure — the task is
+    # idempotent and a fresh DB legitimately has nothing to migrate yet.)
+    abort "blog:migrate_privacy: #{rejected.size} post(s) rejected — #{rejected.join(' | ')}" if rejected.any?
   end
 end

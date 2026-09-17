@@ -31,16 +31,25 @@ namespace :blog do
       date += 1.day until [1, 3, 5].include?(date.cwday)
       published_at = date.in_time_zone("Asia/Seoul").change(hour: 9)
 
-      post = Post.create!(
-        title_ko: result[:title_ko],
-        body_ko: result[:body_ko],
-        meta_description_ko: result[:meta_description_ko],
-        slug: result[:slug],
-        cover_svg: result[:cover_svg],
-        category: topic.category,
-        status: "scheduled",
-        published_at: published_at
-      )
+      # `next` on a generator failure above already says what this loop wants:
+      # one bad topic must not cost the ones behind it. A rejected record has to
+      # follow the same rule, or a single validation failure throws away the API
+      # spend for every remaining iteration.
+      begin
+        post = Post.create!(
+          title_ko: result[:title_ko],
+          body_ko: result[:body_ko],
+          meta_description_ko: result[:meta_description_ko],
+          slug: result[:slug],
+          cover_svg: result[:cover_svg],
+          category: topic.category,
+          status: "scheduled",
+          published_at: published_at
+        )
+      rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved => e
+        puts "  REJECTED — #{e.message} (topic left unused, skipping)"
+        next
+      end
 
       topic.update!(used: true)
       generated += 1
@@ -173,12 +182,19 @@ namespace :blog do
         next
       end
 
-      post.update!(
-        title_ko: result[:title_ko],
-        body_ko: result[:body_ko],
-        meta_description_ko: result[:meta_description_ko],
-        cover_svg: result[:cover_svg]
-      )
+      # Same reasoning as blog:generate — the loop already skips a failed
+      # generation, so a rejected record must not abort the remaining posts.
+      begin
+        post.update!(
+          title_ko: result[:title_ko],
+          body_ko: result[:body_ko],
+          meta_description_ko: result[:meta_description_ko],
+          cover_svg: result[:cover_svg]
+        )
+      rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved => e
+        puts "  REJECTED — #{e.message} (left as-is, skipping)"
+        next
+      end
 
       puts "  OK — updated '#{post.slug}' (published_at: #{post.published_at})"
       sleep 3 if i < posts.count - 1

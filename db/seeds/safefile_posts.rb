@@ -1,7 +1,27 @@
-# SafeFile 가이드 정적 글 3개를 블로그 목록에 노출하기 위한 Post 레코드.
-# 본문은 public/blog/<slug>/index.html 정적 페이지가 담당한다 —
-# /blog/:slug 요청은 정적 파일 핸들러가 posts#show보다 먼저 처리하므로
-# 이 레코드는 목록 카드(제목·설명·날짜·카테고리)용으로만 쓰인다.
+# SafeFile 가이드 글 3개의 Post 레코드.
+#
+# ⚠️ 이 시드는 **`blog:migrate_privacy` 로 대체됐다.** 원래 전제는 위 주석에 있던
+# "본문은 `public/blog/<slug>/index.html` 정적 페이지가 담당한다" 였고, 그래서
+# 본문 없는 published 레코드를 만드는 것이 의도였다. 그 전제는 두 번 깨졌다:
+#
+#   1. `9f8bfff`(2026-07-17)가 `public/blog/` 를 삭제했다 — 본문을 담당할 정적
+#      파일이 더는 없다. `blog:migrate_privacy` 가 `db/blog_privacy/*.html` 를
+#      DB 로 옮기면서 슬러그도 서술형으로 **개명**했다
+#      (`rrn-masking` → `resident-number-masking`,
+#       `contract-checklist` → `contract-sharing-checklist`).
+#      아래 슬러그는 개명 **전** 값이라, 마이그레이션이 끝난 DB 에서 이 시드를
+#      돌리면 기존 글을 찾지 못하고 **본문 없는 중복 글을 새로 만든다.**
+#   2. 2026-09-18 의 `validates :body_ko, if: published` 가 그 생성을 거부한다.
+#      즉 지금 이 시드는 신선한 DB 에서도 완주하지 못한다 (실측: 두 번째 항목에서
+#      `RecordInvalid` 로 중단).
+#
+# 검증이 이 시드의 버그를 **잡아준 것**이다 — 검증 전에는 조용히 본문 없는 published
+# 중복 2개를 만들어 /blog 목록과 사이트맵을 오염시켰다.
+#
+# 아래 루프는 그래도 항목 단위로 격리한다(같은 커밋에서 잡·레이크 전체에 적용한
+# 규칙). 한 항목의 실패가 다른 항목을 막지 않고, 실패는 조용히 지나가지 않는다.
+# **이 파일을 어떻게 정리할지(마이그레이션에 합치기 / 본문을 `db/blog_privacy/`
+# 에서 읽게 하기 / 삭제)는 별도 결정이라 이번 커밋에서 손대지 않았다.**
 safefile_posts = [
   {
     slug: "resume-privacy",
@@ -29,6 +49,9 @@ safefile_posts = [
   }
 ]
 
+seeded = 0
+rejected = []
+
 safefile_posts.each do |attrs|
   post = Post.find_or_initialize_by(slug: attrs[:slug])
   post.assign_attributes(
@@ -37,8 +60,28 @@ safefile_posts.each do |attrs|
       published_at: post.published_at || Time.zone.parse("2026-07-16 09:00:00 +09:00")
     )
   )
-  post.save!
+
+  begin
+    post.save!
+  rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved => e
+    rejected << [ attrs[:slug], e.message ]
+    warn "  ! #{attrs[:slug]} rejected — #{e.message} — skipping"
+    next
+  end
+
+  seeded += 1
   puts "Seeded post: #{post.slug} (#{post.status})"
 end
 
 puts "SafeFile guide posts: #{Post.where(slug: safefile_posts.map { |p| p[:slug] }).count}/3 present"
+
+if rejected.any?
+  # Loud on purpose, and non-zero on purpose. Isolating the bad item keeps the
+  # others going, but this task is on the post-deploy command list (CLAUDE.md),
+  # where a run that seeds nothing and exits 0 reads as success. So: every item
+  # gets its turn, then the task fails.
+  warn "\n#{rejected.size}/#{safefile_posts.size} rejected — this seed is superseded by " \
+       "blog:migrate_privacy (see the header comment). Seeded #{seeded}."
+  rejected.each { |slug, message| warn "  #{slug}: #{message}" }
+  abort "blog:seed_safefile_posts: #{rejected.size} post(s) could not be seeded"
+end
