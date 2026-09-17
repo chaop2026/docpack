@@ -609,6 +609,27 @@ hreflang 이 ko+en 둘 다로 늘고 사이트맵도 2개로 늘었다. 원복 �
   이번 요구사항은 본문·제목·설명에 한정됐다. UI 까지 URL 기준으로 맞추려면
   영어권 방문자가 `/` 에서 한국어를 보게 되므로 제품 결정이 필요하다.
 
+### 외부 교차검증 (Codex CLI, read-only)
+
+- 패키지 `docs/review/CODEX_REVIEW_PACKAGE_2026-09-17_amber2.md` (비밀값 0건, 라우트 전문 포함)
+- 원문 `docs/review/CODEX_RESULT_2026-09-17_amber2.md` (codex-cli 0.144.3, 87초)
+- 대조 `docs/review/CROSS_REVIEW_TRIAGE_2026-09-17_amber2.md` — 8건 전부 (a)/(b)/(c) 분류
+- **A-1 `해소됨` · A-2 `해소됨`.** R1~R6 (유출 경로 · 필수 인자화 · `translated?` 유지 ·
+  x-default 생략 · 공허한 단언 · 폴백/UI 판단) 전부 우리 판정과 일치.
+- **새 (a) 2건 — 다음 런. 이번 세션에서는 고치지 않았다**:
+  1. **AMBER** `/en/blog/:slug` 의 **JSON-LD `url`·`mainEntityOfPage.@id` 가 한국어 URL 로
+     하드코딩**돼 canonical 과 어긋난다 (`show.html.erb:33`, `:50`).
+     **재현 확인**: canonical `/en/blog/…` vs JSON-LD `/blog/…`.
+     **A-2 와 트리거가 같다 — `body_en` 을 채우기 전에 고칠 것.**
+  2. **GREEN** `body_en` 만 있고 `body_ko` 가 없는 published 글이 생기면 **x-default 가
+     noindex URL 을 가리킨다** (레이아웃·사이트맵 양쪽). **재현 확인**: `<loc>`·alternate 는
+     정확한데 x-default 만 규칙을 지나친다. 현재 이 데이터 모양을 만드는 경로는 없다
+     (`Post` 가 `body_ko` 를 검증하지 않는 공백). `body_ko` 필수화 여부는 정책 결정.
+- 우리가 먼저 올린 관찰을 Codex 가 확인해준 것: `<html lang>` 협상 잔존 (+`og:locale` 추가 지적).
+  UI 크롬까지 URL 기준으로 맞추는 것은 제품 결정이라 (a) 로 보지 않았다.
+- 직전 라운드의 패키지 결함(라우트를 `sed` 로 잘라 넣어 검토 대상 라인 누락)을 고쳐
+  **전문 투입**했다 — 이번엔 "경로 요청"이 0건이었다.
+
 ## Favicon & PWA Manifest (2026-04-22)
 
 - **Files in `public/`**: `favicon.ico`, `favicon-16x16.png`, `favicon-32x32.png`, `apple-touch-icon.png`, `android-chrome-192x192.png`, `android-chrome-512x512.png`, `site.webmanifest`
