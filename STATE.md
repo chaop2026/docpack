@@ -67,6 +67,14 @@
        중복 2개를 조용히 만들었다. 패턴만 고치고 시드의 존재 이유 정리는 보류(DECISIONS.md).
      - 부수: `ko.yml` 에 검증 메시지 블록 추가. 없어서 검증 실패가 `Translation missing…` 으로
        나왔고, 그건 **발행 실패 알림의 "이유" 칸**이라 알림이 동작하지 않는 상태였다.
+   - ⚠️ **교차검증에서 새 (a) 2건** (`docs/review/CROSS_REVIEW_TRIAGE_2026-09-18_amber3.md`).
+     A-2·A-3 은 `해소됨`, A-1 은 `부분 해소`. 둘 다 우리가 "확신 없음" 으로 올린 항목이다:
+     ① **AMBER** 발행 실패 알림이 **메일 전달 성공에 의존**한다 — `ApplicationJob` 에
+        `retry_on`/`rescue_from` 이 없어 실패한 메일은 아무도 안 보는 테이블로 간다.
+        **SMTP 실패 선례 있음**(2026-04-07). → 메일과 무관한 **상태** 채널을 둘 것.
+     ② **AMBER (프로덕션 데이터)** `db/seeds/safefile_posts.rb` 가 마이그레이션 결과를
+        되돌린다 — `privacy`→`student` + 제목·메타를 하드코딩 값으로 덮는다(실측).
+        **프로덕션에서 이 시드를 돌리기 전에 처리할 것.**
 
 1. **배포 절차.** 교차검증 (a) 는 이제 **미해결 0건**이다 (직전 3건까지 전부 처리).
    - `kamal deploy`. 라이브에서 `/safe`·`/safe/index.html` 이 301 인지,
@@ -93,11 +101,9 @@
    드롭·파일 선택·긴 파일명 생략을 눈으로 한 번 볼 것.
 5. **블로그 자동화 현재 상태 점검.** `kamal app exec 'bin/rails runner "puts Post.group(:status).count; puts BlogTopic.where(used: false).count"'`
    로 발행 현황과 잔여 주제 확인. 2026-04-07 SolidQueue/SMTP 수정 이후 재검증한 기록이 없다.
-6. **PWA 작업 시 `app/views/pwa/manifest.json.erb` 처리 결정.** 이 파일은 Rails 8 스캐폴드 잔재다 —
-   `routes.rb` 에 PWA 라우트가 없고, 레이아웃은 `/site.webmanifest`(정적, 이미 SlimFile)를 링크한다.
-   `theme_color: "red"` 가 남아 있는 게 손대지 않은 스캐폴드라는 증거. 2026-08-25 브랜드 치환 때
-   이름만 SlimFile 로 맞춰두고 삭제는 보류했다. PWA 를 손볼 때 **삭제할지 실제로 라우팅해 쓸지**
-   함께 정한다. 쓰기로 하면 `site.webmanifest` 와 둘 중 하나만 남겨야 한다(현재 둘이 공존).
+6. **PWA 작업 시 `app/views/pwa/manifest.json.erb` 처리 결정.** Rails 8 스캐폴드 잔재다 —
+   라우트가 없고 레이아웃은 `/site.webmanifest`(정적)를 링크한다(`theme_color: "red"` 가 증거).
+   **삭제할지 실제로 라우팅해 쓸지** 정한다. 쓰면 둘 중 하나만 남긴다.
 
 ## 막힌 것 / 기다리는 것
 

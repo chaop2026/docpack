@@ -31,8 +31,17 @@
 #     middleware to insert before"), turning a deployment change into a crash.
 #     This does put it ahead of ActionDispatch::SSL, so a plain-HTTP request
 #     would be normalised before being upgraded rather than after. Same two
-#     hops either way (scheme, then spelling, in the other order), and the
-#     Location stays path-only, so SSL still gets its turn.
+#     hops either way (scheme, then spelling, in the other order), and what
+#     makes that safe is that every Location this middleware emits is
+#     path-only — it never reads or echoes the Host header, so SSL still gets
+#     its turn and there is nothing to inject a host into. Asserted in the
+#     tests rather than argued.
+#
+#     Measured while checking that ordering: ActionDispatch::HostAuthorization
+#     is not in this app's production stack at all (config.hosts is commented
+#     out in config/environments/production.rb), so unshifting past it is not
+#     a production concern. In development it would come first, but development
+#     always serves public/ itself, so that branch is never taken there.
 #
 # Order vs StaticHtmlNoCache: both target the front of the stack, and
 # initializers load alphabetically (canonical_path_redirect →

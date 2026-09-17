@@ -297,6 +297,29 @@ class CanonicalPathRedirectTest < ActiveSupport::TestCase
 
   # ── response shape ──────────────────────────────────────────────────────
 
+  test "the Location is always path-only and never echoes the Host" do
+    # This is what makes the middleware safe to run at any depth in the stack.
+    # When ActionDispatch::Static is absent the initializer unshifts it to the
+    # very top — ahead of ActionDispatch::SSL — so a plain-HTTP request gets
+    # normalised before being upgraded. That costs nothing only because the
+    # Location carries no scheme and no host: SSL still gets its turn, and a
+    # forged Host header has nothing to land in.
+    %w[/safe /safe// /about/ //about /en//about /safe/sw.js/ //].each do |path|
+      _, headers, = CanonicalPathRedirect.new(PASSTHROUGH).call(
+        "PATH_INFO" => path,
+        "REQUEST_METHOD" => "GET",
+        "QUERY_STRING" => "",
+        "SCRIPT_NAME" => "",
+        "HTTP_HOST" => "evil.example.com",
+        "HTTPS" => "off"
+      )
+      location = headers["location"]
+      assert_match %r{\A/}, location, "#{path}: Location must be path-only, got #{location.inspect}"
+      assert_not_includes location, "evil.example.com", path
+      assert_not_includes location, "://", path
+    end
+  end
+
   test "the redirect is not cached permanently by the browser" do
     _, headers, = call("/safe")
     assert_equal "no-cache", headers["cache-control"]

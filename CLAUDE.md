@@ -823,9 +823,18 @@ Rails 기본 en 이 이미 "Body ko can't be blank" 를 준다(확인함).
 | 5 | `db/seeds/safefile_posts.rb:40` `post.save!` in `each` | **이번 스캔이 새로 찾은 것 — 실제로 깨져 있었다** | 아래 별항 |
 
 2·3 에 `abort` 를 넣지 않은 이유: 사람이 터미널에서 돌리는 생성 태스크이고 이미
-`puts "FAILED — skipping"` + exit 0 가 기존 관례다. 4·5 는 **배포 후 실행 명령 목록**
-(CLAUDE.md "Post-deploy commands") 에 있어 exit code 가 자동화에 읽힌다 — 그래서 모든 항목에
-기회를 준 **다음** 실패한다.
+`puts "FAILED — skipping"` + exit 0 가 기존 관례다. 4·5 는 `kamal app exec` 로 돌리는
+**데이터 정리** 태스크라 exit code 가 자동화에 읽힌다 — 그래서 모든 항목에 기회를 준
+**다음** 실패한다.
+
+> 📌 **정정 (같은 세션의 교차검증에서 잡음)**: 처음 이 문단에 "4·5 는 CLAUDE.md 의
+> Post-deploy commands 목록에 있다" 고 적었는데 **사실이 아니다.** 그 목록(위 "Blog
+> Automation Verification" 절)에는 `blog:seed_topics`·`blog:publish_test`·
+> `blog:verify_autopublish` 셋뿐이다. `blog:migrate_privacy` 는 **자기 파일 헤더 주석**에
+> `kamal app exec 'bin/rails blog:migrate_privacy'` 를 적어두고 있고,
+> `blog:seed_safefile_posts` 는 **어디에도 배포 후 단계로 문서화돼 있지 않다.**
+> `abort` 결정은 유지한다(둘 다 프로덕션에서 손으로 돌리는 데이터 태스크이고 하나는 스스로
+> 그렇게 문서화한다) — 정정한 것은 **인용한 근거**다.
 
 **격리하지 않은 것** (순회 안이 아니므로 예외가 올바른 결과):
 `auto_generate_blog_post_job`(런당 글 1개, 뒤에 아무것도 없음 — 예외 → 재시도가 맞다),
@@ -963,6 +972,47 @@ Static 이 내보내는 캐시 헤더를 고쳐쓰는 것이 존재 이유라, S
 - Banner·BlogTopic·Conversion 의 속성명은 ko 번역이 없어 여전히 영어 humanize 로 나온다
   (메시지 본문은 이제 한국어). 어드민 폼이 있는 Post·Banner 만 넣었다.
 - `<html lang>`·`og:locale`·UI 크롬은 여전히 협상된다 (이전 세션들의 관찰 그대로). 제품 결정.
+
+### 외부 교차검증 (Codex CLI, read-only)
+
+- 패키지 `docs/review/CODEX_REVIEW_PACKAGE_2026-09-18_amber3.md` (비밀값 0건,
+  **잡·메일러·레이크·시드·SW·라우트 전문 포함** — 직전 라운드의 빈틈을 고쳤다)
+- 원문 `docs/review/CODEX_RESULT_2026-09-18_amber3.md` (codex-cli 0.144.3, `gpt-5.5`, 96초)
+- 대조 `docs/review/CROSS_REVIEW_TRIAGE_2026-09-18_amber3.md` — 12건 전부 (a)/(b)/(c) 분류
+- **A-2 `해소됨` · A-3 `해소됨` · A-1 `부분 해소`.** (b) 의견 차이 0건.
+- ⚠️ **새 (a) 2건 — 다음 런. 이번 세션에서는 고치지 않았다.** 둘 다 우리가 패키지 ⑥ 에
+  "확신 없음" 으로 올린 항목이고, **둘 다 Codex 판단이 옳다**:
+  1. **AMBER** 발행 실패 알림이 **메일 전달 성공에 의존**한다. `report` 는 `deliver_later`
+     **호출만** rescue 하므로, 이후 메일 잡의 렌더·SMTP 실패는 rescue 밖이다. 코드로 확인:
+     `ApplicationJob` 의 `retry_on`·`discard_on` 은 **주석 처리된 스캐폴드 그대로**이고
+     `rescue_from`·`failed_executions` 처리가 **0건**이라, 실패한 메일은 아무도 보지 않는
+     `solid_queue_failed_executions` 행이 된다. **가정이 아니다 — SMTP 실패 선례가 있다**
+     (CLAUDE.md:145, 2026-04-07 `GMAIL_PASSWORD` 빈 값 → `535-5.7.8`).
+     → 메일과 **무관한 채널**을 둔다. `scheduled` 인데 `published_at` 이 한참 과거인 글을
+     **상태로** 노출하는 쪽이 가장 튼튼하다 — 알림은 유실되지만 상태는 유실되지 않는다.
+  2. **AMBER (프로덕션 데이터)** 대체된 `db/seeds/safefile_posts.rb` 가 **마이그레이션
+     결과를 되돌린다.** **실측**: `privacy` → `student` (그리고 `title_*`·
+     `meta_description_*` 까지 시드의 하드코딩 값으로 덮는다 — 사람이 어드민에서 편집한
+     내용도 사라진다). 그 쓰기는 `abort` **전에** 일어난다. 우리는 이걸 관찰했으나 "남는
+     관찰" 로 내려놨다 — **Codex 의 등급이 더 정확하다.** → 소유권 결정 후 삭제 또는 재작성.
+     **프로덕션에서 이 시드를 돌리기 전에 처리할 것** (배포 자체를 막지는 않는다).
+- Codex 의 "경로 요청" 3건을 **전부 받아서 확인했고 답이 바뀌지 않았다**:
+  ① 모델 콜백/락 → `Post` 에 `before_save`·`around_save` **0개**, `lock_version` **없음**
+  (→ `RecordNotSaved`·`StaleObjectError` 는 현재 발생 불가; `slug` 유니크 인덱스는 있으나
+  `update!(status:)` 가 `slug` 를 안 건드리므로 `RecordNotUnique` 도 불가)
+  ② `%2F` 통합 테스트 → percent-encoded 슬래시는 중복 콘텐츠 위험이 아니다(디코딩되면
+  `squeeze` 가 처리하고, 안 되면 정규화 대상이 아니다)
+  ③ 프로덕션 SSL/프록시 설정 → **`ActionDispatch::HostAuthorization` 은 프로덕션 스택에
+  아예 없다**(`config.hosts` 가 `production.rb:85` 에서 주석 처리). SSL 앞 배치를 안전하게
+  만드는 성질(Location 이 path-only, Host 를 읽지도 반사하지도 않음)을 self-check 에서
+  **테스트로 고정했다**(`HTTP_HOST: evil.example.com` 주입).
+- Codex 가 독립 확인해준 것: `RECORD_REJECTED` 경계, ActiveJob 직렬화 안전성,
+  `canonical_spelling` **반례 없음**, `/safe/sw.js/` 301 의 SW 무해성, ko.yml 키 충돌 없음,
+  공허한 단언 없음(formatter·스텁·통합테스트 세 지점 모두).
+- 이번 라운드의 방법론 성과: **"확신이 없는 지점" 7개를 패키지에 명시한 것이 실제로
+  작동했다** — 그중 2개가 (a) 로 확정됐고, 둘 다 우리 스스로는 (a) 로 올리지 못한 것이다.
+- **운영 메모**: `codex exec` 는 `< /dev/null` 이 필요하다. 첫 시도가
+  `Reading additional input from stdin...` 에서 10분간 아무 일도 하지 않고 멈췄다.
 
 ## Favicon & PWA Manifest (2026-04-22)
 
