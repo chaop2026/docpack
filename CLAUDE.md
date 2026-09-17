@@ -504,6 +504,28 @@ hreflang·canonical(전략 판단), draft 공개 서빙(동작 결정), admin �
 - `/blog` `<title>` = `블로그 - SlimFile`, 사이트맵 `?category=` 0개,
   `/blog/index.html`·`/en|ja/blog/index.html` 301.
 
+### 외부 교차검증 (Codex CLI, read-only)
+
+- 패키지 `docs/review/CODEX_REVIEW_PACKAGE_2026-09-17_indexing.md` (비밀값 0건)
+- 원문 `docs/review/CODEX_RESULT_2026-09-17_indexing.md` (codex-cli 0.144.3, 65초)
+- 대조 `docs/review/CROSS_REVIEW_TRIAGE_2026-09-17_indexing.md` — 9건 전부 (a)/(b)/(c) 분류
+- **미해결 (a) 2건 — 다음 런. 이번 세션에서는 고치지 않았다**:
+  1. **AMBER** `draft`/`scheduled` 글이 공개 200 이면서 **noindex 가 안 붙는다**
+     (게이트가 번역 여부만 보고 발행 상태는 안 본다). 우리가 "③ 판단 불가"로 분류했던 건데,
+     개수는 못 세도 **코드 조건은 확정적**이라 Codex 분류가 더 정확하다.
+     → `show.html.erb` 한 줄, 미리보기 200 은 유지하고 색인만 막는다.
+  2. **AMBER** 이중언어 글이 무프리픽스 URL 에서 **본문·제목·설명을 여전히 협상**한다
+     (`Post#title/body/meta_description` 가 `I18n.locale` 을 읽는다). 이번 수정이
+     신호만 URL 기준으로 옮기고 내용은 남겨둔 절반짜리였다. **재현 확인**:
+     `/blog/bilingual-post` + `Accept-Language: en` → 제목·설명·본문 전부 영어인데
+     canonical 은 한국어 주소. 지금은 42개 글이 전부 한국어 단독이라 잠복이지만,
+     **`body_en` 을 하나라도 채우면 즉시 중복 페이지가 생긴다 — 번역 전에 고칠 것.**
+- Codex 가 확인해준 것: 사이트맵 `?category=` 제외 판단(재추가 조건까지 일치),
+  `nil`/`[]` 구분, 공허한 단언 없음, 126개 noindex 유지 판단.
+- 우리 패키지 결함 1건: `config/routes.rb` 를 `sed` 로 잘라 넣어 정작 redirect 라인이 빠졌다.
+  다음부터 라우트 파일은 전문으로 넣는다. (제기된 우려는 반증됨 —
+  `"index.html".parameterize` → `"index-html"` 이라 슬러그 충돌이 생길 수 없다.)
+
 ## Favicon & PWA Manifest (2026-04-22)
 
 - **Files in `public/`**: `favicon.ico`, `favicon-16x16.png`, `favicon-32x32.png`, `apple-touch-icon.png`, `android-chrome-192x192.png`, `android-chrome-512x512.png`, `site.webmanifest`
