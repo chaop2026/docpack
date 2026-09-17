@@ -72,7 +72,7 @@
       (client-side i18n), so there is no per-language URL to cross-reference:
       x-default self-reference is the only hreflang Google documents for this
       shape. The trailing slash is mandatory — /safe and /safe/index.html now
-      301 here (lib/static_index_redirect.rb) and must never enter the sitemap. %>
+      301 here (lib/canonical_path_redirect.rb) and must never enter the sitemap. %>
   <url>
     <loc><%= @base_url %>/safe/</loc>
     <lastmod><%= Date.today.iso8601 %></lastmod>

@@ -32,7 +32,7 @@ const RUNTIME_CACHE = `safefile-runtime-${CACHE_VERSION}`;
 // version that can never open offline.
 //
 // It used to have a twin, '/safe/index.html', which is deliberately gone: since
-// 2026-09-17 that URL 301s to '/safe/' (lib/static_index_redirect.rb, SEO
+// 2026-09-17 that URL 301s to '/safe/' (lib/canonical_path_redirect.rb, SEO
 // de-duplication) and cache.put() rejects a redirected Response, so precaching
 // it could only ever be a silent no-op. Losing the twin also lost the
 // redundancy that used to absorb a failed '/safe/' fetch — which is exactly why

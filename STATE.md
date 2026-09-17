@@ -33,7 +33,7 @@
   4개(`/safe/`, `/safe`, `/safe/index.html`, `/safe/?v=20260719`)인데 canonical 태그가
   하나도 없었다. `get "/safe", to: redirect("/safe/")` 라우트는 `ActionDispatch::Static` 이
   라우터보다 앞이라 **한 번도 실행된 적이 없는 죽은 코드**였다. self-referencing canonical +
-  x-default + Rack 301 미들웨어(`lib/static_index_redirect.rb`)로 해결. 언어별 `/xx/safe/`
+  x-default + Rack 301 미들웨어(`lib/canonical_path_redirect.rb`)로 해결. 언어별 `/xx/safe/`
   URL 은 **존재하지 않는다**(전부 404) — 단일 URL 클라이언트 i18n 구조라 상호참조 hreflang 은
   대상이 없다. 자세한 내용은 CLAUDE.md "Static-page canonical / URL de-duplication" 절.
 - **부수 발견: Rails 테스트 스위트가 죽어 있었다.** minitest 6 ↔ railties 8.0.4 비호환으로
