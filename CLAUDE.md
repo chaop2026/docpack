@@ -630,6 +630,105 @@ hreflang 이 ko+en 둘 다로 늘고 사이트맵도 2개로 늘었다. 원복 �
 - 직전 라운드의 패키지 결함(라우트를 `sed` 로 잘라 넣어 검토 대상 라인 누락)을 고쳐
   **전문 투입**했다 — 이번엔 "경로 요청"이 0건이었다.
 
+## GSC 실제 URL 3건 + Codex 신규 2건 (2026-09-18)
+
+> **직전 세션의 추정 3건은 전부 틀렸다.** (404=`/blog/index.html` 추정 → 실제 `/api/safe_scan`,
+> 중복 2건=`/xx/blog` 목록 추정 → 실제 `/en/about`·`/blog/contract-checklist/`.)
+> 이번에는 라이브 실측과 코드 근거 없이는 아무것도 판정하지 않았다. 프로덕션 DB 미접촉.
+
+### A1 — JSON-LD 가 canonical 과 다른 문서를 가리키던 문제
+
+`posts/show.html.erb` 의 `"url"` 과 `mainEntityOfPage.@id` 가 `/blog/:slug` 로 **로케일
+프리픽스 없이 하드코딩**돼 있었다. **JSON-LD 전 필드 전수 확인**(`posts/show`·`layouts/application`
+·`pages/faq` 3개 블록)해서 URL 을 담는 필드는 이 둘뿐임을 확인하고 `canonical_path` 로 통일했다.
+(`publisher.url`·WebApplication `url` 은 사이트 루트라 로케일 무관, FAQPage 는 URL 필드 없음.)
+
+### A2 — 검증 공백: **발행된 글은 반드시 한국어 본문을 가진다**
+
+불변식을 먼저 정하고 `validates :body_ko, presence: true, if: -> { status == "published" }` 로 강제.
+한국어가 기본 로케일이라 `/blog/:slug` 는 다른 모든 로케일이 canonical 로 삼고 x-default 가
+가리키는 주소다. `body_en` 만 있는 발행 글은 그 주소를 **존재하지만 색인 불가**로 만든다.
+초안·예약은 면제한다(글은 비어 있는 채로 만들어져 채워진다). 라이브 sitemap 상 42개 글이
+전부 ko 로 등재돼 있으므로(= `body_ko.present?`) 기존 데이터는 위반 0건.
+
+### A3 — `body_en` 채운 상태 실측 (개발 DB, 실제 HTTP, 원복 확인)
+
+| URL | canonical | JSON-LD url/@id | 일치 | robots |
+|---|---|---|---|---|
+| `/blog/resume-privacy` (±AL=en) | `/blog/resume-privacy` | 동일 | ✅ | 없음 |
+| `/en/blog/resume-privacy` (±AL=ko) | `/en/blog/resume-privacy` | 동일 | ✅ | 없음 |
+| `/ja/blog/resume-privacy` | `/blog/resume-privacy` | 동일 | ✅ | `noindex,follow` |
+
+x-default → `/blog/resume-privacy`, **robots 없음**(색인 불가 URL 아님). 원복 후 TEMP 마커 0건,
+hreflang 이 `[ko, x-default]` 로 복귀.
+
+### B1 — `/api/safe_scan` 이 발견된 경로 (실측)
+
+사이트 전체에서 이 URL 의 **유일한 등장은 인라인 JS 문자열 리터럴 하나**다 —
+`public/safe/index.html:1702` 의 `fetch('/api/safe_scan',{`. 링크(`<a href>`)·form action·
+sitemap(0건)·llms.txt(0건) 어디에도 없다. **Googlebot 이 렌더링 중 JS 에서 URL 문자열을 수확한 것.**
+라우트는 POST 전용이라 GET 은 404 (`POST` 는 400). GSC 최초 감지 2026-09-05 와 맞는다.
+
+### B2 — `/api/*` 전수와 크롤 차단 방식
+
+`bin/rails routes` 전수: **`POST /api/safe_scan` 하나뿐**. `robots.txt` 에 `/api` Disallow **없었다**.
+→ `Disallow: /api/` 추가. **X-Robots-Tag 가 아니라 robots.txt 를 쓴 이유**: noindex 헤더는
+**가져와야** 적용되는데 그 크롤이 바로 막으려는 것이고, GET 이 404 라 헤더를 붙일 응답 자체가 없다.
+
+### B3/B4 — 트레일링 슬래시: **라우터** 문제 (정적 아님)
+
+판별 근거: `/about/` 응답에 CSRF 메타 태그가 있다(=레이아웃 렌더=라우터). `public/` 의
+디렉터리는 `safe`·`privacy` **둘뿐**이라 `ActionDispatch::Static` 이 `/about/` 을 잡을 수 없다.
+Rails 라우터가 트레일링 슬래시를 없는 것처럼 매칭한다.
+
+**실측 규모**(리다이렉트 미추적): 글 URL **168/168**(42글×4로케일) + 그 외 **32경로**가
+슬래시 유무 양쪽 다 진짜 200. `/sitemap.xml/` 까지.
+
+`lib/static_index_redirect.rb` → **`lib/canonical_path_redirect.rb`** 로 이름을 바꾸고 확장했다.
+두 규칙이 **반대 방향**이라 한 미들웨어가 둘 다 갖는다:
+- 정적 디렉터리(`/safe`·`/privacy`)는 **슬래시가 붙은 쪽**이 정본
+- 라우팅된 페이지는 **슬래시가 없는 쪽**이 정본 (`/+\z` 로 여러 개도 한 홉에 정리)
+
+곁들여: `OLD_BLOG_SLUGS` 리다이렉트 대상에서 트레일링 슬래시 제거(안 하면 301→301→301),
+`public/safe/index.html`·`app/views/pages/home.html.erb` 의 `/blog/` 링크를 `/blog` 로.
+
+**`/blog/contract-checklist/` 는 2홉이다** — 미들웨어가 철자를 정규화하고(1홉) 라우터가 이동을
+해결한다(2홉). 슬러그 표를 미들웨어로 끌어오면 1홉이 되지만 `routes.rb` 가 죽은 코드가 된다
+(`/safe` 가 당한 그 함정). 2개의 301 이 더 싸다. 루프·3홉 이상 없음을 테스트로 고정.
+
+### B5 — `/en/about`: 게이트가 정적 페이지에 없던 것이 맞다, 다만 원인은 다르다
+
+**전제를 실측으로 검증했다.** `/faq`·`/compress`·`/` 는 **진짜 번역돼 있다**
+(한국어판 대비 유사도 0.28~0.38, 한글 비율 44~47% vs 번역본 0%).
+**`/about` 만 4개 로케일이 92~94% 동일**하고, 한국어판조차 한글 비율 **5%** 다.
+
+원인: `app/views/pages/about.html.erb` 는 **`t()` 호출이 하나도 없는 하드코딩 영어**이고
+`config/locales` 에 `about.*` 키가 없다. 즉 미번역이 아니라 **번역 대상이 아닌 단일 문서**다.
+
+→ 블로그 글과 같은 규칙 적용: `/xx/about` 은 `noindex,follow` + canonical `/about`,
+sitemap 은 `/about` 하나만, **hreflang 은 0개**(영어 단일 문서가 자기를 한국어·일본어
+알터네이트라고 선언하면 거짓이고, x-default 도 마찬가지). `page_meta` 도 없었어서 함께 추가했다.
+**`/faq`·`/compress`·`/pdf`·`/social` 은 그대로 4개 로케일 유지** — 진짜 번역이기 때문이다.
+
+### 검증
+
+- `bin/rails test` → **87 runs / 502 assertions / 0 failures** (직전 58/278).
+  신규 `test/models/post_test.rb`(8) + `test/integration/canonical_urls_test.rb`(13) +
+  미들웨어 테스트 확장 + JSON-LD 테스트.
+- 트레일링 슬래시 66경로 재측정 → **중복 200: 0개**. `/safe/`·`/privacy/`·`/` 는 유지,
+  `/about///` 도 한 홉.
+- sitemap 30개 전부 200·자기참조 canonical·noindex 0·리다이렉트 0.
+- 내부 링크 102개 → 깨짐 0, **리다이렉트 0**.
+- Accept-Language(en/ja/es) × 10페이지 canonical 불변 PASS.
+- ⚠️ **이니셜라이저는 dev 에서 자동 리로드되지 않는다** — 미들웨어를 추가·이름변경한 뒤
+  `docker compose restart web` 하기 전까지 측정값이 전부 "수정 전"이었다. 재시작 후 재측정했다.
+
+### 남는 관찰 (수정 안 함)
+
+- `config/locales/ko.yml` 에 `activerecord.errors` 블록이 없어, 검증 실패 메시지가
+  `Translation missing…` 으로 나온다. 어드민 폼에서 사람이 보게 되는 문자열이다. 별건.
+- `<html lang>`·`og:locale`·UI 크롬은 여전히 협상된다(직전 세션의 관찰 그대로). 제품 결정.
+
 ## Favicon & PWA Manifest (2026-04-22)
 
 - **Files in `public/`**: `favicon.ico`, `favicon-16x16.png`, `favicon-32x32.png`, `apple-touch-icon.png`, `android-chrome-192x192.png`, `android-chrome-512x512.png`, `site.webmanifest`

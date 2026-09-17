@@ -6,6 +6,20 @@ class Post < ApplicationRecord
   validates :category, inclusion: { in: %w[privacy pdf image office student freelancer global] }
   validates :status, inclusion: { in: %w[draft scheduled published] }
 
+  # The invariant: **a published post always has a Korean body.**
+  #
+  # Korean is the default locale, so /blog/:slug — the address every other
+  # locale canonicalises to, the one x-default points at, and the only one the
+  # language switcher can always reach — is the Korean page. A published post
+  # with body_en but no body_ko makes that address real but not indexable:
+  # indexable_locales comes back [:en], yet x-default still aims at the Korean
+  # URL, which is noindex. Reproduced before writing this validation.
+  #
+  # Nothing builds that shape today (BlogGeneratorService writes Korean first,
+  # and all 42 live posts have body_ko), so this closes a gap rather than fixing
+  # a live defect. Drafts stay exempt: a post is created empty and filled in.
+  validates :body_ko, presence: true, if: -> { status == "published" }
+
   scope :published, -> { where(status: "published") }
   scope :scheduled_ready, -> { where(status: "scheduled").where("published_at <= ?", Time.current) }
   scope :by_category, ->(cat) { where(category: cat) if cat.present? }

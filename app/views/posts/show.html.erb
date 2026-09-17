@@ -30,7 +30,11 @@
     "@type": "Article",
     "headline": "<%= j @post.title(@url_locale) %>",
     "description": "<%= j(@post.meta_description(@url_locale).to_s) %>",
-    "url": "<%= base_url %>/blog/<%= @post.slug %>",
+    <%# canonical_path, not a hardcoded /blog/:slug — on /en/blog/:slug the
+        canonical says /en/... while these said /... , so the page and its
+        structured data named two different documents. Same rule as the rest of
+        the indexing signals: derive it from the URL. %>
+    "url": "<%= base_url %><%= canonical_path %>",
     "datePublished": "<%= @post.published_at&.iso8601 %>",
     "dateModified": "<%= @post.updated_at&.iso8601 %>",
     <% if @post.hero_image.attached? %>
@@ -47,7 +51,7 @@
     },
     "mainEntityOfPage": {
       "@type": "WebPage",
-      "@id": "<%= base_url %>/blog/<%= @post.slug %>"
+      "@id": "<%= base_url %><%= canonical_path %>"
     }
   }
   </script>

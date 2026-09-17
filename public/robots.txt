@@ -3,4 +3,17 @@ Allow: /
 Disallow: /admin
 Disallow: /conversions
 
+# /api/* is a JSON endpoint, not a page. Googlebot found /api/safe_scan on its
+# own: the URL appears nowhere as a link, a form action, in the sitemap or in
+# llms.txt — its only occurrence site-wide is the string literal inside
+# `fetch('/api/safe_scan', …)` in public/safe/index.html, which the renderer
+# harvests. The route is POST-only, so the resulting GET is a 404, which is what
+# Search Console reported (first seen 2026-09-05).
+#
+# Disallow rather than X-Robots-Tag: noindex is deliberate. A noindex header has
+# to be *fetched* to be obeyed, which is the crawl we are trying to prevent, and
+# a 404 gives us no response of our own to attach a header to. Blocking the
+# crawl is both the correct tool and the only one that works here.
+Disallow: /api/
+
 Sitemap: https://slimfile.net/sitemap.xml

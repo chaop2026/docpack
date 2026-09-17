@@ -1,4 +1,14 @@
 <% content_for(:title, "About - SlimFile") %>
+<%# One document, one indexable address — see PagesController#about. The
+    canonical is the literal "/about" rather than locale_prefixed(...), because
+    the prefixed URLs are not translations of this page, they are the same
+    bytes. %>
+<% page_meta(
+     title: "About - SlimFile",
+     description: "SlimFile is a free web service that compresses images and converts them to PDF, keeping files under 2MB for easy document submission.",
+     canonical: "/about"
+   ) %>
+<% content_for :robots, "noindex,follow" unless url_locale == I18n.default_locale %>
 
 <div class="container">
   <h1>About SlimFile</h1>

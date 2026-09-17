@@ -5,16 +5,22 @@ Rails.application.routes.draw do
   # 301 (redirect default) — never reverse. Rails matches the routes with or
   # without a trailing slash, so both /blog/rrn-masking and /blog/rrn-masking/
   # are covered. The locale prefix is preserved in the target so a Spanish reader
-  # stays in Spanish (/es/blog/contract-checklist → /es/blog/contract-sharing-checklist/).
+  # stays in Spanish (/es/blog/contract-checklist → /es/blog/contract-sharing-checklist).
+  #
+  # The targets carry NO trailing slash (2026-09-18). They used to, and once
+  # CanonicalPathRedirect started normalising routed paths that made every one of
+  # these a 301 to a 301. Search Console had already caught the old spelling:
+  # /blog/contract-checklist/ was reported as a duplicate with a Google-chosen
+  # canonical, last crawled 2026-07-18 — a day before the rename shipped.
   OLD_BLOG_SLUGS = {
     "rrn-masking"        => "resident-number-masking",
     "contract-checklist" => "contract-sharing-checklist"
   }.freeze
 
   OLD_BLOG_SLUGS.each do |old_slug, new_slug|
-    get "/blog/#{old_slug}", to: redirect("/blog/#{new_slug}/")
+    get "/blog/#{old_slug}", to: redirect("/blog/#{new_slug}")
     %w[en ja es].each do |loc|
-      get "/#{loc}/blog/#{old_slug}", to: redirect("/#{loc}/blog/#{new_slug}/")
+      get "/#{loc}/blog/#{old_slug}", to: redirect("/#{loc}/blog/#{new_slug}")
     end
   end
 

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require Rails.root.join("lib", "static_index_redirect").to_s
+require Rails.root.join("lib", "canonical_path_redirect").to_s
 
 # Unit tests for the redirect middleware, driven with a hand-built Rack env.
 #
@@ -13,12 +13,12 @@ require Rails.root.join("lib", "static_index_redirect").to_s
 # escaping has to be a property of this file, not of whatever parser happens to
 # sit in front of it. Handing the middleware a raw env is the only altitude at
 # which that can actually be asserted.
-class StaticIndexRedirectTest < ActiveSupport::TestCase
+class CanonicalPathRedirectTest < ActiveSupport::TestCase
   # Inner app stands in for ActionDispatch::Static; a 200 means "passed through".
   PASSTHROUGH = ->(env) { [200, { "content-type" => "text/html" }, ["STATIC:#{env["PATH_INFO"]}"]] }
 
   def call(path, method: "GET", query: "", script_name: "")
-    StaticIndexRedirect.new(PASSTHROUGH).call(
+    CanonicalPathRedirect.new(PASSTHROUGH).call(
       "PATH_INFO" => path,
       "REQUEST_METHOD" => method,
       "QUERY_STRING" => query,
@@ -42,11 +42,70 @@ class StaticIndexRedirectTest < ActiveSupport::TestCase
   end
 
   test "the canonical spelling and everything else passes through" do
-    %w[/safe/ /privacy/ /safe/sw.js /safe/icon.svg /safe/manifest.ko.webmanifest
-       /api/safe_scan /safety /blog/safe].each do |path|
+    %w[/ /safe/ /privacy/ /safe/sw.js /safe/icon.svg /safe/manifest.ko.webmanifest
+       /api/safe_scan /safety /blog/safe /about /blog/some-slug].each do |path|
       status, = call(path)
       assert_equal 200, status, path
     end
+  end
+
+  # ── routed pages are canonical WITHOUT the trailing slash ───────────────
+  #
+  # The Rails router matches a trailing slash as if it were absent, so every
+  # routed page answered twice. Measured live 2026-09-17: 168 of 168 post URLs
+  # and 32 other paths returned a real 200 both ways, no redirect involved.
+
+  test "a trailing slash on a routed page redirects to the bare path" do
+    {
+      "/about/" => "/about",
+      "/faq/" => "/faq",
+      "/blog/" => "/blog",
+      "/blog/some-slug/" => "/blog/some-slug",
+      "/en/" => "/en",
+      "/en/about/" => "/en/about",
+      "/ja/blog/some-slug/" => "/ja/blog/some-slug",
+      "/sitemap.xml/" => "/sitemap.xml"
+    }.each do |path, target|
+      status, headers, = call(path)
+      assert_equal 301, status, path
+      assert_equal target, headers["location"], path
+    end
+  end
+
+  test "the site root keeps its slash" do
+    status, = call("/")
+    assert_equal 200, status, "/ is already canonical and must not redirect"
+  end
+
+  test "repeated trailing slashes collapse in a single hop" do
+    _, headers, = call("/about//")
+    assert_equal "/about", headers["location"]
+    _, headers, = call("/about///")
+    assert_equal "/about", headers["location"]
+  end
+
+  test "a static directory keeps its slash while routed paths lose theirs" do
+    # The two rules point in opposite directions, which is why one middleware
+    # owns both. /safe/ is a real directory under public/; /about/ is not.
+    assert_equal 200, call("/safe/").first
+    assert_equal 200, call("/privacy/").first
+    assert_equal 301, call("/about/").first
+  end
+
+  test "assets underneath a static directory are never rewritten" do
+    %w[/safe/sw.js /safe/icon.svg /safe/manifest.ko.webmanifest /privacy/style.css].each do |path|
+      assert_equal 200, call(path).first, path
+    end
+  end
+
+  test "the trailing-slash redirect preserves the query string" do
+    _, headers, = call("/blog/", query: "category=privacy")
+    assert_equal "/blog?category=privacy", headers["location"]
+  end
+
+  test "only GET and HEAD lose the trailing slash" do
+    assert_equal 301, call("/about/", method: "HEAD").first
+    assert_equal 200, call("/about/", method: "POST").first
   end
 
   test "only GET and HEAD are redirected" do

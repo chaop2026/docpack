@@ -332,6 +332,34 @@ class BlogIndexingTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # ── structured data must name the same document as the canonical ────────
+
+  test "the Article JSON-LD url matches the canonical, in every locale" do
+    # These two fields were hardcoded to /blog/:slug with no locale prefix, so
+    # an English post declared canonical /en/blog/… while its structured data
+    # said /blog/… — the page and its metadata naming two different documents.
+    {
+      "/blog/bilingual-published-post" => "#{BASE}/blog/bilingual-published-post",
+      "/en/blog/bilingual-published-post" => "#{BASE}/en/blog/bilingual-published-post",
+      "/blog/korean-only-post" => "#{BASE}/blog/korean-only-post",
+      # untranslated locales canonicalise home, and the JSON-LD must follow
+      "/ja/blog/korean-only-post" => "#{BASE}/blog/korean-only-post"
+    }.each do |path, expected|
+      get path
+      ld = JSON.parse(response.body[%r{<script type="application/ld\+json">(.*?)</script>}m, 1])
+      assert_equal expected, canonical(response.body), path
+      assert_equal expected, ld["url"], "#{path}: JSON-LD url"
+      assert_equal expected, ld.dig("mainEntityOfPage", "@id"), "#{path}: JSON-LD @id"
+    end
+  end
+
+  test "no JSON-LD field hardcodes an unprefixed post URL" do
+    get "/en/blog/bilingual-published-post"
+    ld = response.body[%r{<script type="application/ld\+json">(.*?)</script>}m, 1]
+    assert_not_includes ld, "#{BASE}/blog/bilingual-published-post",
+                        "a URL field still ignores the locale prefix"
+  end
+
   # ── the stranded static URL ─────────────────────────────────────────────
 
   test "/blog/index.html redirects to the listing instead of 404ing" do
