@@ -59,6 +59,11 @@
      404 는 `/api/safe_scan`(인라인 JS 문자열에서 수확됨), 중복 2건은 `/en/about`
      (하드코딩 영어라 4로케일 92~94% 동일) 과 `/blog/contract-checklist/`(트레일링 슬래시).
      트레일링 슬래시 중복이 **글 168개 + 그 외 32경로**로 전면적이었고 전부 301 로 통합했다.
+   - ⚠️ **교차검증에서 새 (a) 3건** (`docs/review/CROSS_REVIEW_TRIAGE_2026-09-18_gsc3.md`):
+     ① **AMBER** `PublishScheduledPostsJob` 이 새 `body_ko` 검증에 걸리면 배치 전체가 멈춘다
+     — **이번 커밋이 만든 트레이드오프, 배포 전 처리 권장**
+     ② GREEN `/safe//` 류 반복 슬래시가 미들웨어를 빠져나간다
+     ③ GREEN 미들웨어 가드가 `public_file_server.enabled` 에 묶여 있다(현재는 무해, 확인함)
 
 1. **배포 절차.** 교차검증 (a) 2건은 **수정·재검증 완료**했다
    (SW 필수자산 분리 + 301 본문 이스케이프, CLAUDE.md "교차검증 (a) 2건 수정" 절).

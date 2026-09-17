@@ -729,6 +729,32 @@ sitemap 은 `/about` 하나만, **hreflang 은 0개**(영어 단일 문서가 �
   `Translation missing…` 으로 나온다. 어드민 폼에서 사람이 보게 되는 문자열이다. 별건.
 - `<html lang>`·`og:locale`·UI 크롬은 여전히 협상된다(직전 세션의 관찰 그대로). 제품 결정.
 
+### 외부 교차검증 (Codex CLI, read-only)
+
+- 패키지 `docs/review/CODEX_REVIEW_PACKAGE_2026-09-18_gsc3.md` (비밀값 0건, 라우트 전문)
+- 원문 `docs/review/CODEX_RESULT_2026-09-18_gsc3.md` (codex-cli 0.144.3, 113초)
+- 대조 `docs/review/CROSS_REVIEW_TRIAGE_2026-09-18_gsc3.md` — 9건 전부 (a)/(b)/(c) 분류
+- **N-1 `해소됨` · N-2 `해소됨` · B-404 `적절` · B-중복 `적절`.** (b) 의견 차이 0건.
+  Codex 가 독립 확인해준 것: 2홉 수용 근거, robots.txt 선택, `/about` 의 hreflang 0개 판단,
+  JSON-LD URL 필드가 2개뿐이라는 전수 확인.
+- **새 (a) 3건 — 다음 런. 이번 세션에서는 고치지 않았다**:
+  1. **AMBER** `PublishScheduledPostsJob` 이 `update!` 를 rescue 없이 `find_each` 안에서
+     호출한다. **이번에 추가한 `body_ko` 검증에 걸리면 그 배치의 나머지 글이 전부 발행되지
+     않는다.** 검증 전에는 본문 없는 글이 발행돼 버렸고(잘못이지만 배치는 계속), 이제는
+     발행을 막되 뒤따르는 글까지 막는다 — **이번 커밋이 만든 트레이드오프다.**
+     촉발 조건(`body_ko` 없는 `scheduled` 글)이 있는지는 프로덕션 DB 를 안 보므로 알 수 없다.
+     → 글 단위 `rescue` + 로그. **배포 전 처리 권장.**
+  2. **GREEN** 정적 디렉터리 밑 **반복 슬래시**가 미들웨어를 빠져나간다. **재현 확인**(md5 동일):
+     `/safe//`·`/safe///`·`/privacy//`·`/safe//index.html`·`/safe//sw.js` 전부 200.
+     `start_with?("#{dir}/")` 가 이들을 "에셋" 으로 보고 통과시킨다.
+     → `squeeze("/")` 를 디렉터리 분기보다 **앞**에 둔다.
+  3. **GREEN** 미들웨어 삽입이 `public_file_server.enabled` 에 묶여 있다. **프로덕션 스택을
+     실제로 뽑아 확인한 결과 현재는 들어간다**(변수 유무 무관). 다만 가드의 근거가 낡았다 —
+     이제 Static 과 무관한 라우팅 페이지도 고치므로, 정적 서빙을 프록시로 옮기면 정본 URL
+     정규화가 아무 신호 없이 사라진다. → 가드 제거.
+- **이번 패키지의 빈틈**: 잡·서비스 계층을 넣지 않았다. Codex 의 유일한 "경로 요청"이
+  `PublishScheduledPostsJob` 이었고 그것이 위 1번을 끌어냈다. 다음 패키지엔 포함한다.
+
 ## Favicon & PWA Manifest (2026-04-22)
 
 - **Files in `public/`**: `favicon.ico`, `favicon-16x16.png`, `favicon-32x32.png`, `apple-touch-icon.png`, `android-chrome-192x192.png`, `android-chrome-512x512.png`, `site.webmanifest`
