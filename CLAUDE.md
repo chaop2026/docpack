@@ -1297,3 +1297,279 @@ exit code `0`. **다음에 같은 걸 찾을 때는 `0 tests` 가 아니라 `종
 **minitest 7 은 LineFiltering 이 아예 안 붙고 줄 필터링이 조용히 죽는다**), **(b) 의견 차이 2건**,
 **(c) 오탐 1건**(lock↔로드 괴리 주장 — 실은 minitest 5.27.0 이 `VERSION = "5.26.2"` 로 상수를 잘못 박은 것.
 `bundle list` 로 8개 전수 재확인해 lock 과 전부 일치함을 확인했다). **이 세션에서 (a) 는 고치지 않았다.**
+
+## 젬 업그레이드 — minitest 핀 제거 + dependabot 12건 분류 (2026-09-18)
+
+브랜치 `chore/gem-upgrades`. **미배포.** 프로덕션 DB 미접촉. 모든 판정은 로컬 실측이고,
+읽지 않은 릴리스 노트를 근거로 쓴 곳은 없다.
+
+### 1. `minitest "~> 5.25"` 핀을 **원인 제거**로 풀었다
+
+핀은 증상 억제였다. railties 8.0.4 는 `line_filtering.rb` 에서 2-arity `run` 을 **무조건**
+prepend 하는데 minitest 6 은 3인자로 부른다. railties **8.0.5** 가 `Minitest::VERSION` 분기와
+MT6 용 `run_suite` 를 들고 오면서 그 비호환 자체가 사라졌다 — 그래서 핀이 아니라 하한을 올렸다.
+
+| | 전 | 후 |
+|---|---|---|
+| `Gemfile` rails | `~> 8.0.4` | **`~> 8.0.5`** |
+| 해석된 rails | 8.0.4 | **8.0.5.1** |
+| `Gemfile` minitest | `~> 5.25` (핀) | **`< 7`** (상한만) |
+| 해석된 minitest | 5.27.0 | **6.0.6** |
+| Ruby (Dockerfile · Dockerfile.dev) | 3.3.0 | **3.3.9** (`.ruby-version` 과 일치) |
+
+`8.0.5` → `8.0.5.1` 은 전 컴포넌트 CHANGELOG 가 "No changes" 이고, `8.0.4`→`8.0.5` 는 버그픽스
+전용이다(라우팅·미들웨어·잡 의미 변경 0건 — 6개 젬 CHANGELOG 전수 확인).
+
+#### `< 7` 상한은 핀이 아니라 **다른 제약**이라 남긴다
+
+railties 8.0.5.1 의 분기에는 `else` 가 없다:
+
+```ruby
+case Minitest::VERSION
+when /^5/ then obj.extend MT5
+when /^6/ then obj.extend MT6
+end                            # ← else 없음
+```
+
+읽고 판정하지 않고 **프로브로 확인**했다 (`Minitest::VERSION` 을 바꿔가며 실제로 extend):
+
+```
+Minitest::VERSION=6.0.6  -> Rails::LineFiltering::MT6
+Minitest::VERSION=7.0.0  -> NONE (줄 필터링이 조용히 무력화)
+Minitest::VERSION=5.27.0 -> Rails::LineFiltering::MT5
+```
+
+minitest 7 은 **죽지 않는다** — `bin/rails test 파일:42` 가 그 줄 대신 **파일 전체**를 돈다.
+조용한 오답이 시끄러운 크래시보다 나쁘므로, railties 에 `else`(또는 `/^7/`)가 생길 때까지 상한을 둔다.
+(직전 라운드 Codex 지적 a-1 이 여기서 해소됐다.)
+
+#### minitest 6 이 실제로 요구한 코드 변경 — `minitest/mock`
+
+minitest 6.0.0 이 `lib/minitest/mock.rb` 를 **별도 젬으로 분리**했다(History.rdoc 6.0.0:
+"Dropped minitest/mock.rb. This has been extracted to the minitest-mock gem."). 이 저장소는
+`Object#stub` 때문에 두 파일에서 `require "minitest/mock"` 한다
+(`test/jobs/publish_scheduled_posts_job_test.rb`, `test/integration/stuck_posts_visibility_test.rb`)
+→ `gem "minitest-mock"` 추가. 그 젬은 minitest 에 **런타임 의존이 없다**(gemspec 확인) — 파일이
+옮겨갔을 뿐이다.
+
+**단언 수가 1179 → 1218 로 늘었다.** 코드가 바뀌어서가 아니라 minitest 6 의
+"Assertions reuse themselves a lot more. Bumps assertion count in some places."(자체 changelog) 때문이다.
+런 수는 159 로 동일하다.
+
+#### ★ `CanonicalPathRedirect` 삽입 위치 — Rails 8.0.5.1 에서도 유효한가
+
+`script/middleware_probe.sh`(신규) 로 **프로덕션 스택을 실제로 뽑아** 3형태 전부 측정했다.
+컨테이너 재시작 **후**에 쟀다(이니셜라이저·`lib/` 는 dev 에서 리로드되지 않는다 — 두 세션 연속 당한 함정).
+
+| 구성 | 8.0.4 (전) | 8.0.5.1 (후) |
+|---|---|---|
+| `RAILS_SERVE_STATIC_FILES=true` (실제 배포 형태) | Static 바로 앞 | **동일** |
+| 변수 미설정 | Static 바로 앞 | **동일** |
+| `public_file_server.enabled = false` | 스택 최상단 | **동일** |
+
+27줄 전체 스택을 `diff` 로 대조 — **완전히 동일**(옛 Gemfile 을 `BUNDLE_GEMFILE` 로 따로 물려 8.0.4
+스택을 다시 뽑아 비교). 나아가 **실제 프로덕션 이미지를 빌드해** 그 안에서도 확인했다:
+`docker build` → `bin/rails middleware` → `CanonicalPathRedirect` 가 `ActionDispatch::Static` 앞.
+dev 컨테이너가 아니라 배포되는 아티팩트에서 잰 값이다.
+
+#### Ruby 3.3.0 ↔ 3.3.9 불일치 (부수 발견, 수정함)
+
+`.ruby-version` 은 3.3.9 인데 `Dockerfile`·`Dockerfile.dev` 는 3.3.0 이었다. CI 는
+`ruby/setup-ruby` 로 `.ruby-version` 을 읽으므로 **CI 가 프로덕션과 다른 인터프리터를 시험하고
+있었다** — 초록 CI 는 전부 3.3.9 에 대한 증거였고 3.3.0 에 대한 증거는 하나도 없었다.
+Dockerfile 자신의 주석이 "Make sure RUBY_VERSION matches .ruby-version" 이라고 적고 있다.
+같은 3.3 계열이라 패치 정렬이며, **프로덕션 이미지를 3.3.9 로 실제 빌드해 부팅까지 확인**했다.
+
+### 2. dependabot 12건 — 기준을 먼저 정하고 그 기준대로 분류
+
+**버전 번호가 아니라 측정으로 분류한다.** 올리는 조건은 전부 충족:
+(a) 릴리스 노트/소스 diff 에 **이 앱이 실행하는 경로**에 닿는 breaking change 가 없다 —
+번호가 아니라 읽어서 확인 · (b) 이 앱의 사용처를 **grep 으로 확인**(추정 금지) ·
+(c) 로컬 검증 전부 통과 · (d) 잘못된 판단이 **로컬에서 드러난다**(프로덕션에서만 드러나면 안 된다).
+보류 조건은 하나라도 해당하면: (x) breaking change 가 실행 경로에 닿는다 ·
+(y) 확인하려면 **배포해야 한다**(내 권한 밖) · (z) 배포 경로 위에 있는데 **이 앱에 필요한 것이 없다**.
+
+#### 올린 것 — 7건
+
+| 젬 | 전 → 후 | 분류 | 근거 |
+|---|---|---|---|
+| bootsnap | 1.23.0 → **1.26.0** | minor | 훅 API 추가 + Ruby 3.4/4.0·YJIT 캐시키 버그픽스. 부팅 시점만 |
+| brakeman | 8.0.4 → **8.0.6** | patch | dev/test 그룹. **경고 6건·exit 3 이 8.0.4 와 완전히 동일**(나란히 측정) |
+| jbuilder | 2.14.1 → **2.15.1** | minor | 내부 성능. **이 앱에 `.jbuilder` 뷰가 0개** — 젬이 로드되지도 않는다 |
+| propshaft | 1.3.1 → **1.3.2** | patch | text/html·text/css 에 `charset=utf-8` 추가. 관측됨: `/assets/*.css` 가 `text/css; charset=utf-8`. 프로덕션은 `RAILS_SERVE_STATIC_FILES=true` 라 Propshaft::Server 를 안 탄다 |
+| rubyzip | 3.2.2 → **3.6.0** | **minor (메이저 아님)** | zip-slip 방지·SecureRandom 은 **추출** 경로. 이 앱은 쓰기만 한다(`Zip::OutputStream.open` + 블록, `conversions_controller.rb:173`). 2엔트리 아카이브 쓰기·읽기 스모크 통과 |
+| selenium-webdriver | 4.41.0 → **4.49.0** | minor | test 그룹. **`test/system` 디렉터리가 없어** `test:system` 이 0건을 돈다(실측, exit 0) |
+| solid_cable | 3.0.12 → **4.0.2** | **major 인데 측정상 additive** | 아래 별항 |
+
+**bundler 가 dependabot 제안보다 더 올라갔다**(rubyzip 3.4.1→3.6.0, solid_cable 4.0.0→4.0.2,
+bootsnap 1.24.6→1.26.0, brakeman 8.0.5→8.0.6, selenium 4.46→4.49). **그 델타도 읽었다** —
+안 읽은 버전을 "검토함" 으로 치지 않는다. `msgpack 1.8.0→1.8.5` 는 bootsnap 의존으로 따라왔다.
+
+**solid_cable 4.0.0 별항 — 번호는 메이저, 측정은 additive.**
+3.0.12↔4.0.2 **전체 소스 diff** 를 떴다: ① `Listener` 에 재연결 백오프 추가,
+② Rails 8.1 용 executor 실드, ③ **빈 `Railtie` 클래스 삭제**(3.0.12 의 `lib/solid_cable.rb` 도
+그 파일을 require 하지 않았다 — 죽은 코드였다. 이게 메이저인 이유). 런타임 의존 불변(`>= 7.2`),
+`required_ruby_version >= 3.3.0`(우리 3.3.9). **gemspec 의 `minitest ~> 5.0` 은 development
+의존이라 이 번들에 오지 않는다 — 왔다면 방금 푼 핀이 되살아났을 것이라 일부러 확인했다.**
+그리고 **이 앱에는 `app/channels` 가 없다** — 어댑터가 설정만 돼 있고 `Listener` 를 만들지 않는다.
+⚠️ 지시문의 "solid_cable 은 Solid Queue 와 함께 도는 인프라" 는 사실이 아니다 — solid_cable 은
+**Action Cable** 어댑터이고 Solid Queue 와 무관하다.
+
+#### 보류한 것 — 3건 (근거와 함께)
+
+**① image_processing 1.14.0 → 2.0.2 — (x) 실행 경로 직격. 가장 위험.**
+이 앱의 **세 제품 전부**가 `ImageProcessing::Vips` 를 탄다
+(`image_compressor.rb`·`pdf_builder.rb`·`social_resizer.rb`). 2.0.0 changelog 원문:
+
+- "`mini_magick`/`ruby-vips` are now soft dependencies and need to be **manually added to the Gemfile**"
+  → 지금 `ruby-vips 2.3.0` 은 image_processing 1.14.0 이 끌고 오는 것이다(`Gemfile.lock:136`).
+  `gem "ruby-vips"` 를 **먼저** 넣지 않고 올리면 세 서비스가 전부 죽는다.
+- "[vips] **Unfuzzed loaders are now blocked by default**" → 받아들이는 입력 포맷이 바뀐다.
+  사용자가 올리는 임의의 이미지를 처리하는 앱이다.
+- "[vips] **Sharpening after resize has been disabled by default**" → **출력 품질이 조용히 바뀐다.**
+  리사이즈 품질이 이 제품의 본체다.
+
+→ 올리려면 `ruby-vips` 명시 + 실제 이미지로 전/후 출력 비교가 **선행**돼야 한다. 별도 작업이다.
+
+**② puma 7.2.0 → 8.0.2 — (x)+(y). 프로덕션 웹서버.**
+8.0.0 의 유일한 "Breaking changes" 항목이 바인드 주소다: *"Default production bind address
+changed from `0.0.0.0` to `::` (IPv6) when a non-loopback IPv6 interface is available."*
+`config/puma.rb:31` 은 `port ENV.fetch("PORT", 3001)` 로 **호스트를 명시하지 않는다** — 업그레이드
+가이드가 핀하라고 지목한 바로 그 형태다(`port ENV.fetch('PORT',…), '0.0.0.0'`).
+
+측정한 것: 프로덕션 이미지 안에서 puma 8 의 판정식을 그대로 돌리면
+`ipv6_interface_available? => false`(주소 `127.0.0.1`·`172.17.0.4`·`::1` 뿐) → **이 모양의
+컨테이너에서는 무해**하다. 하지만 그건 내 로컬 docker 브리지이지 Kamal 이 만드는 프로덕션
+네트워크가 아니다. **확정하려면 배포해야 하는데 그건 사람 몫이다.**
+
+같이 확인해서 **문제가 아니라고 배제한 것들**: `solid_queue` 의 puma 플러그인은
+`Puma::Const::VERSION < 7` 로 분기하고 puma 8 은 `after_booted`/`after_stopped`/`before_restart`
+경로를 타는데 **그 셋 다 puma 8.0.2 에 그대로 있다**(소스 확인). `before_thread_start` 는
+이 앱에서 안 쓴다. `http_content_length_limit` 기본값은 7·8 둘 다 `nil` 이라 6번 항목도 무관.
+`fork_worker` 미사용이라 phased-restart 변경도 무관.
+
+→ 권장 순서: 먼저 `config/puma.rb` 에 바인드를 **명시**하고(puma 7 상태로) 배포해 무해함을 확인,
+그 다음 puma 8. 두 변경을 한 배포에 섞지 않는다.
+
+**③ kamal 2.11.0 → 2.12.0 — (y)+(z). 배포 도구 자체.**
+소스 diff 는 넓다(CLI 다수 · validator · 새 OTel output 서브시스템). 이 저장소가 의존하는
+`$(...)` 치환(`Kamal::Secrets::Dotenv::InlineCommandSubstitution`)과 `configuration/proxy.rb` 는
+**바이트 동일**이라 알려진 함정은 재발하지 않는다(확인함). 그래도 보류하는 이유는 버그가 아니라
+**순서**다 — **배포 도구와 앱을 같은 배포에서 함께 바꾸면, 실패했을 때 어느 쪽 탓인지 알 수 없다.**
+Rails 업그레이드가 무사히 나간 뒤 단독으로 올린다.
+
+#### GitHub Actions 2건 — 올렸다 (검증은 push 후 GitHub 에서)
+
+`actions/checkout@v4 → v7`, `actions/upload-artifact@v4 → v7`.
+**동기가 실측으로 있다**: main 의 모든 런에 이미
+`Node.js 20 is deprecated. … actions/checkout@v4 … forced to run on Node.js 24` 주석이 붙는다.
+
+각 메이저의 breaking change 가 **이 워크플로를 비껴가는 이유**:
+v5/v6 의 Node 24 런타임 + 러너 `>= 2.327.1` 요구 → 전 잡이 `ubuntu-latest`(GitHub 호스티드,
+항상 그 이상)이고 self-hosted 러너가 없다. checkout v7 의 "fork PR 체크아웃 차단" 은
+`pull_request_target`·`workflow_run` 한정인데 이 워크플로는 `pull_request`·`push` 만 쓴다.
+upload-artifact v7 의 `archive:` 는 추가 입력이고 기본값 불변이며, 그 스텝은
+`if: failure()` 스크린샷 업로드라 `test/system` 이 없는 지금은 아예 발화하지 않는다.
+
+⚠️ **워크플로 파일은 로컬에서 돌려볼 수 없다. 이 2건만은 push 후 GitHub 에서 확인해야 한다.**
+
+#### ⚠️ 베이스라인 정정 — **CI 는 이미 빨간색이었다**
+
+손대기 전에 측정했다(run `35295783921`, main):
+
+| 잡 | 상태 | 이유 |
+|---|---|---|
+| `test` | ✅ | — |
+| `scan_js` | ✅ | — |
+| `lint` | ❌ | rubocop **86건** (전부 기존 것) |
+| `scan_ruby` | ❌ | brakeman 경고 6건 → **exit 3** |
+
+이 브랜치는 네 결과를 **하나도 바꾸지 않는다**(86=86, 6=6, main 트리에 같은 도구를 돌려 대조).
+**push 후 CI 가 빨갛다면 "빨간가" 가 아니라 "어느 잡인가" 를 봐라.**
+기존 86건·6건을 어떻게 할지는 이 작업의 범위가 아니다 — **사람 결정 사항**.
+
+### 3. 검증 (전부 Ruby 3.3.9 + Rails 8.0.5.1 + minitest 6.0.6 에서 재측정)
+
+| 검증 | 결과 |
+|---|---|
+| `bin/rails test` | **159 runs / 1218 assertions / 0 failures / 0 errors** (전 159/1179 — 단언 증가는 minitest 6 자체의 변화) |
+| `bin/rails test:system` | 0 runs, exit 0 (CI 가 함께 돌린다) |
+| 줄 필터링 (minitest 6 의 MT6 경로) | `post_test.rb:13` → **1 run** vs 파일 전체 19 runs |
+| 프로덕션 미들웨어 스택 3형태 | 8.0.4 와 **27줄 전부 동일**. `CanonicalPathRedirect` 가 Static 앞 |
+| **실제 프로덕션 이미지** | `docker build` 성공(Ruby 3.3.9) → 부팅 → 스택 위치 동일 |
+| `script/canonical_sweep.rb` | **88 철자 / 중복 200 = 0 / 홉 `{1=>66, 2=>2}` / 6개 검사 전부 통과** |
+| **그 스윕이 공허하지 않은가** | 미들웨어를 실제로 빼고 재측정 → **64건 실패, 중복 200 이 20→84** (빼고 넣을 때마다 컨테이너 재시작) |
+| SW 네트워크 실패 주입 | **9/9** |
+| rubocop | 86건 — main 트리에 같은 도구를 돌린 값과 **동일** (신규 0) |
+| brakeman | 경고 6 / exit 3 — main 과 **동일** |
+| `bin/importmap audit` | no vulnerable packages |
+| 이미지 파이프라인 | `ImageProcessing::Vips` resize+convert 정상(1.14.0 유지) |
+| ZIP 쓰기 경로 | rubyzip 3.6.0 으로 2엔트리 아카이브 쓰기·재읽기 정상 |
+| `rake blog:stuck` / `jobs:failed` | 정상 동작 (막힌 글 0) |
+| 프로덕션 DB | **미접촉** |
+
+### 4. 이번에 커밋한 검증 스크립트 2개 (다음 라운드가 다시 만들지 않도록)
+
+- **`script/middleware_probe.sh`** — 프로덕션 미들웨어 스택을 3개 정적파일 구성에서 출력한다.
+  세 번째 구성(`public_file_server.enabled = false`)은 **임시 이니셜라이저**로 만든다 —
+  `canonical_path_redirect.rb` 가 그 플래그를 **로드 시점에** 읽으므로 알파벳순으로 앞서는
+  이름(`aaa_…`)이어야 하고, `trap EXIT` 로 지운다.
+- **`script/canonical_sweep.rb`** — 매 라운드 손으로 다시 만들던 6개 검사(중복 200 · 홉 수 ·
+  사이트맵 · 내부 링크 · canonical↔JSON-LD · Accept-Language 불변성)를 한 파일에 고정. 실패 시 exit 1.
+  함정 하나를 주석으로 박아뒀다: **`URI.join` 을 쓰면 안 된다** — 선행 `//` 를 프로토콜 상대 주소로
+  읽어 `//about` 이 호스트 `about` 이 된다. 그 철자가 바로 검사 대상이다.
+
+### 5. 부수로 고친 것 (젬과 무관, 새 스윕이 잡았다)
+
+`public/privacy/index.html:101` 이 `https://slimfile.net/blog/` 를 링크하고 있었다 —
+트레일링 슬래시 작업 이후 301 이다. 직전 라운드의 내부 링크 측정이 놓친 이유는 그 측정이
+**상대 경로 href 만** 봤기 때문이다(이건 절대 URL). `/blog` 로 고쳤다.
+
+### 6. 남는 관찰 / 다음 런
+
+- `rails "~> 8.0.5"` 는 **8.1 을 막는다**(전 `~> 8.0.4` 와 같은 천장). dependabot 이 8.1 을
+  제안하면 제약을 넓혀야 하고, 그때 `minitest < 7` 상한도 재점검한다.
+- brakeman 이 `Support for Rails 8.0.5.1 ends on 2026-11-07` 을 보고한다. 8.1 이전 계획이 필요하다.
+- CI 의 `lint`·`scan_ruby` 가 기존 결함으로 빨갛다 (위 표). 사람 결정.
+- `test/safe/node_modules` 심링크가 **죽은 스크래치패드**를 가리킨다. SW 하네스를 돌리려면
+  playwright 를 매번 새로 깔아야 한다 — `test/sw/README.md` 의 안내가 현실과 어긋나 있다.
+
+### 7. 외부 교차검증 (Codex CLI, read-only)
+
+- 패키지 `docs/review/CODEX_REVIEW_PACKAGE_2026-09-18_gems.md` (비밀값 0건 — `deploy.yml` 은
+  서버 IP·레지스트리 계정 때문에 **넣지 않고** 판단에 필요한 4줄만 인용)
+- 원문 `docs/review/CODEX_RESULT_2026-09-18_gems.md` (codex-cli 0.144.3, 55,004 tokens)
+- 대조 `docs/review/CROSS_REVIEW_TRIAGE_2026-09-18_gems.md` — 지적 3건 + 질문 답변 9건 전수 분류
+- **젬 선택·업그레이드 판단에 대한 (a) 지적은 0건.** Codex 가 독립 확인해준 것:
+  `rails "~> 8.0.5"` 로 railties 하한이 간접 강제되는 것(lock 상 `rails` 가 `railties (= …)` 로
+  못박음) · `minitest-mock` 추가가 `Object#stub` 재구현보다 안전 · **puma 8 보류가 과하지 않음**
+  (`proxy.app_port` 는 Puma 의 bind host 를 고정하지 않는다) · **image_processing 보류가 알려진
+  보안 수정 방치가 아님**(호출부 3개가 취약 경로인 user-input loader/saver 옵션·`#apply` 를
+  타지 않는다) · Actions v7 트리거 판단.
+- ⚠️ **새 (a) 3건 — 다음 런. 이번 세션에서는 고치지 않았다.** 셋 다 **이번에 새로 커밋한
+  검증 스크립트**의 결함이고, 둘은 내가 패키지에 "확신 없음" 으로 올린 항목이다.
+  **세 건 모두 반영 전에 직접 재현했다**:
+  1. **AMBER** `canonical_sweep.rb` 가 **sitemap 이 죽으면 0건 검사하고 통과**한다.
+     재현: `SLUGS` 를 비우면 `0 entries checked` / `0 internal link targets` → `ALL CHECKS PASSED`.
+     **"0 tests" 가 통과처럼 보였던 minitest 사고와 같은 모양**을, 그 교훈을 적어둔 저장소에서
+     내가 다시 만들었다. → sitemap 200 + `<loc>` 개수 하한을 단언한다.
+  2. **AMBER** `[5/6]` JSON-LD 검사가 **단언 0회로도 통과**한다. 재현: 지금은 31페이지에서
+     **6회** 비교가 실제로 돈다(공허하지 않다) — 그러나 JSON-LD 블록이 통째로 사라지는
+     회귀가 오면 "31 pages checked" 를 찍고 통과한다. 출력이 **비교 수가 아니라 페이지 수**다.
+  3. **AMBER (배포 위험)** `middleware_probe.sh` 의 임시 이니셜라이저가 남으면
+     **`ActionDispatch::Static` 이 프로덕션 스택에서 0개가 된다**(실측) — `/safe/`·`/privacy/`
+     ·`/assets/*` 가 전부 죽는다. Codex 는 SIGKILL 을 들었지만 **더 현실적인 경로가 있다**:
+     스크립트가 도는 중에 `docker compose restart web` 이 들어오면 프로세스는 죽고 파일은
+     **바인드 마운트라 호스트 트리에 남는다**(실측). 이번 세션에 그 명령을 열 번 넘게 돌렸다.
+     `git status` 에 `??` 로 뜨긴 하지만, **이번 세션에서 `git add -A` 가 의도치 않은 심링크를
+     실제로 커밋에 쓸어 담았다** — 그 안전망은 뚫린 전례가 있다.
+     → 파일명을 gitignore 하고(가드보다 강한 것은 "커밋될 수 없음"), 더 낫게는 **저장소 안에
+     파일을 만들지 않는 방식**으로 바꾼다. **배포 전 처리 권장.**
+- **(b) 의견 차이 1건**: 상한 대신 CI 단언을 두라 → "대신" 이 아니라 "함께" 다.
+  상한은 **예방**(오늘 나와도 막는다)이고 단언은 **탐지**(들어온 뒤 빨간불)다. 순서가 다르다.
+  다만 "풀어야 할 때를 아무도 모른다" 는 지적은 옳다 — 주석은 실행되지 않는다.
+  줄 필터링 회귀 테스트를 다음 런에 추가한다. **(c) 오탐 0건.**
+- 이번 라운드 관찰: Codex 가 read-only 샌드박스에서 **저장소를 직접 읽어**(패키지 밖 파일 포함)
+  "경로 요청" 이 0건이었다. 대신 인용 줄 번호는 패키지가 아니라 실제 파일 기준이다.
+- 방법론 결과: **매 라운드 버려지던 검증 스크립트를 고정한 것은 옳았지만, 고정하는 순간
+  그것도 검토 대상이 된다.** 이번 (a) 3건이 전부 거기서 나왔다.

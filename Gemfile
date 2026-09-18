@@ -1,7 +1,14 @@
 source "https://rubygems.org"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem "rails", "~> 8.0.4"
+#
+# Floor raised to 8.0.5 on 2026-09-18. railties 8.0.5 is the first release whose
+# rails/test_unit/line_filtering.rb branches on Minitest::VERSION and ships a
+# 3-arity `run` for minitest 6; 8.0.4 and earlier only prepend a 2-arity `run`,
+# so resolving minitest 6 alongside them kills the whole test suite before a
+# single assertion runs. This is a floor, not a pin — the cause is gone, so the
+# minitest pin that used to suppress the symptom is gone too (see :test group).
+gem "rails", "~> 8.0.5"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
 # Use postgresql as the database for Active Record
@@ -71,11 +78,23 @@ group :test do
   gem "capybara"
   gem "selenium-webdriver"
 
-  # Pinned to 5.x: minitest 6 calls `runnable.run(reporter, options, …)` with an
-  # extra argument, but railties 8.0.4 prepends its own 2-arity `run` via
-  # rails/test_unit/line_filtering.rb. Resolving to 6.x makes EVERY Rails test
-  # abort with "wrong number of arguments (given 3, expected 1..2)" before a
-  # single assertion runs — which is why the suite silently reported "0 tests".
-  # Revisit when Rails ships minitest 6 support. (Found 2026-09-17.)
-  gem "minitest", "~> 5.25"
+  # The 5.x pin is gone (2026-09-18): railties >= 8.0.5 handles minitest 6, and
+  # the Gemfile now floors rails there, so the incompatibility that pin existed
+  # to suppress cannot be resolved into this bundle any more.
+  #
+  # The `< 7` ceiling is a DIFFERENT constraint and stays. railties 8.0.5.1's
+  # rails/test_unit/line_filtering.rb dispatches on Minitest::VERSION with
+  # `case … when /^5/ … when /^6/ … end` and NO `else` branch, so minitest 7
+  # would get no LineFiltering at all. That does not raise — it makes
+  # `bin/rails test path/to/file.rb:42` silently run the whole file instead of
+  # the one line. A quiet wrong answer is worse than a loud crash, so the
+  # ceiling holds until a railties release grows an `else` (or a /^7/ branch).
+  gem "minitest", "< 7"
+
+  # minitest 6.0.0 dropped lib/minitest/mock.rb ("Dropped minitest/mock.rb. This
+  # has been extracted to the minitest-mock gem." — minitest History.rdoc,
+  # 6.0.0 / 2025-12-17). Two test files require it for Object#stub, which
+  # rails/test_help does not load. The extracted gem has no runtime dependency
+  # on minitest at all, so this is purely "the file moved into its own gem".
+  gem "minitest-mock"
 end
