@@ -31,6 +31,10 @@
   확인. 자세한 내용은 CLAUDE.md "젬 업그레이드" 절, 판단 기준은 DECISIONS.md 2026-09-18.
   ⚠️ **CI 는 이 작업 전부터 빨간색이다** — `lint`(rubocop 86) · `scan_ruby`(brakeman exit 3).
   이 브랜치는 그 숫자를 바꾸지 않는다.
+  교차검증(Codex): **젬 판단에 대한 (a) 0건.** 새 (a) 3건은 전부 **이번에 커밋한 검증
+  스크립트** 결함이다(전부 재현함) — `docs/review/CROSS_REVIEW_TRIAGE_2026-09-18_gems.md`.
+  그중 **a-3 은 배포 전 처리 권장**: `middleware_probe.sh` 의 임시 이니셜라이저가 남으면
+  `ActionDispatch::Static` 이 프로덕션 스택에서 사라진다(실측). 지금 트리에는 없다.
 - 블로그 자동화(주제 100개 → Claude API 생성 → MWF 09:00 KST 발행 + Gmail 알림)는
   2026-04 검증 이후 **실제 현재 동작 상태 확인 필요** (마지막 발행일·남은 주제 수 미확인).
 

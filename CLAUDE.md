@@ -1533,3 +1533,43 @@ upload-artifact v7 의 `archive:` 는 추가 입력이고 기본값 불변이며
 - CI 의 `lint`·`scan_ruby` 가 기존 결함으로 빨갛다 (위 표). 사람 결정.
 - `test/safe/node_modules` 심링크가 **죽은 스크래치패드**를 가리킨다. SW 하네스를 돌리려면
   playwright 를 매번 새로 깔아야 한다 — `test/sw/README.md` 의 안내가 현실과 어긋나 있다.
+
+### 7. 외부 교차검증 (Codex CLI, read-only)
+
+- 패키지 `docs/review/CODEX_REVIEW_PACKAGE_2026-09-18_gems.md` (비밀값 0건 — `deploy.yml` 은
+  서버 IP·레지스트리 계정 때문에 **넣지 않고** 판단에 필요한 4줄만 인용)
+- 원문 `docs/review/CODEX_RESULT_2026-09-18_gems.md` (codex-cli 0.144.3, 55,004 tokens)
+- 대조 `docs/review/CROSS_REVIEW_TRIAGE_2026-09-18_gems.md` — 지적 3건 + 질문 답변 9건 전수 분류
+- **젬 선택·업그레이드 판단에 대한 (a) 지적은 0건.** Codex 가 독립 확인해준 것:
+  `rails "~> 8.0.5"` 로 railties 하한이 간접 강제되는 것(lock 상 `rails` 가 `railties (= …)` 로
+  못박음) · `minitest-mock` 추가가 `Object#stub` 재구현보다 안전 · **puma 8 보류가 과하지 않음**
+  (`proxy.app_port` 는 Puma 의 bind host 를 고정하지 않는다) · **image_processing 보류가 알려진
+  보안 수정 방치가 아님**(호출부 3개가 취약 경로인 user-input loader/saver 옵션·`#apply` 를
+  타지 않는다) · Actions v7 트리거 판단.
+- ⚠️ **새 (a) 3건 — 다음 런. 이번 세션에서는 고치지 않았다.** 셋 다 **이번에 새로 커밋한
+  검증 스크립트**의 결함이고, 둘은 내가 패키지에 "확신 없음" 으로 올린 항목이다.
+  **세 건 모두 반영 전에 직접 재현했다**:
+  1. **AMBER** `canonical_sweep.rb` 가 **sitemap 이 죽으면 0건 검사하고 통과**한다.
+     재현: `SLUGS` 를 비우면 `0 entries checked` / `0 internal link targets` → `ALL CHECKS PASSED`.
+     **"0 tests" 가 통과처럼 보였던 minitest 사고와 같은 모양**을, 그 교훈을 적어둔 저장소에서
+     내가 다시 만들었다. → sitemap 200 + `<loc>` 개수 하한을 단언한다.
+  2. **AMBER** `[5/6]` JSON-LD 검사가 **단언 0회로도 통과**한다. 재현: 지금은 31페이지에서
+     **6회** 비교가 실제로 돈다(공허하지 않다) — 그러나 JSON-LD 블록이 통째로 사라지는
+     회귀가 오면 "31 pages checked" 를 찍고 통과한다. 출력이 **비교 수가 아니라 페이지 수**다.
+  3. **AMBER (배포 위험)** `middleware_probe.sh` 의 임시 이니셜라이저가 남으면
+     **`ActionDispatch::Static` 이 프로덕션 스택에서 0개가 된다**(실측) — `/safe/`·`/privacy/`
+     ·`/assets/*` 가 전부 죽는다. Codex 는 SIGKILL 을 들었지만 **더 현실적인 경로가 있다**:
+     스크립트가 도는 중에 `docker compose restart web` 이 들어오면 프로세스는 죽고 파일은
+     **바인드 마운트라 호스트 트리에 남는다**(실측). 이번 세션에 그 명령을 열 번 넘게 돌렸다.
+     `git status` 에 `??` 로 뜨긴 하지만, **이번 세션에서 `git add -A` 가 의도치 않은 심링크를
+     실제로 커밋에 쓸어 담았다** — 그 안전망은 뚫린 전례가 있다.
+     → 파일명을 gitignore 하고(가드보다 강한 것은 "커밋될 수 없음"), 더 낫게는 **저장소 안에
+     파일을 만들지 않는 방식**으로 바꾼다. **배포 전 처리 권장.**
+- **(b) 의견 차이 1건**: 상한 대신 CI 단언을 두라 → "대신" 이 아니라 "함께" 다.
+  상한은 **예방**(오늘 나와도 막는다)이고 단언은 **탐지**(들어온 뒤 빨간불)다. 순서가 다르다.
+  다만 "풀어야 할 때를 아무도 모른다" 는 지적은 옳다 — 주석은 실행되지 않는다.
+  줄 필터링 회귀 테스트를 다음 런에 추가한다. **(c) 오탐 0건.**
+- 이번 라운드 관찰: Codex 가 read-only 샌드박스에서 **저장소를 직접 읽어**(패키지 밖 파일 포함)
+  "경로 요청" 이 0건이었다. 대신 인용 줄 번호는 패키지가 아니라 실제 파일 기준이다.
+- 방법론 결과: **매 라운드 버려지던 검증 스크립트를 고정한 것은 옳았지만, 고정하는 순간
+  그것도 검토 대상이 된다.** 이번 (a) 3건이 전부 거기서 나왔다.
