@@ -8,7 +8,12 @@
 # For a containerized dev environment, see Dev Containers: https://guides.rubyonrails.org/getting_started_with_devcontainer.html
 
 # Make sure RUBY_VERSION matches the Ruby version in .ruby-version
-ARG RUBY_VERSION=3.3.0
+#
+# It did not (found 2026-09-18): .ruby-version said 3.3.9 and this said 3.3.0,
+# so CI — which reads .ruby-version via ruby/setup-ruby — tested on a different
+# interpreter than production ran. Every green CI run was evidence about 3.3.9
+# and none about 3.3.0. Same 3.3 series, so this is a patch-level alignment.
+ARG RUBY_VERSION=3.3.9
 FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
 
 # Rails app lives here

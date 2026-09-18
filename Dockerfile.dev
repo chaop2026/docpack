@@ -1,4 +1,7 @@
-FROM ruby:3.3.0-slim
+# Kept in step with .ruby-version and Dockerfile (production). Development
+# drifting to a different interpreter than production is how a 3.3.9-only or
+# 3.3.0-only bug gets to be someone else's problem.
+FROM ruby:3.3.9-slim
 
 WORKDIR /rails
 
