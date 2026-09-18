@@ -1,6 +1,6 @@
 # STATE — DocPack / SlimFile
 
-> 마지막 갱신: 2026-09-18
+> 마지막 갱신: 2026-09-18 (젬 업그레이드)
 > 이 파일은 **자유롭게 덮어쓴다** — 과거 상태는 git 이 기억한다. **100줄 이내 유지**
 > (넘으면 끝난 것을 지운다. 역사 보존용 파일이 아니다).
 
@@ -22,44 +22,30 @@
   GSC 지명 3개 · 트레일링/반복 슬래시를 모두 잡았다. 한 URL = 한 주소가 `lib/canonical_path_redirect.rb`
   (Rack 301, `ActionDispatch::Static` 앞) + self-referencing canonical 로 보장된다.
   자세한 내용은 CLAUDE.md 의 해당 4개 절. 언어별 `/xx/safe/` 는 존재하지 않는다(전부 404).
-- **부수 발견: Rails 테스트 스위트가 죽어 있었다.** minitest 6 ↔ railties 8.0.4 비호환으로
-  단언 하나 못 돌고 죽었다(`minitest "~> 5.25"` 핀으로 복구). **다음에 같은 걸 찾을 때는
-  "0 tests" 가 아니라 `종료코드 != 0` + `요약 줄 부재` 를 봐라** — 실제 신호는 그쪽이다.
+- **젬 업그레이드 완료 (2026-09-18, 브랜치 `chore/gem-upgrades`, 미배포·미머지).**
+  minitest 핀을 **원인 제거**로 풀었다: `rails ~> 8.0.5`(→ 8.0.5.1) + `minitest < 7`(→ 6.0.6)
+  + `minitest-mock` 추가(6.0.0 이 `minitest/mock` 을 분리). Ruby 는 두 Dockerfile 을
+  `.ruby-version` 과 맞춰 3.3.0 → **3.3.9**(CI 가 프로덕션과 다른 인터프리터를 시험 중이었다).
+  dependabot 12건 중 **7 젬 + Actions 2건을 올리고 3건(image_processing 2.x · puma 8 · kamal
+  2.12)을 보류**했다. `CanonicalPathRedirect` 위치는 **실제 프로덕션 이미지**에서도 Static 앞임을
+  확인. 자세한 내용은 CLAUDE.md "젬 업그레이드" 절, 판단 기준은 DECISIONS.md 2026-09-18.
+  ⚠️ **CI 는 이 작업 전부터 빨간색이다** — `lint`(rubocop 86) · `scan_ruby`(brakeman exit 3).
+  이 브랜치는 그 숫자를 바꾸지 않는다.
 - 블로그 자동화(주제 100개 → Claude API 생성 → MWF 09:00 KST 발행 + Gmail 알림)는
   2026-04 검증 이후 **실제 현재 동작 상태 확인 필요** (마지막 발행일·남은 주제 수 미확인).
 
 ## 다음 할 일
 
-0. **배포 → GSC 재크롤링 요청.** (`/safe/` canonical + 미색인 63개 조사 수정이 모두 대기 중)
-   - **미색인 63개 조사 완료.** noindex 40 은 **의도대로**다 — 게이트는 draft 가 아니라
-     **번역 여부**이고 42개 글이 전부 한국어 단독이라 en/ja/es 126개가 구조적으로 noindex 다.
-     그 옆에서 모순 6가지를 고쳤다(가장 심각: 한국어 정본 URL 이 `Accept-Language: en` 에
-     noindex 를 반환). **GSC 지명 3건도 수정 완료 — 직전 추정 3건은 전부 틀렸었다.**
-   - 프로덕션 DB 는 건드리지 않았다. 판정은 전부 라이브 HTTP 실측 + 깃 이력.
-   - 교차검증 (a) 2건(색인 게이트가 발행 상태를 본다 · 콘텐츠도 URL 로케일을 따른다)
-     **수정·재검증 완료**. **`body_en` 을 채워도 안전하다** — 개발 DB 에서 확인하고 원복했다.
-   - 교차검증 (a) **3건 전부 수정·재검증 완료** (2026-09-18, CLAUDE.md "교차검증 (a) 3건 수정" 절):
-     ① `PublishScheduledPostsJob` 이 글 단위로 격리되고, 건너뛴 글은 **런당 관리자 메일 1통**으로
-        드러난다(로그만 두면 "영구히 미발행" 을 아무도 모른다). 인프라 예외는 일부러 전파한다.
-     ② 반복 슬래시 — **지적보다 넓었다.** `/safe/sw.js/` 와 **경로 중간**(`//about`·`/en//about`
-        ·`/blog//:slug`)까지 진짜 200 이었다. 정규화→매핑 순서로 바꿔 1홉 보장.
-     ③ 미들웨어를 무조건 삽입하고 가드는 **위치만** 고른다(`enabled=false` 에서 0개였음 — 실측).
-     - 부수: **`blog:seed_safefile_posts` 가 직전 커밋으로 실제로 깨져 있었다**(실측, 두 번째
-       항목에서 중단). 검증이 이 시드의 오래된 버그를 잡아준 것 — 전에는 본문 없는 published
-       중복 2개를 조용히 만들었다. 패턴만 고치고 시드의 존재 이유 정리는 보류(DECISIONS.md).
-     - 부수: `ko.yml` 에 검증 메시지 블록 추가. 없어서 검증 실패가 `Translation missing…` 으로
-       나왔고, 그건 **발행 실패 알림의 "이유" 칸**이라 알림이 동작하지 않는 상태였다.
-   - 교차검증 새 (a) **2건 전부 수정·재검증 완료** (2026-09-18,
-     CLAUDE.md "교차검증 새 AMBER 2건 수정" 절):
-     ① 막힌 글이 이제 **알림이 아니라 상태**다 — `Post.publish_stuck`(파생 스코프)을
-        **DB 만 의존하는 3곳**에서 읽는다: 어드민 배너 · `Stuck (n)` 필터 · `rake blog:stuck`
-        (exit 1, 브라우저·비밀번호 불필요). 메일은 보조. 이유는 `posts.publish_error` 에.
-        **메일 양쪽을 raise 로 만든 상태에서도 글이 드러나는 것을 테스트로 고정했다.**
-        재시도 정책도 정리 — 잡마다 선언(발행잡은 재시도 O / 생성잡은 X, 유료 API),
-        메일은 별도 잡(`ApplicationMailDeliveryJob`), 실패한 잡은 `rake jobs:failed`.
-     ② **시드 제거** — `db/seeds/safefile_posts.rb` 와 `blog:seed_safefile_posts` 를 지웠다.
-        `blog:migrate_privacy` 가 create-or-update 로 **단일 소유자**가 되고,
-        제목·메타·본문은 **덮지 않는다**(카테고리만 소유). 신선한 DB 재생성도 실측 확인.
+-1. **`chore/gem-upgrades` 를 머지·배포.** SEO 작업(0번)과 **같은 배포에 섞을지 정할 것** —
+   섞으면 문제가 났을 때 Rails 업그레이드 탓인지 URL 정규화 탓인지 구분이 안 된다.
+   배포 후 확인: `/`·`/blog` 200, `kamal app exec 'bin/rails blog:stuck'`, 응답 헤더.
+   보류한 3건은 **각각 별도 배포**로: ① `config/puma.rb` 바인드 명시 → 배포 → puma 8
+   ② `gem "ruby-vips"` 선행 + 이미지 품질 전/후 비교 → image_processing 2.x ③ kamal 단독.
+
+0. **배포 → GSC 재크롤링 요청.** SEO 정본 URL 작업이 전부 배포 대기 중이다.
+   조사·수정·교차검증 4라운드 내역은 **CLAUDE.md 의 해당 절들**에 있다(여기서 반복하지 않는다).
+   요지: 미색인 126개 noindex 는 **의도대로**(번역 여부 게이트), 그 옆의 모순 6가지와
+   GSC 지명 3건을 고쳤고, 교차검증 (a) 7건 중 6건 처리 완료. 프로덕션 DB 미접촉.
 
 1. **배포 절차.** 교차검증 4라운드에서 나온 (a) 7건 중 **6건 처리 완료.**
    남은 1건은 GREEN(영향 미미): `publish_stuck` 이 시계를 네 번 읽는다(39μs 편차) —
