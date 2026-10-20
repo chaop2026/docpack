@@ -1435,9 +1435,13 @@ function jpLevel(doc, field, purpose){
   if (!r) return null;
   for (const lv of ['auto','gate','recommend','optional','keep'])
     if (r[lv] && r[lv].includes(purpose)) return lv;
-  // A field the matrix knows but this purpose does not list is simply available,
-  // never silently promoted to automatic.
-  return r.keep ? 'optional' : 'optional';
+  // A field the matrix knows but whose rule does not name THIS purpose. It is
+  // offered and left off — not promoted to automatic (we have no basis), and
+  // not pinned to keep either (keep forbids hiding, and "the matrix is silent"
+  // is not a reason to forbid the user anything). Same answer whether or not
+  // the field has a keep clause for other purposes, which is why there is no
+  // branch here.
+  return 'optional';
 }
 
 /* ── field extraction ─────────────────────────────────────────────────────
