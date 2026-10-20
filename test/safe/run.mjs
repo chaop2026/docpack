@@ -8,9 +8,9 @@
  *   - MUST_NOT_MASK  : value is NOT covered by any mask rect
  *   - NEVER_CANDIDATE: value is not proposed as a review candidate
  *   - SHOULD_CANDIDATE: value surfaces as a candidate (visible, not hidden)
- *   - PHONE_FORMAT   : partial mask preserves the original string format
  *   - AI_INJECT      : adversarial AI labels are neutralised in addEntities
  *   - TEXT_LEAK      : output PDF has 0 extractable characters
+ *   - OUT_SAFE       : output carries no annots/embedded files/incremental save/EXIF
  *
  * Requires: node, playwright (chrome channel). Fixtures from generate_fixtures.py.
  * Usage: node run.mjs [--only 7_resume_dark.pdf]  (exit 0 = all pass)
@@ -49,13 +49,17 @@ function startServer() {
 
 // ── in-page helpers, serialised into the browser context ──
 const PAGE_HELPERS = () => {
-  // active mask rects: every entity that is ON, not 'ok', and located.
+  // Active mask rects: every entity that is ON, not 'ok', and located — passed
+  // through bandRect() so the harness measures the pixels that are ACTUALLY
+  // painted (box + padding), not the pre-padding estimate. This makes MUST_MASK
+  // easier and MUST_NOT_MASK harder, which is the honest direction: a padding
+  // that bleeds onto a neighbouring must-keep value now fails the golden.
   window.__maskRects = function () {
     const rects = [];
     for (const e of entities) {
       if (!isOn(e) || e.mode === 'ok' || !(e.boxes && e.boxes.length)) continue;
       for (let pi = 0; pi < pages.length; pi++) {
-        for (const l of mergeLineBoxes(e.boxes, pi)) rects.push({ pi, x: l.x, y: l.y, w: l.w, h: l.h });
+        for (const l of mergeLineBoxes(e.boxes, pi)) { const r = bandRect(l); rects.push({ pi, x: r.x, y: r.y, w: r.w, h: r.h }); }
       }
     }
     return rects;
@@ -94,9 +98,8 @@ const PAGE_HELPERS = () => {
     const gx0 = Math.min(...its.map(i => i.x)), gy0 = Math.min(...its.map(i => i.y));
     const gx1 = Math.max(...its.map(i => i.x + i.w)), gy1 = Math.max(...its.map(i => i.y + i.h));
     const gW = gx1 - gx0, gH = gy1 - gy0;
-    // replicate the drawn-bar geometry: the large-name path uses barRect() if the
-    // page defines it, otherwise the raw merged box.
-    const drawn = (typeof largeBarRect === 'function') ? largeBarRect(bar) : bar;
+    // replicate the drawn-band geometry exactly as the page would paint it.
+    const drawn = bandRect(bar);
     // Ink safety: the bar must cover the full glyph WIDTH and, vertically, the
     // cap-height→descent band (raw pdf font box minus the top ascent gap where
     // no ink lives). It should NOT need to cover the empty ascent whitespace.
@@ -166,12 +169,6 @@ async function checkDoc(page, spec) {
     const mode = await page.evaluate(x => window.__candidateMode(x), v);
     rec(doc, 'CANDIDATE_MODE', v, exp, mode || 'not-candidate', mode === exp);
   }
-  if (spec.phone_format) {
-    for (const [orig, exp] of Object.entries(spec.phone_format)) {
-      const got = await page.evaluate(x => maskHalf('phone', x), orig);
-      rec(doc, 'PHONE_FORMAT', orig, exp, got, got === exp);
-    }
-  }
   if (spec.name_bar) {
     const nb = await page.evaluate(x => window.__nameBar(x), spec.name_bar);
     if (nb) {
@@ -184,40 +181,87 @@ async function checkDoc(page, spec) {
     const dk = await page.evaluate(v => { const e = entities.find(x => x.value === v); const bg = e && e.boxes[0] ? e.boxes[0].bg : null; return { bg, dark: bg ? isDarkColor(bg) : null }; }, spec.dark_bg_value);
     rec(doc, 'DARK_BG', spec.dark_bg_value, 'dark bg detected', `${dk.bg} dark=${dk.dark}`, dk.dark === true, true);
   }
-  // text-leak on PDF output
-  if (spec.type === 'pdf') {
-    try {
-      await page.evaluate(() => { const r = document.querySelector('input[name=fmt][value="pdf"]'); if (r) r.checked = true; });
-      // force at least one masked, located entity so Make is enabled
-      await page.evaluate(() => { const e = entities.find(x => isOn(x) && x.boxes && x.boxes.length); if (e) e.mode = 'no'; renderAll(); });
-      await page.click('#btnMake');
-      await page.waitForSelector('#result', { state: 'visible', timeout: 60000 });
-      const dl = await Promise.all([
-        page.waitForEvent('download', { timeout: 30000 }),
-        page.click('#btnDownload'),
-      ]).then(a => a[0]).catch(() => null);
-      if (dl) {
-        const fp = path.join(OUT, doc.replace(/\.\w+$/, '_out.pdf'));
-        await dl.saveAs(fp);
-        const b64 = fs.readFileSync(fp).toString('base64');
-        const chars = await page.evaluate(async (b64) => {
-          const bin = atob(b64); const arr = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-          const pdf = await pdfjsLib.getDocument({ data: arr }).promise;
-          let n = 0;
-          for (let p = 1; p <= pdf.numPages; p++) { const tc = await (await pdf.getPage(p)).getTextContent(); n += tc.items.reduce((s, it) => s + (it.str || '').replace(/\s/g, '').length, 0); }
-          return n;
-        }, b64);
-        rec(doc, 'TEXT_LEAK', 'output PDF', '0 chars', `${chars} chars`, chars === 0);
-      } else rec(doc, 'TEXT_LEAK', 'output PDF', '0 chars', 'no-download', false);
-    } catch (e) { rec(doc, 'TEXT_LEAK', 'output PDF', '0 chars', 'ERR:' + e.message.split('\n')[0], false); }
+  for (const fmt of (spec.out_formats || (spec.type === 'pdf' ? ['pdf'] : []))) {
+    await checkOutput(page, doc, fmt);
   }
 }
 
-async function checkPhoneUnits(page) {
-  for (const [orig, exp] of Object.entries(SPECS.phone_format_units || {})) {
-    const got = await page.evaluate(x => maskHalf('phone', x), orig);
-    rec('(units)', 'PHONE_FORMAT', orig, exp, got, got === exp);
-  }
+/* ── output safety ──────────────────────────────────────────────────────────
+   What the user ships is the output file, not our preview. Three separate ways
+   a redacted-looking file still carries the original:
+     1. a text layer under the ink (the classic "透ける黒塗り"),
+     2. metadata the renderer never shows — EXIF/XMP/IPTC on images, annotations
+        or embedded files in a PDF,
+     3. an incrementally-saved PDF, where the PREVIOUS revision (unredacted) is
+        still physically present earlier in the same byte stream.
+   Each needs its own probe: pdf.js text extraction catches (1) and is blind to
+   (2) and (3). So we read the produced BYTES. */
+const MARKERS = {
+  // PNG: every ancillary text/EXIF chunk type. Canvas encodes none of these, but
+  // "it currently doesn't" is not a guarantee — assert it.
+  png: [['eXIf', 'EXIF chunk'], ['tEXt', 'tEXt chunk'], ['zTXt', 'zTXt chunk'], ['iTXt', 'iTXt chunk']],
+  // ICC_PROFILE is deliberately NOT forbidden: Chrome's JPEG encoder attaches a
+  // 456-byte generic sRGB profile (tags: desc/rXYZ/gXYZ/bXYZ/wtpt/rTRC/cprt —
+  // measured, no device identifiers). That is a colour space declaration, not
+  // document content and not an identifier. What WOULD be a leak is the
+  // viewer's *display* profile, which carries manufacturer/model tags and is
+  // much larger — iccSafe() below bounds exactly that.
+  jpg: [['Exif\0\0', 'EXIF APP1'], ['http://ns.adobe.com/xap/', 'XMP APP1'], ['Photoshop 3.0\0', 'IPTC APP13']],
+  pdf: [['/Annots', 'annotation'], ['/EmbeddedFile', 'embedded file'], ['/XFA', 'XFA form'], ['/AcroForm', 'form fields'], ['/Names', 'name tree']],
+};
+function scanMarkers(buf, kind) {
+  const hay = buf.toString('latin1');
+  return MARKERS[kind].filter(([m]) => hay.includes(m)).map(([, label]) => label);
+}
+// An embedded ICC profile is acceptable only while it stays a generic colour
+// space. A display profile (which identifies the machine that produced the file)
+// is large and carries the device manufacturer / model description tags.
+const ICC_MAX = 2048;
+function iccSafe(buf) {
+  const hay = buf.toString('latin1');
+  const at = hay.indexOf('ICC_PROFILE\0');
+  if (at < 0) return { ok: true, note: 'absent' };
+  const size = buf.readUInt32BE(at + 14);          // profile header: byte 0..3 = size
+  const body = hay.slice(at + 14, at + 14 + Math.min(size, 65535));
+  const dev = ['dmnd', 'dmdd'].filter(t => body.includes(t));
+  const ok = size <= ICC_MAX && dev.length === 0;
+  return { ok, note: `${size}B${dev.length ? ' +' + dev.join('/') : ''}` };
+}
+async function checkOutput(page, doc, fmt) {
+  const tag = `OUT_${fmt.toUpperCase()}`;
+  try {
+    await page.evaluate(f => { const r = document.querySelector(`input[name=fmt][value="${f}"]`); if (r) r.checked = true; }, fmt);
+    // force at least one masked, located entity so Make is enabled
+    await page.evaluate(() => { const e = entities.find(x => isOn(x) && x.boxes && x.boxes.length); if (e) e.mode = 'no'; renderAll(); });
+    await page.click('#btnMake');
+    await page.waitForSelector('#result', { state: 'visible', timeout: 60000 });
+    const dl = await Promise.all([
+      page.waitForEvent('download', { timeout: 30000 }),
+      page.click('#btnDownload'),
+    ]).then(a => a[0]).catch(() => null);
+    if (!dl) { rec(doc, tag, `output ${fmt}`, 'clean', 'no-download', false); return; }
+    const fp = path.join(OUT, doc.replace(/[\/\\]/g, '_').replace(/\.\w+$/, `_out.${fmt}`));
+    await dl.saveAs(fp);
+    const buf = fs.readFileSync(fp);
+
+    if (fmt === 'pdf') {
+      const chars = await page.evaluate(async (b64) => {
+        const bin = atob(b64); const arr = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+        const pdf = await pdfjsLib.getDocument({ data: arr }).promise;
+        let n = 0;
+        for (let p = 1; p <= pdf.numPages; p++) { const tc = await (await pdf.getPage(p)).getTextContent(); n += tc.items.reduce((s, it) => s + (it.str || '').replace(/\s/g, '').length, 0); }
+        return n;
+      }, buf.toString('base64'));
+      rec(doc, 'TEXT_LEAK', `output ${fmt}`, '0 chars', `${chars} chars`, chars === 0);
+      // One %%EOF means one revision. An incremental save appends a second body
+      // + xref + %%EOF, leaving revision 1 (pre-redaction) readable in the file.
+      const eofs = (buf.toString('latin1').match(/%%EOF/g) || []).length;
+      rec(doc, tag, `output ${fmt} revisions`, '1 %%EOF', `${eofs} %%EOF`, eofs === 1);
+    }
+    const hits = scanMarkers(buf, fmt);
+    rec(doc, tag, `output ${fmt} metadata`, 'none', hits.length ? hits.join('+') : 'none', hits.length === 0);
+    if (fmt === 'jpg') { const icc = iccSafe(buf); rec(doc, tag, `output ${fmt} ICC`, `generic <=${ICC_MAX}B`, icc.note, icc.ok); }
+  } catch (e) { rec(doc, tag, `output ${fmt}`, 'clean', 'ERR:' + e.message.split('\n')[0], false); }
 }
 
 async function checkAiInject(page) {
@@ -343,7 +387,6 @@ function printTable() {
     try { await checkDoc(page, spec); }
     catch (e) { rec(spec.doc, 'LOAD', spec.doc, 'loads', 'ERR:' + e.message.split('\n')[0], false); }
   }
-  if (!onlyArg || onlyArg === '(units)') await checkPhoneUnits(page);
   if (!onlyArg || onlyArg === '7_resume_dark.pdf') { process.stderr.write('… ai_inject\n'); await checkAiInject(page); }
   if (!onlyArg || onlyArg === '7_resume_dark.pdf') { process.stderr.write('… ai_cat_state\n'); await checkAiCatState(page); }
   if (!onlyArg || onlyArg === (SPECS.candidate_dedup && SPECS.candidate_dedup._doc)) { process.stderr.write('… candidate_dedup\n'); await checkCandidateDedup(page); }

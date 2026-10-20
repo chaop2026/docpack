@@ -1,11 +1,13 @@
 {
   "_readme": "Golden specification for the SafeFile PII pipeline. Each doc lists values that MUST be masked, MUST NOT be masked (geometrically covered), and values that should surface only as review CANDIDATES. Checked headlessly by run.mjs against the live detection in public/safe/index.html. never_candidate = value must not be proposed as a candidate at all. ai_inject = adversarial AI-label cases fed to addEntities (reproduces the real-doc name/country/org false positives without a live API).",
 
+  "_band_only": "2026-10-21: masking is band-only — a value is shown ('ok') or covered by an opaque band ('no'). The partial/asterisk mode and its PHONE_FORMAT assertions are gone: a partial overlay re-renders part of the secret, so its safety depends on how much we chose to reveal. MUST_MASK / MUST_NOT_MASK keep their meaning exactly (geometric coverage by an active mask rect) — the types that used to default to partial now default to band, which is strictly more covering. CANDIDATE_MODE now asserts 'ok': a review candidate is a guess and must not delete content before the user confirms it.",
+
   "_max_auto_basis": "max_auto is a per-fixture CEILING on auto-detected entities — the false-positive regression guard. Without it the golden only proved 'we masked what we should' and a detection change shredded résumé body text while 95/95 stayed green. Ceilings measured 2026-07-20 against the fixed pipeline (actual auto counts: 1=9, 2=3, 3=3, 4=5, 5=10, 6=4, 7=2, 8=2). Headroom: deterministic text/table/résumé docs get a TIGHT ceiling (actual + ~2-3) so any new auto-mask of body text (schools, exam/contest names, countries) trips it; OCR docs (2,3) get a LOOSE ceiling (8) because Tesseract counts vary run-to-run and a tight bound would flake. The résumé docs 7/8 (actual 2 = phone+email only; everything else is candidate/excluded) are the primary guard — a ceiling of 4 catches the exact defect class this task fixed.",
 
   "docs": [
     {
-      "doc": "1_text.pdf", "type": "pdf", "ocr": false, "min_auto": 5, "max_auto": 12,
+      "doc": "1_text.pdf", "type": "pdf", "ocr": false, "min_auto": 5, "max_auto": 12, "out_formats": ["pdf", "png", "jpg"],
       "must_mask": ["900315-1234567", "010-2345-6789", "minjun.kim@hanmail.net", "010-9876-5432", "123456-04-789012"],
       "must_not_mask": ["한빛테크"],
       "should_candidate": [],
@@ -16,7 +18,7 @@
       "must_mask": [], "must_not_mask": [], "should_candidate": [], "never_candidate": []
     },
     {
-      "doc": "3_photo.jpg", "type": "image", "ocr": true, "min_auto": 3, "max_auto": 8,
+      "doc": "3_photo.jpg", "type": "image", "ocr": true, "min_auto": 3, "max_auto": 8, "out_formats": ["png", "jpg"],
       "must_mask": [], "must_not_mask": [], "should_candidate": [], "never_candidate": []
     },
     {
@@ -35,9 +37,8 @@
       "_note_ai_only": "English street addresses (e.g. 'Signature Global Mall, Sector 84') are detected only by the AI deep-scan path, not the deterministic regex path this harness exercises.",
       "must_not_mask": ["Delhi University", "Maharaja Agrasen College", "Saket", "Imphal"],
       "should_candidate": ["Aarav Sharma"],
-      "candidate_mode": {"Aarav Sharma": "half"},
+      "candidate_mode": {"Aarav Sharma": "ok"},
       "never_candidate": ["Delhi University", "Maharaja Agrasen College"],
-      "phone_format": {"+91 9599320477": "+91 95****0477"},
       "name_bar": "Aarav Sharma"
     },
     {
@@ -49,12 +50,11 @@
         "Koreaz Contest", "Imphal", "Saket", "India"
       ],
       "should_candidate": ["Aarav Sharma", "Signature Global"],
-      "candidate_mode": {"Aarav Sharma": "half", "Signature Global": "half"},
+      "candidate_mode": {"Aarav Sharma": "ok", "Signature Global": "ok"},
       "never_candidate": [
         "Korea", "Maharaja Agrasen College", "Vidya Niketan School",
         "King Sejong Institute", "Concern India Foundation", "Delhi University", "Imphal"
       ],
-      "phone_format": {"+91 9599320477": "+91 95****0477"},
       "name_bar": "Aarav Sharma",
       "dark_bg_value": "aarav.sharma@gmail.com"
     },
@@ -65,8 +65,7 @@
       "must_mask": ["Ishan Rohit Malhotra", "Malhotra", "+91 9599320477", "ishan.malhotra@gmail.com"],
       "must_not_mask": ["Software Engineer", "Delhi University", "Maharaja Agrasen College", "Koreaz Contest", "Republic of Korea (Koreaz Contest)"],
       "should_candidate": [],
-      "never_candidate": ["Republic of Korea (Koreaz Contest)", "Korea (Koreaz Contest)", "Korea", "Maharaja Agrasen College", "Delhi University"],
-      "phone_format": {"+91 9599320477": "+91 95****0477"}
+      "never_candidate": ["Republic of Korea (Koreaz Contest)", "Korea (Koreaz Contest)", "Korea", "Maharaja Agrasen College", "Delhi University"]
     },
     {
       "doc": "9_resume_2line.pdf", "type": "pdf", "ocr": false, "min_auto": 2, "max_auto": 4,
@@ -75,19 +74,9 @@
       "must_mask": ["MANSI GAZAL TIWARI", "TIWARI", "+91 98765 43210", "mansi.tiwari@example.com"],
       "must_not_mask": ["Software Developer", "Delhi University"],
       "should_candidate": ["MANSI GAZAL TIWARI"],
-      "never_candidate": ["Software Developer", "Delhi University"],
-      "phone_format": {"+91 98765 43210": "+91 98*** *3210"}
+      "never_candidate": ["Software Developer", "Delhi University"]
     }
   ],
-
-  "phone_format_units": {
-    "+91 9599320477": "+91 95****0477",
-    "010-2345-6789": "010-2***-6789",
-    "011-2345-6789": "011-2***-6789",
-    "+82 10-1234-5678": "+82 10-****-5678",
-    "(415) 555-2671": "(41*) ***-2671",
-    "+62 812-3456-7890": "+62 81*-****-7890"
-  },
 
   "ai_inject": {
     "_doc": "7_resume_dark.pdf",

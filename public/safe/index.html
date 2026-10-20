@@ -193,6 +193,9 @@ header{border-bottom:1px solid var(--line);background:var(--paper);position:stic
 .wm-body.on{display:flex}
 .wm-body select,.wm-body input[type=text]{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff;min-height:38px}
 .wm-body input[type=text]{flex:1;min-width:180px}
+.band-pick{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--sub)}
+.band-pick select,.band-pick input[type=color]{font-family:inherit;font-size:12.5px;border:1px solid var(--line);border-radius:8px;padding:4px 6px;background:#fff}
+.band-pick input[type=color]{padding:2px;width:36px;height:28px}
 .wm-note{width:100%;font-size:11.5px;color:var(--half);background:var(--half-bg);border-radius:8px;padding:7px 11px;margin-top:2px}
 @media(max-width:600px){.make{position:sticky;bottom:10px;z-index:40;box-shadow:0 6px 24px rgba(23,20,15,.12)}.btn-make{width:100%}}
 
@@ -360,7 +363,6 @@ footer a{color:var(--sub)}
         <h2><span class="step-n">2</span> <span data-i18n="s2">발견된 개인정보</span> <span id="piiCount" style="color:var(--sub);font-weight:400;font-size:13px"></span></h2>
         <div class="bulk" id="bulkBtns">
           <button class="b-ok" data-mode="ok" disabled data-i18n="bulkOk">전체 공개</button>
-          <button class="b-half" data-mode="half" disabled data-i18n="bulkHalf">전체 부분공개</button>
           <button class="b-no" data-mode="no" disabled data-i18n="bulkNo">전체 비공개</button>
         </div>
       </div>
@@ -381,6 +383,15 @@ footer a{color:var(--sub)}
       <div class="info">
         <strong><span class="step-n" style="vertical-align:-4px;margin-right:6px">3</span><span data-i18n="s3">문서 만들기</span></strong>
         <small data-i18n="s3sub">원본 위에 마스킹을 합성해 새 문서를 만듭니다. 검은 박스 밑 원문은 복사되지 않습니다.</small>
+      </div>
+      <div class="fmt band-pick">
+        <label for="bandColor" data-i18n="bandLabel">띠 색</label>
+        <select id="bandColor">
+          <option value="#17140F" data-i18n="bandBlack">검정</option>
+          <option value="#FFFFFF" data-i18n="bandWhite">흰색</option>
+          <option value="custom" data-i18n="bandCustom">직접 선택</option>
+        </select>
+        <input type="color" id="bandCustom" value="#17140F" style="display:none" aria-label="band color">
       </div>
       <div class="fmt" role="radiogroup">
         <label><input type="radio" name="fmt" value="jpg" checked><span data-i18n="fmtJpg">이미지 (JPG)</span></label>
@@ -485,8 +496,9 @@ ko:{
   btnPick:'파일 선택', btnSample:'샘플 문서로 체험', btnPaste:'텍스트 붙여넣기',
   btnPasteScan:'이 내용으로 검사', btnCancel:'취소', btnReset:'다른 문서',
   pastePh:'여기에 문서 내용을 붙여넣은 뒤 아래 버튼을 누르세요',
-  bulkOk:'전체 공개', bulkHalf:'전체 부분공개', bulkNo:'전체 비공개',
-  segOk:'공개', segHalf:'부분', segNo:'비공개',
+  bulkOk:'전체 공개', bulkNo:'전체 비공개',
+  segOk:'공개', segNo:'비공개',
+  bandLabel:'띠 색', bandBlack:'검정', bandWhite:'흰색', bandCustom:'직접 선택',
   hintBefore:'각 항목의 기본 공개 수준을 미리 정해두세요. 문서에서 발견되면 그 설정대로 가려집니다.',
   hintAfter:'발견된 항목입니다. 건마다 공개 수준을 바꾸면 미리보기에 바로 반영됩니다.',
   moreShow:n=>`발견되지 않은 항목 ${n}개 보기`, moreHide:'발견되지 않은 항목 접기',
@@ -502,7 +514,7 @@ ko:{
   footer:'개인정보를 지키는 가장 빠른 방법', footPrivacy:'개인정보처리방침', footBlog:'블로그',
   pwaTitle:'홈 화면에 추가하면 앱처럼 쓸 수 있어요', pwaIosDesc:'사파리 공유 <span class="ib-share">↑</span> 버튼을 누른 뒤 “홈 화면에 추가”를 선택하세요', pwaAndroidDesc:'설치하면 오프라인에서도 열리고 앱처럼 빠르게 실행돼요', pwaInstall:'설치',
   cnt:n=>`${n}건`, cntUse:n=>`· ${n}건 사용`, scanDone:n=>`⚡ 즉시 검사 완료 — ${n}건 발견`, scanAI:n=>`🤖 AI 검사 포함 — 총 ${n}건`,
-  tPasteEmpty:'내용을 붙여넣어 주세요', tBulkOk:'모든 항목을 공개로 설정했어요', tBulkHalf:'모든 항목을 부분공개로 설정했어요', tBulkNo:'모든 항목을 비공개로 설정했어요',
+  tPasteEmpty:'내용을 붙여넣어 주세요', tBulkOk:'모든 항목을 공개로 설정했어요', tBulkNo:'모든 항목을 비공개로 설정했어요',
   tAIDone:'AI가 이름·회사 등 문맥 정보까지 찾았어요', tAIDup:'AI 검사는 이미 완료됐어요', tAIFail:'AI 검사에 실패했어요. 잠시 후 다시 시도해 주세요.',
   tMade:n=>`완성! ${n}곳을 가렸어요`, tMadeWM:'완성! 워터마크를 적용했어요', tCopied:'클립보드에 복사했어요', tSaved:n=>`${n} 저장 완료`,
   tReadFail:'파일을 읽지 못했어요. 텍스트 붙여넣기를 이용해 보세요.',
@@ -539,8 +551,9 @@ en:{
   btnPick:'Choose file', btnSample:'Try a sample', btnPaste:'Paste text',
   btnPasteScan:'Scan this text', btnCancel:'Cancel', btnReset:'New document',
   pastePh:'Paste your document text here, then press the button below',
-  bulkOk:'Show all', bulkHalf:'Partial all', bulkNo:'Hide all',
-  segOk:'Show', segHalf:'Partial', segNo:'Hide',
+  bulkOk:'Show all', bulkNo:'Hide all',
+  segOk:'Show', segNo:'Hide',
+  bandLabel:'Band colour', bandBlack:'Black', bandWhite:'White', bandCustom:'Custom',
   hintBefore:'Preset the default visibility for each category. When found in your document, items are masked accordingly.',
   hintAfter:'Items found in your document. Change visibility per item — the preview updates instantly.',
   moreShow:n=>`Show ${n} other categories`, moreHide:'Hide other categories',
@@ -556,7 +569,7 @@ en:{
   footer:'The fastest way to protect personal info', footPrivacy:'Privacy Policy', footBlog:'Blog',
   pwaTitle:'Add it to your Home Screen to use it like an app', pwaIosDesc:'Tap Safari’s Share <span class="ib-share">↑</span> button, then choose “Add to Home Screen”', pwaAndroidDesc:'Install it to open offline and launch like an app', pwaInstall:'Install',
   cnt:n=>`${n}`, cntUse:n=>`· ${n} in use`, scanDone:n=>`⚡ Instant scan done — ${n} found`, scanAI:n=>`🤖 With AI scan — ${n} total`,
-  tPasteEmpty:'Please paste some text first', tBulkOk:'All items set to show', tBulkHalf:'All items set to partial', tBulkNo:'All items set to hidden',
+  tPasteEmpty:'Please paste some text first', tBulkOk:'All items set to show', tBulkNo:'All items set to hidden',
   tAIDone:'AI found contextual info like names & companies', tAIDup:'AI scan already done', tAIFail:'AI scan failed. Please try again shortly.',
   tMade:n=>`Done! ${n} spots masked`, tMadeWM:'Done! Watermark applied', tCopied:'Copied to clipboard', tSaved:n=>`Saved ${n}`,
   tReadFail:"Couldn't read the file. Try pasting the text instead.",
@@ -593,8 +606,9 @@ ja:{
   btnPick:'ファイルを選択', btnSample:'サンプル文書で試す', btnPaste:'テキストを貼り付け',
   btnPasteScan:'この内容で検査', btnCancel:'キャンセル', btnReset:'別の文書',
   pastePh:'ここに文書の内容を貼り付けて、下のボタンを押してください',
-  bulkOk:'すべて公開', bulkHalf:'すべて部分公開', bulkNo:'すべて非公開',
-  segOk:'公開', segHalf:'部分', segNo:'非公開',
+  bulkOk:'すべて公開', bulkNo:'すべて非公開',
+  segOk:'公開', segNo:'非公開',
+  bandLabel:'帯の色', bandBlack:'黒', bandWhite:'白', bandCustom:'自由選択',
   hintBefore:'各項目の初期公開レベルを設定しておきましょう。文書内で見つかると、その設定どおりに隠されます。',
   hintAfter:'文書内で見つかった項目です。項目ごとに公開レベルを変えると、プレビューにすぐ反映されます。',
   moreShow:n=>`検出されなかった項目 ${n}件を表示`, moreHide:'検出されなかった項目を隠す',
@@ -610,7 +624,7 @@ ja:{
   footer:'個人情報を守る、いちばん速い方法', footPrivacy:'プライバシーポリシー', footBlog:'ブログ',
   pwaTitle:'ホーム画面に追加すると、アプリのように使えます', pwaIosDesc:'Safariの共有 <span class="ib-share">↑</span> ボタンをタップして「ホーム画面に追加」を選んでください', pwaAndroidDesc:'インストールするとオフラインでも開き、アプリのように起動します', pwaInstall:'インストール',
   cnt:n=>`${n}件`, cntUse:n=>`· ${n}件使用中`, scanDone:n=>`⚡ 即時検査完了 — ${n}件検出`, scanAI:n=>`🤖 AI検査を含む — 合計${n}件`,
-  tPasteEmpty:'内容を貼り付けてください', tBulkOk:'すべての項目を公開に設定しました', tBulkHalf:'すべての項目を部分公開に設定しました', tBulkNo:'すべての項目を非公開に設定しました',
+  tPasteEmpty:'内容を貼り付けてください', tBulkOk:'すべての項目を公開に設定しました', tBulkNo:'すべての項目を非公開に設定しました',
   tAIDone:'AIが氏名・会社などの文脈情報まで見つけました', tAIDup:'AI検査はすでに完了しています', tAIFail:'AI検査に失敗しました。しばらくしてからもう一度お試しください。',
   tMade:n=>`完成！ ${n}か所を隠しました`, tMadeWM:'完成！ ウォーターマークを適用しました', tCopied:'クリップボードにコピーしました', tSaved:n=>`${n} を保存しました`,
   tReadFail:'ファイルを読み取れませんでした。テキストの貼り付けをお試しください。',
@@ -647,8 +661,9 @@ es:{
   btnPick:'Elegir archivo', btnSample:'Probar con un ejemplo', btnPaste:'Pegar texto',
   btnPasteScan:'Analizar este texto', btnCancel:'Cancelar', btnReset:'Nuevo documento',
   pastePh:'Pega aquí el texto de tu documento y pulsa el botón de abajo',
-  bulkOk:'Mostrar todo', bulkHalf:'Todo parcial', bulkNo:'Ocultar todo',
-  segOk:'Mostrar', segHalf:'Parcial', segNo:'Ocultar',
+  bulkOk:'Mostrar todo', bulkNo:'Ocultar todo',
+  segOk:'Mostrar', segNo:'Ocultar',
+  bandLabel:'Color de banda', bandBlack:'Negro', bandWhite:'Blanco', bandCustom:'Personalizado',
   hintBefore:'Define el nivel de visibilidad por defecto de cada categoría. Cuando se encuentren en tu documento, se ocultarán según esa configuración.',
   hintAfter:'Elementos encontrados en tu documento. Cambia la visibilidad de cada uno: la vista previa se actualiza al instante.',
   moreShow:n=>`Mostrar ${n} categorías más`, moreHide:'Ocultar otras categorías',
@@ -664,7 +679,7 @@ es:{
   footer:'La forma más rápida de proteger tus datos personales', footPrivacy:'Política de privacidad', footBlog:'Blog',
   pwaTitle:'Añádela a tu pantalla de inicio para usarla como una app', pwaIosDesc:'Pulsa el botón Compartir <span class="ib-share">↑</span> de Safari y elige “Añadir a pantalla de inicio”', pwaAndroidDesc:'Instálala para abrirla sin conexión y ejecutarla como una app', pwaInstall:'Instalar',
   cnt:n=>`${n}`, cntUse:n=>`· ${n} en uso`, scanDone:n=>`⚡ Análisis instantáneo listo — ${n} encontrados`, scanAI:n=>`🤖 Con análisis de IA — ${n} en total`,
-  tPasteEmpty:'Primero pega algún texto', tBulkOk:'Todos los elementos configurados como visibles', tBulkHalf:'Todos los elementos configurados como parciales', tBulkNo:'Todos los elementos configurados como ocultos',
+  tPasteEmpty:'Primero pega algún texto', tBulkOk:'Todos los elementos configurados como visibles', tBulkNo:'Todos los elementos configurados como ocultos',
   tAIDone:'La IA encontró datos contextuales como nombres y empresas', tAIDup:'El análisis con IA ya está hecho', tAIFail:'El análisis con IA falló. Inténtalo de nuevo en un momento.',
   tMade:n=>`¡Listo! ${n} zonas ocultadas`, tMadeWM:'¡Listo! Marca de agua aplicada', tCopied:'Copiado al portapapeles', tSaved:n=>`${n} guardado`,
   tReadFail:'No se pudo leer el archivo. Prueba a pegar el texto.',
@@ -718,13 +733,20 @@ const toast=msg=>{const t=$('toast');t.textContent=msg;t.classList.add('show');c
 const setStatus=s=>{$('scanStatus').textContent=s||'';};
 const setProg=(v)=>{const p=$('prog');if(v==null||v<=0){p.classList.remove('on');$('progBar').style.width='0';}else{p.classList.add('on');$('progBar').style.width=Math.round(Math.min(1,v)*100)+'%';}};
 
+/* Masking is BAND-ONLY (2026-10-21). There is no partial/asterisk mode: a value
+   is either shown ('ok') or covered by an opaque band ('no'). Rationale: a
+   partial overlay re-renders part of the secret on top of a background-coloured
+   patch, so its safety depends on how much we chose to reveal — a judgement the
+   submitting user cannot audit from the output. A band has no such degree of
+   freedom. Every type that used to default to the partial mode now defaults to
+   'no' (strictly more covering, never less). */
 const TYPES = {
   rrn:{icon:'🪪',risk:'no'}, ssn:{icon:'🪪',risk:'no'}, passport:{icon:'🛂',risk:'no'},
   license:{icon:'🚗',risk:'no'}, card:{icon:'💳',risk:'no'}, account:{icon:'🏦',risk:'no'},
-  phone:{icon:'📞',risk:'half'}, email:{icon:'✉️',risk:'half'}, birth:{icon:'🎂',risk:'half'},
-  address:{icon:'📍',risk:'half'}, name:{icon:'👤',risk:'half'},
+  phone:{icon:'📞',risk:'no'}, email:{icon:'✉️',risk:'no'}, birth:{icon:'🎂',risk:'no'},
+  address:{icon:'📍',risk:'no'}, name:{icon:'👤',risk:'no'},
   company:{icon:'🏢',risk:'ok'}, title:{icon:'💼',risk:'ok'},
-  ip:{icon:'🌐',risk:'no'}, url:{icon:'🔗',risk:'half'}, health:{icon:'🏥',risk:'no'},
+  ip:{icon:'🌐',risk:'no'}, url:{icon:'🔗',risk:'no'}, health:{icon:'🏥',risk:'no'},
   // 'other' = "분류 불확실". 불확실한 것을 기본 마스킹하면 시험명·수상명·자격증명 같은
   // 비(非)PII 본문이 자동으로 훼손된다(예: TOPIK→TOP**). 확실한 유형만 기본 마스킹하고
   // other 는 기본 공개(ok) 후 사용자가 필요 시 직접 켠다. (오탐 본문 훼손 방지)
@@ -1011,40 +1033,13 @@ function addressCandidates(){
   return out;
 }
 
-/* ───────── text masking (for partial rendering, list display, copy) ───────── */
-// Format-preserving partial phone mask: keep every non-digit character (+, spaces,
-// dashes, parens) exactly where it is, reveal the leading group + last 4 digits,
-// and replace only the middle digits with '*'. Never re-assembles into a fixed
-// (Korean) layout. "+91 9599320477" → "+91 95****0477", "010-2345-6789" → "010-2***-6789".
-function maskPhone(v){
-  const digitIdx=[]; for(let i=0;i<v.length;i++) if(/\d/.test(v[i])) digitIdx.push(i);
-  const n=digitIdx.length;
-  if(n<6) return v.length? v[0]+'*'.repeat(Math.max(v.length-1,2)) : v;
-  const back=4, front=n>=11?4:2;
-  const maskFrom=front, maskTo=n-back;              // mask digit positions [maskFrom, maskTo)
-  const out=v.split('');
-  for(let k=maskFrom;k<maskTo;k++) out[digitIdx[k]]='*';
-  return out.join('');
-}
-function maskHalf(type,v){
-  switch(type){
-    case 'name': return v.length<=1? v : v.length===2? v[0]+'*' : v[0]+'*'.repeat(v.length-2)+v[v.length-1];
-    case 'phone': return maskPhone(v);
-    case 'email': { const [a,b]=v.split('@'); return (a[0]||'')+'***@'+(b||''); }
-    case 'rrn': case 'ssn': { const i=v.search(/[-‐ ]/); return i>0? v.slice(0,i+1)+'*'.repeat(v.length-i-1) : v.slice(0,6)+'*'.repeat(Math.max(v.length-6,0)); }
-    case 'card': return v.slice(0,4)+v.slice(4,-4).replace(/\d/g,'*')+v.slice(-4);
-    case 'account': return v.slice(0,3)+'*'.repeat(Math.max(v.length-6,2))+v.slice(-3);
-    case 'birth': return v.replace(/\d{1,2}([일.\-\/]?)\s*$/,'**$1');
-    case 'address': { const m=v.match(/^(.*?(?:시|군|구))/); return m? m[1]+' ***' : v.slice(0,4)+'***'; }
-    case 'company': case 'title': return v[0]+'*'.repeat(Math.max(v.length-1,1));
-    case 'ip': return v.replace(/\.\d{1,3}\.\d{1,3}$/,'.***.***');
-    case 'url': { try{const u=new URL(v.startsWith('http')?v:'https://'+v);return u.hostname+'/***';}catch(e){return v.slice(0,10)+'***';} }
-    default: return v.slice(0,Math.ceil(v.length/2))+'*'.repeat(Math.floor(v.length/2));
-  }
-}
+/* ───────── text masking (list display + "copy text") ─────────
+   Band-only: there are exactly two states. 'ok' shows the value; anything else
+   shows a block run of the same rough length. No partial reveal exists, so the
+   list cannot promise a weaker masking than the rendered page delivers. */
 const maskBlockText=v=>'■'.repeat(Math.min(Math.max(Math.round(v.replace(/\s/g,'').length*0.8),3),12));
 // live value shown next to the toggle
-function displayValue(e){ if(e.mode==='ok') return e.value; if(e.mode==='half') return maskHalf(e.type,e.value); return maskBlockText(e.value); }
+function displayValue(e){ return e.mode==='ok' ? e.value : maskBlockText(e.value); }
 
 /* ───────── coordinate index & box matching ───────── */
 function buildIndex(page){
@@ -1357,16 +1352,13 @@ function addEntities(list){
     if(entities.some(x=>x.value===v)) continue;
     const boxes=boxesForValue(v);
     if(kind==='candidate' && !boxes.length) continue;  // don't propose what we can't locate
-    // Candidates are lower-confidence, but a name/address candidate's TYPE is known
-    // and both types default to 'half' when auto-detected. Defaulting these candidates
-    // to 'half' too makes the "확인 필요" label match a visibly-partial state (a
-    // candidate shown fully in the clear contradicts its own review prompt). This does
-    // NOT touch the 불확실=기본공개 rule (that governs the type='other' 분류-불확실 case,
-    // still 'ok') nor the max_auto body-damage guard (which counts only kind='auto').
-    // Any other candidate type keeps the visible default.
-    const mode = kind==='candidate'
-      ? ((type==='name'||type==='address') ? 'half' : 'ok')
-      : catDefault[type];
+    // Band-only leaves two states, so a candidate's default is a policy call:
+    // 'ok' (surfaced for review, nothing covered yet) or 'no' (covered until the
+    // user clears it). Generic candidates default to 'ok' — they are a GUESS, and
+    // a guess must not silently delete content from a document the user is about
+    // to submit. A caller that knows better (the JP purpose presets, where the
+    // legal matrix says 既定ON) passes an explicit mode and overrides this.
+    const mode = e.mode || (kind==='candidate' ? 'ok' : catDefault[type]);
     entities.push({id:'e'+Math.random().toString(36).slice(2,8),type,value:v,mode,kind,reason,boxes});
   }
   entities.sort((a,b)=>Object.keys(TYPES).indexOf(a.type)-Object.keys(TYPES).indexOf(b.type));
@@ -1388,7 +1380,6 @@ function dedupeCandidates(){
     return !confirmed.some(fv=>fv!==cv && (' '+fv+' ').includes(' '+cv+' '));
   });
 }
-function recomputeBoxes(){ entities.forEach(e=>{ if(e.kind!=='manual') e.boxes=boxesForValue(e.value); }); }
 const located=e=>e.boxes&&e.boxes.length>0;
 
 function renderAll(){ renderList(); drawPreview(); updateMake(); }
@@ -1428,97 +1419,72 @@ function mergeLineBoxes(boxes,pi){
   const used=new Array(arr.length).fill(false), lines=[];
   for(let i=0;i<arr.length;i++){
     if(used[i])continue;
-    let x0=arr[i].x,y0=arr[i].y,x1=arr[i].x+arr[i].w,y1=arr[i].y+arr[i].h,bg=arr[i].bg;
+    let x0=arr[i].x,y0=arr[i].y,x1=arr[i].x+arr[i].w,y1=arr[i].y+arr[i].h,bg=arr[i].bg,region=arr[i].region;
     used[i]=true;
     for(let j=i+1;j<arr.length;j++){
       if(used[j])continue; const b=arr[j];
       const oy0=Math.max(y0,b.y), oy1=Math.min(y1,b.y+b.h);
       const ov=(oy1-oy0)/Math.max(1,Math.min(y1-y0,b.h));
-      if(ov>0.5){ x0=Math.min(x0,b.x);y0=Math.min(y0,b.y);x1=Math.max(x1,b.x+b.w);y1=Math.max(y1,b.y+b.h);used[j]=true; }
+      if(ov>0.5){ x0=Math.min(x0,b.x);y0=Math.min(y0,b.y);x1=Math.max(x1,b.x+b.w);y1=Math.max(y1,b.y+b.h);used[j]=true;region=region||b.region; }
     }
-    lines.push({x:x0,y:y0,w:x1-x0,h:y1-y0,bg});
+    lines.push({x:x0,y:y0,w:x1-x0,h:y1-y0,bg,region});
   }
   return lines.sort((a,b)=>a.y-b.y||a.x-b.x);
 }
-function pageMedH(page){
-  if(page._medH!=null) return page._medH;
-  const hs=page.items.map(i=>i.h).filter(h=>h>0).sort((a,b)=>a-b);
-  return (page._medH = hs.length? hs[hs.length>>1] : 16);
+// The band drawn for a merged line box: the text/OCR box grown by a margin of
+// 15% of the box height (floor 2px) on every side. The margin exists because the
+// box is an ESTIMATE — pdf.js item boxes exclude side bearings and overshoot,
+// OCR word boxes clip anti-aliased glyph edges, and both drift under rotation.
+// A band that stops exactly at the estimate leaves a hairline of original ink.
+// Percentage-of-height (not a fixed 2px) so the margin scales with the font;
+// the floor keeps tiny OCR boxes from getting a sub-pixel margin.
+// A box flagged `region` was drawn by a human (manual drag) or taken from a
+// detected block/frame — its edges are the intent, not an estimate of where
+// glyphs end, so it is NOT grown. Growing it would silently cover neighbouring
+// content the user did not choose to hide.
+const BAND_PAD_RATIO=0.15, BAND_PAD_MIN=2;
+function bandRect(l){
+  if(l.region) return {x:l.x, y:l.y, w:l.w, h:l.h};
+  const p=Math.max(l.h*BAND_PAD_RATIO, BAND_PAD_MIN);
+  return {x:l.x-p, y:l.y-p, w:l.w+p*2, h:l.h+p*2};
 }
-// Tighten a large solid bar (e.g. a 44pt name) to hug the glyph band so it does
-// not tower over the original text. The source box carries edge padding (added
-// for partial-mask remnant safety); a big bar doesn't need it.
-function largeBarRect(l){
-  // Trim only the ascent whitespace above the cap line (reliably ink-free) so the
-  // bar hugs the letters instead of towering over them. Full width + full descent
-  // are kept so no glyph ink is ever exposed.
-  const top=l.h*0.15;
-  return {x:l.x, y:l.y+top, w:l.w, h:l.h-top};
-}
+/* Band colour. Default ink; white and a user-picked single colour are the only
+   alternatives (a colour is opaque either way — this is a legibility choice on
+   the submitted copy, not a masking-strength choice). */
+let BAND_COLOR=INK;
+function bandColor(){ return BAND_COLOR; }
+(function(){
+  const sel=$('bandColor'), cust=$('bandCustom');
+  if(!sel||!cust) return;
+  const apply=()=>{
+    const custom = sel.value==='custom';
+    cust.style.display = custom? 'inline-block':'none';
+    BAND_COLOR = custom ? cust.value : sel.value;
+    if(typeof drawPreview==='function' && pages.length) drawPreview();
+  };
+  sel.addEventListener('change',apply);
+  cust.addEventListener('input',apply);
+})();
 function isDarkColor(bg){
   const m=/rgb\((\d+),\s*(\d+),\s*(\d+)\)/.exec(bg||''); if(!m) return false;
   return (0.299*+m[1]+0.587*+m[2]+0.114*+m[3]) < 130;
 }
-// Overlap-aware redaction. Two entities that resolve to the same coordinate band
-// (a common AI outcome — e.g. "Korea", "Koreaz Contest" and "Korea (Koreaz
-// Contest)" all landing on one line) used to be drawn independently, so their
-// partial values were painted on top of each other ("Kore***.Koreaz *******"
-// ghosting) and a shorter masked value left an uncovered original tail. We now
-// (1) build every entity's per-line render plan, (2) paint partial masks first
-// covering each line's FULL background, then (3) paint solid masks on top, and
-// escalate any partial whose slot is overlapped by another mask to a solid block
-// — masking strength wins (비공개 > 부분 > 공개) and no original pixels survive.
+// Band-only redaction: every active entity becomes one opaque rect per visual
+// line, grown by bandRect(). There is no ordering or overlap subtlety left to
+// get wrong — two entities landing on the same coordinates simply paint the same
+// opaque colour twice. (The previous partial-mask path needed an escalation pass
+// to stop two asterisk strings from ghosting over each other and leaving an
+// uncovered tail; removing the mode removed that whole failure class.)
 function drawRedactions(ctx,pi,scale){
-  const page=pages[pi]; const medH=page?pageMedH(page):16;
   const S=v=>v*scale;
-  const hit=(a,b)=> !(a.x+a.w<=b.x || b.x+b.w<=a.x || a.y+a.h<=b.y || b.y+b.h<=a.y);
-  const plans=[];
+  const col=bandColor();
   for(const e of entities){
     if(!isOn(e)||e.mode==='ok') continue;
     const lines=mergeLineBoxes(e.boxes,pi);
     if(!lines.length) continue;
-    // Large display text (e.g. a 48pt name) can't be partial-masked with
-    // asterisks without overflow → render it as a solid bar instead.
-    const largeHalf = e.mode==='half' && lines[0].h > Math.max(medH*1.7, 40);
-    // manual regions (photo/signature) have no text → always solid cover
-    const solid = e.mode==='no' || e.kind==='manual' || largeHalf;
-    if(solid) plans.push({mode:'solid', rects:lines.map(l=>largeHalf?largeBarRect(l):l), e});
-    else      plans.push({mode:'half',  rects:lines, anchor:lines[0], e});
+    ctx.fillStyle=col;
+    for(const l of lines){ const r=bandRect(l); ctx.fillRect(S(r.x),S(r.y),S(r.w),S(r.h)); }
   }
-  if(!plans.length) return;
-  // Every solid rect covers the original hardest; a partial overlapping one must
-  // yield to it (its text would just sit under the black block).
-  const solidRects=[]; plans.forEach(p=>{ if(p.mode==='solid') p.rects.forEach(r=>solidRects.push(r)); });
-  const drawnHalf=[];
-  // 1) partial masks — cover each line's full background, draw the value ONCE.
-  for(const p of plans){
-    if(p.mode!=='half') continue;
-    for(const l of p.rects){ ctx.fillStyle=l.bg||'#FFFFFF'; ctx.fillRect(S(l.x)-1,S(l.y)-1,S(l.w)+2,S(l.h)+2); }
-    const a=p.anchor;
-    if(solidRects.some(r=>hit(r,a))) continue;                       // a solid will cover it
-    if(drawnHalf.some(r=>hit(r,a))){                                 // overlaps another partial →
-      ctx.fillStyle=INK; ctx.fillRect(S(a.x),S(a.y),S(a.w),S(a.h));  // escalate to solid (no ghost)
-      continue;
-    }
-    drawFitText(ctx, S(a.x), S(a.y), S(a.w), S(a.h), maskHalf(p.e.type,p.e.value), a.bg);
-    drawnHalf.push(a);
-  }
-  // 2) solid masks on top.
-  for(const p of plans){
-    if(p.mode!=='solid') continue;
-    ctx.fillStyle=INK; for(const r of p.rects) ctx.fillRect(S(r.x),S(r.y),S(r.w),S(r.h));
-  }
-}
-function drawFitText(ctx,x,y,w,h,text,bg){
-  ctx.save();
-  ctx.beginPath(); ctx.rect(x-1,y-1,w+2,h+2); ctx.clip();
-  let fsz=h*0.78;
-  ctx.font=fsz+'px "IBM Plex Sans KR",sans-serif';
-  while(ctx.measureText(text).width>w && fsz>6){ fsz-=1; ctx.font=fsz+'px "IBM Plex Sans KR",sans-serif'; }
-  ctx.fillStyle = isDarkColor(bg)? '#F4F1E8' : INK;   // contrast: light text on dark background
-  ctx.textBaseline='middle'; ctx.textAlign='left';
-  ctx.fillText(text, x+1, y+h/2);
-  ctx.restore();
 }
 function drawWatermark(ctx,W,H,text){
   if(!text) return;
@@ -1578,7 +1544,8 @@ function finalizeSel(){
   const pi=+s.cv.dataset.pi, scale=+s.cv.dataset.scale, page=pages[pi];
   const dx=Math.min(s.x0,s.x1), dy=Math.min(s.y0,s.y1), dw=Math.abs(s.x1-s.x0), dh=Math.abs(s.y1-s.y0);
   if(dw<8||dh<8){ drawPreview(); toast(T().tSelSmall); return; }
-  const box={page:pi, x:dx/scale, y:dy/scale, w:dw/scale, h:dh/scale}; // display px → page px
+  // region:true — the drag rectangle IS the intent; bandRect must not grow it.
+  const box={page:pi, x:dx/scale, y:dy/scale, w:dw/scale, h:dh/scale, region:true}; // display px → page px
   box.bg=sampleBg(page,box);
   entities.push({id:'e'+Math.random().toString(36).slice(2,8),type:'manual',value:'('+T().manualItem+')',mode:'no',kind:'manual',boxes:[box]});
   renderAll();
@@ -1599,7 +1566,6 @@ function catRowHtml(type,items){
       <span class="cnt ${items.length?'hit':''}">${items.length? t.cnt(items.length) : ''}</span>
       <div class="seg" data-cat-seg="${type}" role="radiogroup">
         <button class="${d==='ok'?'on-ok':''}" data-cmode="ok">${t.segOk}</button>
-        <button class="${d==='half'?'on-half':''}" data-cmode="half">${t.segHalf}</button>
         <button class="${d==='no'?'on-no':''}" data-cmode="no">${t.segNo}</button>
       </div>
     </div>
@@ -1609,7 +1575,6 @@ function catRowHtml(type,items){
         ${located(e)?'':`<span class="nl">${t.notLocated}</span>`}
         <div class="seg" role="radiogroup">
           <button class="${e.mode==='ok'?'on-ok':''}" data-id="${e.id}" data-mode="ok">${t.segOk}</button>
-          <button class="${e.mode==='half'?'on-half':''}" data-id="${e.id}" data-mode="half">${t.segHalf}</button>
           <button class="${e.mode==='no'?'on-no':''}" data-id="${e.id}" data-mode="no">${t.segNo}</button>
         </div>
       </div>`).join('')}</div>`:''}
@@ -1632,7 +1597,6 @@ function sectionHtml(kind,title,items){
         </div>
         <div class="seg" role="radiogroup">
           <button class="${e.mode==='ok'?'on-ok':''}" data-id="${e.id}" data-mode="ok">${t.segOk}</button>
-          ${cand?`<button class="${e.mode==='half'?'on-half':''}" data-id="${e.id}" data-mode="half">${t.segHalf}</button>`:''}
           <button class="${e.mode==='no'?'on-no':''}" data-id="${e.id}" data-mode="no">${t.segNo}</button>
         </div>
         ${kind==='manual'?`<button class="del" data-del="${e.id}" title="remove" aria-label="remove">✕</button>`:''}
@@ -1688,7 +1652,7 @@ $('piiList').addEventListener('click',e=>{
 $('bulkBtns').addEventListener('click',e=>{
   const b=e.target.closest('button[data-mode]'); if(!b||b.disabled) return;
   entities.filter(isOn).forEach(x=>x.mode=b.dataset.mode); renderAll();
-  toast(b.dataset.mode==='ok'?T().tBulkOk:b.dataset.mode==='half'?T().tBulkHalf:T().tBulkNo);
+  toast(b.dataset.mode==='ok'?T().tBulkOk:T().tBulkNo);
 });
 
 /* ───────── AI scan (text-only; maps found strings back to boxes) ───────── */
@@ -1742,7 +1706,7 @@ function buildMaskedText(){
   for(const e of sorted){
     if(e.mode==='ok') continue;
     const re=new RegExp(e.value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g');
-    out=out.replace(re, e.mode==='half'? maskHalf(e.type,e.value) : maskBlockText(e.value));
+    out=out.replace(re, maskBlockText(e.value));
   }
   return out;
 }
