@@ -25,6 +25,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(__dirname, '..', '..');
 const PUBLIC = path.join(REPO, 'public');
 const DOCS = path.join(__dirname, 'testdocs');
+const FIXTURES = path.join(__dirname, 'fixtures');
 const SPECS = JSON.parse(fs.readFileSync(path.join(__dirname, 'specs.json'), 'utf8'));
 const OUT = path.join(__dirname, 'out');
 fs.mkdirSync(OUT, { recursive: true });
@@ -83,6 +84,45 @@ const PAGE_HELPERS = () => {
   window.__entitySnapshot = function () {
     return entities.map(e => ({ type: e.type, value: e.value, kind: e.kind, mode: e.mode, reason: e.reason, located: !!(e.boxes && e.boxes.length) }));
   };
+  /* ── JP: geometry is checked against the FIXTURE'S OWN box table, not against
+     a value string. A Japanese form's value is exactly what OCR mangles
+     (美咲 → "S=0%"), so asserting on the string would test Tesseract, not us;
+     the box is what the band has to cover either way. ── */
+  // fraction of `rect` (page coords) covered by the union of active mask rects,
+  // sampled on a grid so overlapping bands count once.
+  window.__coverage = function (rect) {
+    const mr = window.__maskRects().filter(r => r.pi === rect.pi);
+    if (!mr.length) return 0;
+    const N = 24; let hit = 0;
+    for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+      const x = rect.x + rect.w * (i + 0.5) / N, y = rect.y + rect.h * (j + 0.5) / N;
+      if (mr.some(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h)) hit++;
+    }
+    return hit / (N * N);
+  };
+  // OCR/text item boxes whose centre falls inside `rect`
+  window.__itemsIn = function (rect) {
+    const p = pages[rect.pi]; if (!p) return [];
+    return (p.items || []).filter(it => it.x + it.w / 2 >= rect.x && it.x + it.w / 2 <= rect.x + rect.w
+                                     && it.y + it.h / 2 >= rect.y && it.y + it.h / 2 <= rect.y + rect.h)
+      .map(it => ({ pi: rect.pi, x: it.x, y: it.y, w: it.w, h: it.h }));
+  };
+  // any ACTIVE candidate entity overlapping `rect` (did the field surface for review?)
+  window.__candidateOver = function (rect) {
+    for (const e of entities) {
+      if (e.kind !== 'candidate' || !e.boxes) continue;
+      for (const b of e.boxes) {
+        if (b.page !== rect.pi) continue;
+        if (!(b.x + b.w < rect.x || rect.x + rect.w < b.x || b.y + b.h < rect.y || rect.y + rect.h < b.y)) return true;
+      }
+    }
+    return false;
+  };
+  window.__jpState = function () {
+    return { cls: jpState.cls && { doc: jpState.cls.doc, side: jpState.cls.side || null, score: jpState.cls.score },
+      purpose: jpState.purpose, pw: pages.map(p => p.w),
+      fields: entities.filter(e => e.jp).map(e => ({ field: e.jp.field, level: e.jp.level, note: e.jp.note, kind: e.kind, mode: e.mode })) };
+  };
   window.__isCandidateExact = function (v) { const n = norm(v); return entities.some(e => e.kind === 'candidate' && norm(e.value) === n); };
   window.__isCandidateContains = function (v) { const n = norm(v); return entities.some(e => e.kind === 'candidate' && norm(e.value).includes(n)); };
   // default mode of the candidate whose value contains v (null if not a candidate)
@@ -109,9 +149,11 @@ const PAGE_HELPERS = () => {
   };
 };
 
+// `jp/...` paths resolve under fixtures/, everything else under testdocs/.
+const docPath = file => file.startsWith('jp/') ? path.join(FIXTURES, file) : path.join(DOCS, file);
 async function loadDoc(page, file, ocr) {
   await page.evaluate(() => { if (typeof pages !== 'undefined' && pages.length) resetAll(); });
-  await page.setInputFiles('#fileInput', path.join(DOCS, file));
+  await page.setInputFiles('#fileInput', docPath(file));
   await page.waitForFunction(() => Array.isArray(pages) && pages.length > 0, { timeout: ocr ? 240000 : 40000 });
   await page.waitForTimeout(ocr ? 800 : 400);
   await page.evaluate(PAGE_HELPERS);
@@ -342,6 +384,155 @@ async function checkCandidateDedup(page) {
   }
 }
 
+/* ── JP golden ───────────────────────────────────────────────────────────────
+   Each JP fixture ships its own specs.json with a BOX TABLE in PNG pixel
+   coordinates plus, per 提出目的, which boxes must be hidden / recommended /
+   optional / kept. The harness replays that table against the live pipeline.
+
+   Coordinate frames: a PNG loads at its natural size, a PDF renders at
+   min(2.2, 1500/ptWidth) — so the mapping is a single uniform scale, taken at
+   runtime from page.w / fixtureWidth rather than hard-coded. A JPG fixture is
+   deliberately rotated and blurred (a phone photo), so its OCR boxes do NOT
+   land on the PNG coordinates; those cases assert at FIELD level instead and
+   say so, rather than quietly comparing coordinates that cannot match.
+
+   Which assertion a box gets comes from the LEGAL MATRIX level, not from which
+   list the fixture put it in — `mask` holds everything the purpose hides, at
+   both the automatic and the recommended strength, and those are different
+   promises. specs.json carries the key→level mapping (jp_auto_fields) so the
+   harness derives it independently of the app it is testing. */
+const JP_COVER_MIN = 0.6;      // a band must cover this much of a value/box
+const JP_KEEP_MAX = 0.10;      // a keep field may not be grazed by more than this
+function jpFieldOf(key) { return key.replace(/^m\d+_/, ''); }
+async function jpCheckBox(page, doc, cat, key, rect, kind) {
+  const items = await page.evaluate(r => window.__itemsIn(r), rect);
+  let frac, what;
+  if (items.length) {
+    // The meaningful question for a box holding text is whether the TEXT is
+    // covered — not whether the generator's padding around it was painted.
+    const fr = await Promise.all(items.map(it => page.evaluate(r => window.__coverage(r), it)));
+    frac = Math.min(...fr); what = `${items.length} item(s) min ${(frac * 100).toFixed(0)}%`;
+  } else {
+    frac = await page.evaluate(r => window.__coverage(r), rect); what = `area ${(frac * 100).toFixed(0)}%`;
+  }
+  if (kind === 'keep') { rec(doc, 'JP_KEEP', key, `<=${JP_KEEP_MAX * 100}%`, what, frac <= JP_KEEP_MAX); return; }
+  const covered = frac >= JP_COVER_MIN;
+  if (kind === 'mask') { rec(doc, 'JP_MASK', key, `>=${JP_COVER_MIN * 100}%`, what, covered); return; }
+  const cand = await page.evaluate(r => window.__candidateOver(r), rect);
+  if (kind === 'candidate') { rec(doc, 'JP_CANDIDATE', key, 'surfaced', cand ? (covered ? 'candidate+banded' : 'candidate') : 'MISSING', cand); return; }
+  if (kind === 'mask_or_candidate') {
+    rec(doc, 'JP_MASK_OR_CAND', key, 'banded or candidate', covered ? 'banded' : cand ? 'candidate' : 'NEITHER', covered || cand); return;
+  }
+  if (kind === 'optional') {   // detected, offered, and OFF until the user says so
+    rec(doc, 'JP_OPTIONAL', key, 'offered+clear', cand ? (frac <= JP_KEEP_MAX ? 'offered+clear' : 'OFFERED BUT BANDED') : 'MISSING', cand && frac <= JP_KEEP_MAX);
+  }
+}
+async function checkJpDoc(page, spec) {
+  const fx = JSON.parse(fs.readFileSync(path.join(__dirname, spec.fixture), 'utf8'));
+  const autoFields = (SPECS.jp_auto_fields || {})[spec.expect_doc] || [];
+  const mocFields = SPECS.jp_candidate_or_mask || [];
+  for (const c of spec.cases) {
+    const tag = `${spec.doc} [${c.purpose}]`;
+    await loadDoc(page, spec.doc, true);
+    await page.evaluate(p => jpSetPurpose(p), c.purpose);
+    const st = await page.evaluate(() => window.__jpState());
+    rec(tag, 'JP_CLASS', spec.expect_doc + (spec.expect_side ? '/' + spec.expect_side : ''), 'classified',
+      st.cls ? st.cls.doc + (st.cls.side ? '/' + st.cls.side : '') + ' sc=' + st.cls.score : 'NOT classified',
+      !!st.cls && st.cls.doc === spec.expect_doc && (!spec.expect_side || st.cls.side === spec.expect_side));
+    if (!st.cls) continue;
+    const autoCount = await page.evaluate(() => entities.filter(e => e.kind === 'auto').length);
+    process.stderr.write(`    [jp autoCount] ${tag} = ${autoCount}\n`);
+    if (c.min_auto != null) rec(tag, 'REGRESSION', `auto>=${c.min_auto}`, `>=${c.min_auto}`, String(autoCount), autoCount >= c.min_auto);
+    if (c.max_auto != null) rec(tag, 'REGRESSION', `auto<=${c.max_auto}`, `<=${c.max_auto}`, String(autoCount), autoCount <= c.max_auto);
+
+    // Field-level: every required field must have been FOUND. This is the only
+    // assertion a rotated phone-photo fixture can make, and it is also the one
+    // the 미탐 0 gate is actually about.
+    const got = new Set(st.fields.map(f => f.field));
+    for (const f of (c.require_fields || [])) rec(tag, 'JP_FIELD', f, 'detected', got.has(f) ? 'detected' : 'MISSING', got.has(f));
+    for (const f of (c.require_banded || [])) {
+      const on = st.fields.some(x => x.field === f && x.mode !== 'ok');
+      rec(tag, 'JP_BANDED', f, 'banded', on ? 'banded' : (got.has(f) ? 'DETECTED BUT CLEAR' : 'MISSING'), on);
+    }
+    // The inverse of require_banded, and the half that makes a purpose-gate test
+    // mean something: without it, "banded under 相談用共有" could be true simply
+    // because the field is banded under every purpose.
+    for (const f of (c.require_clear || [])) {
+      const hits = st.fields.filter(x => x.field === f);
+      const clear = hits.length > 0 && hits.every(x => x.mode === 'ok');
+      rec(tag, 'JP_CLEAR', f, 'detected+clear', hits.length ? (clear ? 'detected+clear' : 'BANDED') : 'MISSING', clear);
+    }
+    if (spec.geometry === false || c.geometry === false) continue;
+
+    const P = fx.purposes[c.key];
+    if (!P) { rec(tag, 'JP_SPEC', c.key, 'purpose in fixture', 'MISSING', false); continue; }
+    const scale = st.pw[0] / fx.size[0];
+    let checked = 0;
+    const box = k => { const b = fx.boxes_png[k]; return b && { pi: 0, x: b[0] * scale, y: b[1] * scale, w: (b[2] - b[0]) * scale, h: (b[3] - b[1]) * scale }; };
+    const seen = new Set(); const skipped = [];
+    const run = async (keys, kindFor) => {
+      for (const k of (keys || [])) {
+        if (k === 'ALL' || seen.has(k)) continue;
+        const r = box(k);
+        // The fixture's purpose list is shared across variants of the same
+        // document, so a key absent from THIS variant is not a case — but it is
+        // REPORTED, never silently dropped. A harness that quietly checks zero
+        // boxes prints the same green as one that checked forty.
+        if (!r) { skipped.push(k); continue; }
+        seen.add(k);
+        await jpCheckBox(page, tag, null, k, r, kindFor(k));
+        checked++;
+      }
+    };
+    // whole-face rule (マイナカード裏面 under a 本人確認 purpose)
+    if ((P.mask || []).includes('ALL')) {
+      const pg = await page.evaluate(() => ({ pi: 0, x: 0, y: 0, w: pages[0].w, h: pages[0].h }));
+      await jpCheckBox(page, tag, null, 'ALL(face)', pg, 'mask');
+      checked++;
+      for (const k of Object.keys(fx.boxes_png)) { const r = box(k); if (r) { await jpCheckBox(page, tag, null, k, r, 'mask'); checked++; } }
+      seen.add('ALL');
+    }
+    await run(P.mask, k => mocFields.includes(jpFieldOf(k)) ? 'mask_or_candidate'
+                        : autoFields.includes(jpFieldOf(k)) ? 'mask' : 'candidate');
+    await run(P.recommend, () => 'candidate');
+    await run(P.optional, () => 'optional');
+    await run(P.keep === 'all' ? [] : P.keep, () => 'keep');
+    rec(tag, 'JP_COVERAGE', `boxes checked (skipped: ${skipped.join(',') || 'none'})`, '>0', String(checked), checked > 0);
+    for (const fmt of (c.out_formats || [])) await checkOutput(page, tag, fmt);
+  }
+}
+
+/* ── JP unit rules ──────────────────────────────────────────────────────────
+   Two detection rules cannot be exercised by the alpha fixtures: none of the
+   four documents carries a phone number, and on all four the 住所 is a KEEP
+   field, so the address hierarchy's own scoring never decides anything there.
+   Shipping them with no coverage at all would be shipping untested detection,
+   so they are pinned at unit level against crafted strings — stated as such
+   rather than left to look like fixture coverage. */
+async function checkJpUnits(page) {
+  const U = SPECS.jp_units; if (!U) return;
+  for (const c of (U.address || [])) {
+    const got = await page.evaluate(t => {
+      const sp = jpAddressSpan(t, 0);
+      return sp ? { span: t.slice(sp.a, sp.b), score: sp.score, strong: !!(sp.postal && sp.pref) } : null;
+    }, c.text);
+    const ok = c.expect === null ? (got === null || got.score < 3)
+      : !!got && got.span === c.expect.span && got.score === c.expect.score && got.strong === !!c.expect.strong;
+    rec('(jp units)', 'JP_ADDRESS', c.label, c.expect === null ? 'no address' : `${c.expect.span} s=${c.expect.score}${c.expect.strong ? ' strong' : ''}`,
+      got ? `${got.span} s=${got.score}${got.strong ? ' strong' : ''}` : 'none', ok);
+  }
+  for (const c of (U.tel || [])) {
+    const got = await page.evaluate(t => {
+      const hy = JP_TEL_HYPHEN_RE.exec(t), pl = hy ? null : JP_TEL_PLAIN_RE.exec(t);
+      const m = hy || pl; return m ? { v: m[0], loose: !hy } : null;
+    }, c.text);
+    const ok = c.expect === null ? got === null
+      : !!got && got.v === c.expect.v && got.loose === !!c.expect.loose;
+    rec('(jp units)', 'JP_TEL', c.label, c.expect === null ? 'no match' : `${c.expect.v}${c.expect.loose ? ' (candidate)' : ''}`,
+      got ? `${got.v}${got.loose ? ' (candidate)' : ''}` : 'none', ok);
+  }
+}
+
 function printTable() {
   const pad = (s, n) => { s = String(s); return s.length > n ? s.slice(0, n - 1) + '…' : s.padEnd(n); };
   let lastDoc = '';
@@ -387,6 +578,16 @@ function printTable() {
     try { await checkDoc(page, spec); }
     catch (e) { rec(spec.doc, 'LOAD', spec.doc, 'loads', 'ERR:' + e.message.split('\n')[0], false); }
   }
+  for (const spec of (SPECS.jp_docs || [])) {
+    if (onlyArg && spec.doc !== onlyArg) continue;
+    process.stderr.write(`… ${spec.doc}\n`);
+    // The JP presets only exist in the Japanese UI, and OCR language follows it.
+    await page.evaluate(() => { LANG = 'ja'; applyLang(); });
+    try { await checkJpDoc(page, spec); }
+    catch (e) { rec(spec.doc, 'LOAD', spec.doc, 'loads', 'ERR:' + e.message.split('\n')[0], false); }
+    await page.evaluate(() => { LANG = 'ko'; applyLang(); });
+  }
+  if (!onlyArg || onlyArg === '(jp units)') { process.stderr.write('… jp units\n'); await checkJpUnits(page); }
   if (!onlyArg || onlyArg === '7_resume_dark.pdf') { process.stderr.write('… ai_inject\n'); await checkAiInject(page); }
   if (!onlyArg || onlyArg === '7_resume_dark.pdf') { process.stderr.write('… ai_cat_state\n'); await checkAiCatState(page); }
   if (!onlyArg || onlyArg === (SPECS.candidate_dedup && SPECS.candidate_dedup._doc)) { process.stderr.write('… candidate_dedup\n'); await checkCandidateDedup(page); }

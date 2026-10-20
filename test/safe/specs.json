@@ -78,6 +78,101 @@
     }
   ],
 
+  "_jp_basis": "JP-1 alpha. Fixtures live in fixtures/jp/<doc>/<variant>.{png,jpg,pdf} with a sibling .specs.json carrying a BOX TABLE in PNG pixels plus, per 提出目的, which boxes the purpose hides / recommends / offers / keeps. The harness replays that table against the live pipeline, so the expectations are the fixture's, not the detector's. PNG and PDF differ from the table by one uniform scale (taken at runtime from page.w / fixture width); the JPG variants are rotated and blurred on purpose (phone photo), so their OCR boxes cannot land on those coordinates and those cases assert at FIELD level instead — detected, and banded — which is what the 미탐 0 gate is actually about.",
+
+  "jp_auto_fields": {
+    "_why": "The fixture's `mask` list holds every box the purpose hides, at BOTH the automatic and the recommended strength — those are different promises, so the harness has to know which is which independently of the app it is testing. This table is the legal matrix's `level` field (jp_legal_matrix_alpha4.json), keyed by fixture box name with the m<N>_ household prefix stripped. Anything NOT listed here that appears under `mask` is level=recommend and is asserted as a surfaced review candidate.",
+    "shikaku_kakuninsho": ["hokensha_bango", "kigo", "bango", "edaban", "hihokensha_bango", "qr"],
+    "unten_menkyo": [],
+    "mynumber_card": ["my_number", "qr"],
+    "juminhyo": ["my_number", "jumin_code"]
+  },
+  "jp_candidate_or_mask": ["my_number"],
+  "_jp_candidate_or_mask_why": "個人番号 is level=auto_with_purpose_gate, but strategy v2 §4 requires every dummy's number to FAIL its check digit (生成 of a valid one is forbidden). A correct implementation must therefore refuse to assert 'this is a 個人番号' and demote the automatic band to a default-ON review candidate. Asserting a hard band here would make the golden reward the wrong behaviour; asserting only a candidate would let a real regression (never detecting it) pass. So: banded OR surfaced, and the demotion reason is checked separately via the entity note.",
+
+  "jp_docs": [
+    { "doc": "jp/shikaku_kakuninsho/kenpo.png", "fixture": "fixtures/jp/shikaku_kakuninsho/kenpo.specs.json", "expect_doc": "shikaku_kakuninsho",
+      "cases": [{ "purpose": "identity_submit", "key": "本人確認提出", "min_auto": 4, "max_auto": 8,
+                  "require_fields": ["kigo", "bango", "edaban", "hokensha_bango", "qr", "sex"],
+                  "require_banded": ["kigo", "bango", "edaban", "hokensha_bango", "qr"],
+                  "out_formats": ["png", "jpg"] }] },
+    { "doc": "jp/shikaku_kakuninsho/kokuho.png", "fixture": "fixtures/jp/shikaku_kakuninsho/kokuho.specs.json", "expect_doc": "shikaku_kakuninsho",
+      "cases": [{ "purpose": "identity_submit", "key": "本人確認提出", "min_auto": 4, "max_auto": 8,
+                  "require_banded": ["kigo", "bango", "edaban", "hokensha_bango", "qr"] }] },
+    { "doc": "jp/shikaku_kakuninsho/kouki.png", "fixture": "fixtures/jp/shikaku_kakuninsho/kouki.specs.json", "expect_doc": "shikaku_kakuninsho",
+      "cases": [{ "purpose": "identity_submit", "key": "本人確認提出", "min_auto": 2, "max_auto": 8,
+                  "require_banded": ["hokensha_bango", "qr"] }] },
+
+    { "doc": "jp/unten_menkyo/front.png", "fixture": "fixtures/jp/unten_menkyo/front.specs.json", "expect_doc": "unten_menkyo", "expect_side": "front",
+      "cases": [{ "purpose": "identity_submit", "key": "本人確認提出", "max_auto": 2, "require_fields": ["license_no"] }] },
+    { "doc": "jp/unten_menkyo/back.png", "fixture": "fixtures/jp/unten_menkyo/back.specs.json", "expect_doc": "unten_menkyo", "expect_side": "back",
+      "cases": [{ "purpose": "identity_submit", "key": "本人確認提出", "max_auto": 2,
+                  "require_banded": ["biko_change", "organ_donor"],
+                  "require_clear": ["address_loose"] }] },
+
+    { "doc": "jp/unten_menkyo/back.png", "fixture": "fixtures/jp/unten_menkyo/back.specs.json", "expect_doc": "unten_menkyo", "expect_side": "back", "geometry": false,
+      "_why": "Same document, same field, two 提出目的, opposite outcomes — the purpose gate is the product, so one case has to prove it actually moves. The 備考欄 carries a free-standing 住所変更 line: for 本人確認提出 that address is `optional` (offered, left clear — see the geometry case above), for 相談用共有 it is `recommend` (banded by default). Geometry is off because the fixture's box table only declares the 本人確認提出 purpose.",
+      "cases": [{ "purpose": "consult_share", "key": "本人確認提出", "max_auto": 2,
+                  "require_fields": ["address_loose"], "require_banded": ["address_loose", "biko_change", "organ_donor"] }] },
+
+    { "doc": "jp/mynumber_card/front.png", "fixture": "fixtures/jp/mynumber_card/front.specs.json", "expect_doc": "mynumber_card", "expect_side": "front",
+      "cases": [{ "purpose": "identity_submit", "key": "身元確認", "max_auto": 2,
+                  "require_banded": ["sex", "organ_donor"] }] },
+    { "doc": "jp/mynumber_card/back.png", "fixture": "fixtures/jp/mynumber_card/back.specs.json", "expect_doc": "mynumber_card", "expect_side": "back",
+      "cases": [{ "purpose": "identity_submit", "key": "身元確認", "min_auto": 1, "max_auto": 3,
+                  "require_banded": ["back_all", "my_number"], "out_formats": ["pdf"] },
+                { "purpose": "my_number_procedure", "key": "個人番号手続", "max_auto": 1,
+                  "require_fields": ["my_number"] }] },
+
+    { "doc": "jp/juminhyo/zenin_mynumber.png", "fixture": "fixtures/jp/juminhyo/zenin_mynumber.specs.json", "expect_doc": "juminhyo",
+      "cases": [{ "purpose": "identity_submit", "key": "本人確認提出", "min_auto": 1, "max_auto": 4,
+                  "require_fields": ["my_number", "jumin_code", "honseki", "hittosha", "setaiin"],
+                  "require_banded": ["jumin_code", "setaiin"] },
+                { "purpose": "my_number_procedure", "key": "個人番号手続", "max_auto": 2,
+                  "require_banded": ["honseki"] }] },
+    { "doc": "jp/juminhyo/ichibu_plain.png", "fixture": "fixtures/jp/juminhyo/ichibu_plain.specs.json", "expect_doc": "juminhyo",
+      "cases": [{ "purpose": "identity_submit", "key": "本人確認提出", "max_auto": 2 }] },
+    { "doc": "jp/juminhyo/honseki_on.png", "fixture": "fixtures/jp/juminhyo/honseki_on.specs.json", "expect_doc": "juminhyo",
+      "cases": [{ "purpose": "identity_submit", "key": "本人確認提出", "max_auto": 2, "require_banded": ["honseki", "hittosha"] },
+                { "purpose": "my_number_procedure", "key": "個人番号手続", "max_auto": 2, "require_banded": ["honseki"] }] },
+    { "doc": "jp/juminhyo/gaikokujin.png", "fixture": "fixtures/jp/juminhyo/gaikokujin.specs.json", "expect_doc": "juminhyo",
+      "cases": [{ "purpose": "identity_submit", "key": "本人確認提出", "max_auto": 2 }] },
+
+    { "doc": "jp/shikaku_kakuninsho/kenpo.pdf", "fixture": "fixtures/jp/shikaku_kakuninsho/kenpo.specs.json", "expect_doc": "shikaku_kakuninsho",
+      "cases": [{ "purpose": "identity_submit", "key": "本人確認提出", "min_auto": 4, "max_auto": 8,
+                  "require_banded": ["kigo", "bango", "edaban", "hokensha_bango", "qr"], "out_formats": ["pdf"] }] },
+
+    { "doc": "jp/shikaku_kakuninsho/kenpo.jpg", "fixture": "fixtures/jp/shikaku_kakuninsho/kenpo.specs.json", "expect_doc": "shikaku_kakuninsho", "geometry": false,
+      "cases": [{ "purpose": "identity_submit", "key": "本人確認提出", "min_auto": 4, "max_auto": 8,
+                  "require_banded": ["kigo", "bango", "edaban", "hokensha_bango", "qr"] }] },
+    { "doc": "jp/juminhyo/zenin_mynumber.jpg", "fixture": "fixtures/jp/juminhyo/zenin_mynumber.specs.json", "expect_doc": "juminhyo", "geometry": false,
+      "cases": [{ "purpose": "identity_submit", "key": "本人確認提出", "min_auto": 1, "max_auto": 4,
+                  "require_fields": ["my_number", "jumin_code"], "require_banded": ["jumin_code", "my_number"] }] },
+    { "doc": "jp/mynumber_card/back.jpg", "fixture": "fixtures/jp/mynumber_card/back.specs.json", "expect_doc": "mynumber_card", "expect_side": "back", "geometry": false,
+      "cases": [{ "purpose": "identity_submit", "key": "身元確認", "min_auto": 1, "max_auto": 3,
+                  "require_banded": ["back_all", "my_number"], "out_formats": ["jpg"] }] }
+  ],
+  "jp_units": {
+    "_why": "The alpha fixtures cannot exercise these two rules: none of the four documents carries a phone number, and on all four the 住所 is a KEEP field, so the address hierarchy never gets to decide anything there. Pinning them at unit level is the honest alternative to shipping untested detection — and it states what it is, instead of looking like fixture coverage. Scores: 郵便番号 +2, 都道府県 +2, 市区郡町村 +1, 丁目番地号 +2, institution word within/near the span −2. Automatic only with 郵便番号 AND 都道府県 together (strong); score >= 3 is a review candidate; below that, nothing.",
+    "address": [
+      { "label": "都道府県+市区+丁目番地号", "text": "住所東京都千代田区霞が関1丁目2番3号", "expect": { "span": "東京都千代田区霞が関1丁目2番3号", "score": 5 } },
+      { "label": "郵便番号を伴う → strong (自動)", "text": "〒100-8926東京都千代田区霞が関1-3-2", "expect": { "span": "〒100-8926東京都千代田区霞が関1-3-2", "score": 7, "strong": true } },
+      { "label": "漢数字の丁目番号も拾う", "text": "本籍京都府京都市中京区三条通一丁目二番三号", "expect": { "span": "京都府京都市中京区三条通一丁目二番三号", "score": 5 } },
+      { "label": "架空の県名はアンカーにならない（保険者名）", "text": "保険者名架空県後期高齢者医療広域連合", "expect": null },
+      { "label": "発行者名（見本市長）を住所と読まない", "text": "見本市長架空太郎（公印省略）", "expect": null },
+      { "label": "株式会社名を住所と読まない", "text": "事業所名称架空株式会社", "expect": null },
+      { "label": "機関名は減点 — 部分一致は閾値割れ", "text": "大阪府見本市役所", "expect": null },
+      { "label": "完全な住所は機関名が続いても候補として残る", "text": "東京都新宿区西新宿2丁目8番1号新宿区役所", "expect": { "span": "東京都新宿区西新宿2丁目8番1号", "score": 3 } }
+    ],
+    "tel": [
+      { "label": "市外局番2桁", "text": "電話03-1234-5678", "expect": { "v": "03-1234-5678" } },
+      { "label": "携帯", "text": "携帯090-1234-5678", "expect": { "v": "090-1234-5678" } },
+      { "label": "フリーダイヤル 0120", "text": "TEL0120-123-456", "expect": { "v": "0120-123-456" } },
+      { "label": "フリーダイヤル 0800", "text": "FAX0800-123-4567", "expect": { "v": "0800-123-4567" } },
+      { "label": "ハイフンなしは候補どまり", "text": "電話番号09012345678", "expect": { "v": "09012345678", "loose": true } },
+      { "label": "11桁を超える数字列は電話ではない", "text": "個人番号720463027637", "expect": null }
+    ]
+  },
   "ai_inject": {
     "_doc": "7_resume_dark.pdf",
     "cases": [

@@ -33,10 +33,19 @@ Then drives real Chrome through three phases:
 
 Needs Playwright with the `chrome` channel available.
 
+The harness resolves `playwright` from `test/sw/node_modules`, which is
+gitignored and therefore absent on a fresh clone. The cheapest way to get it is
+to share the golden harness's copy — install that once, then symlink:
+
 ```
-npm i playwright          # in a scratch dir, or reuse test/safe/node_modules
-node test/sw/offline_resilience.mjs
+cd test/safe && npm install          # playwright (chrome channel)
+cd ../sw && ln -s ../safe/node_modules node_modules
+node offline_resilience.mjs
 ```
+
+(The repo carried a symlink to a per-session scratch directory for a while; it
+pointed at a path that no longer existed, so this file's instructions worked
+only on the machine that wrote them.)
 
 Exit code 0 means all checks passed.
 

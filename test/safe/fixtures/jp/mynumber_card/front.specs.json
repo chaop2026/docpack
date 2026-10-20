@@ -1,0 +1,72 @@
+{
+ "file": "front",
+ "size": [
+  1100,
+  700
+ ],
+ "boxes_png": {
+  "photo": [
+   800,
+   100,
+   1020,
+   380
+  ],
+  "name": [
+   156,
+   114,
+   282,
+   150
+  ],
+  "address": [
+   156,
+   163,
+   523,
+   193
+  ],
+  "birth": [
+   196,
+   209,
+   391,
+   241
+  ],
+  "sex": [
+   636,
+   211,
+   668,
+   241
+  ],
+  "expiry": [
+   196,
+   255,
+   443,
+   285
+  ],
+  "organ_donor": [
+   40,
+   328,
+   760,
+   418
+  ]
+ },
+ "doc": "マイナンバーカード",
+ "variant": "front",
+ "purposes": {
+  "身元確認": {
+   "mask": [],
+   "recommend": [
+    "sex",
+    "organ_donor"
+   ],
+   "keep": [
+    "name",
+    "address",
+    "birth",
+    "expiry",
+    "photo"
+   ],
+   "legal_basis": "表面は本人同意で複写可（PPC FAQ）",
+   "source": "https://www.ppc.go.jp/all_faq_index/faq5-q6-12/"
+  }
+ },
+ "note": "jpg는 회전·흐림 적용으로 박스 좌표 불일치 → 탐지는 OCR 좌표로 재계산, png/pdf 좌표만 골든 비교"
+}

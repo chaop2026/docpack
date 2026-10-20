@@ -1,0 +1,230 @@
+{
+ "file": "zenin_mynumber",
+ "size": [
+  1240,
+  1754
+ ],
+ "boxes_png": {
+  "address": [
+   216,
+   204,
+   649,
+   238
+  ],
+  "setainushi": [
+   216,
+   264,
+   334,
+   298
+  ],
+  "m1_name": [
+   216,
+   334,
+   342,
+   370
+  ],
+  "m1_zokugara": [
+   796,
+   333,
+   852,
+   365
+  ],
+  "m1_birth": [
+   236,
+   383,
+   431,
+   415
+  ],
+  "m1_sex": [
+   796,
+   385,
+   828,
+   415
+  ],
+  "m1_since": [
+   296,
+   433,
+   463,
+   463
+  ],
+  "m1_honseki": [
+   216,
+   483,
+   583,
+   513
+  ],
+  "m1_hittosha": [
+   216,
+   529,
+   317,
+   559
+  ],
+  "m1_my_number": [
+   236,
+   580,
+   417,
+   607
+  ],
+  "m2_name": [
+   216,
+   656,
+   342,
+   692
+  ],
+  "m2_zokugara": [
+   796,
+   655,
+   828,
+   687
+  ],
+  "m2_birth": [
+   236,
+   705,
+   431,
+   737
+  ],
+  "m2_sex": [
+   796,
+   705,
+   828,
+   737
+  ],
+  "m2_since": [
+   296,
+   755,
+   463,
+   785
+  ],
+  "m2_honseki": [
+   216,
+   805,
+   583,
+   835
+  ],
+  "m2_hittosha": [
+   216,
+   851,
+   317,
+   881
+  ],
+  "m2_my_number": [
+   236,
+   902,
+   417,
+   929
+  ],
+  "m3_name": [
+   216,
+   978,
+   342,
+   1014
+  ],
+  "m3_zokugara": [
+   796,
+   979,
+   828,
+   1009
+  ],
+  "m3_birth": [
+   236,
+   1027,
+   444,
+   1059
+  ],
+  "m3_sex": [
+   796,
+   1029,
+   828,
+   1059
+  ],
+  "m3_since": [
+   296,
+   1077,
+   463,
+   1107
+  ],
+  "m3_honseki": [
+   216,
+   1127,
+   605,
+   1157
+  ],
+  "m3_hittosha": [
+   216,
+   1173,
+   317,
+   1203
+  ],
+  "m3_my_number": [
+   236,
+   1224,
+   417,
+   1251
+  ],
+  "jumin_code": [
+   256,
+   1302,
+   410,
+   1328
+  ],
+  "mayor": [
+   760,
+   1416,
+   1160,
+   1461
+  ]
+ },
+ "doc": "住民票の写し",
+ "variant": "zenin_mynumber",
+ "purposes": {
+  "本人確認提出": {
+   "mask": [
+    "m1_my_number",
+    "m2_my_number",
+    "m3_my_number",
+    "jumin_code"
+   ],
+   "recommend": [
+    "m1_honseki",
+    "m1_hittosha",
+    "m2_name",
+    "m2_zokugara",
+    "m2_birth",
+    "m2_sex",
+    "m2_since",
+    "m2_honseki",
+    "m2_hittosha",
+    "m2_my_number",
+    "m3_name",
+    "m3_zokugara",
+    "m3_birth",
+    "m3_sex",
+    "m3_since",
+    "m3_honseki",
+    "m3_hittosha",
+    "m3_my_number"
+   ],
+   "keep": [
+    "address",
+    "m1_name",
+    "m1_birth"
+   ],
+   "legal_basis": "個人番号は番号法で収集制限／本籍・他世帯員は提出先指示で不要が多い",
+   "source": "https://www.pref.osaka.lg.jp/documents/135080/6tempujichui.pdf"
+  },
+  "個人番号手続": {
+   "mask": [
+    "m1_honseki",
+    "m2_honseki",
+    "m3_honseki"
+   ],
+   "keep": [
+    "m1_my_number",
+    "m2_my_number",
+    "m3_my_number"
+   ],
+   "legal_basis": "個人番号記載が目的の提出"
+  }
+ },
+ "note": "jpg는 회전·흐림 적용으로 박스 좌표 불일치 → 탐지는 OCR 좌표로 재계산, png/pdf 좌표만 골든 비교"
+}

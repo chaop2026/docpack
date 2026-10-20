@@ -1,0 +1,78 @@
+{
+ "file": "ichibu_plain",
+ "size": [
+  1240,
+  1754
+ ],
+ "boxes_png": {
+  "address": [
+   216,
+   204,
+   649,
+   238
+  ],
+  "setainushi": [
+   216,
+   264,
+   334,
+   298
+  ],
+  "m1_name": [
+   216,
+   334,
+   342,
+   370
+  ],
+  "m1_zokugara": [
+   796,
+   333,
+   852,
+   365
+  ],
+  "m1_birth": [
+   236,
+   383,
+   404,
+   415
+  ],
+  "m1_sex": [
+   796,
+   383,
+   828,
+   415
+  ],
+  "m1_since": [
+   296,
+   433,
+   463,
+   463
+  ],
+  "mayor": [
+   760,
+   580,
+   1160,
+   625
+  ]
+ },
+ "doc": "住民票の写し",
+ "variant": "ichibu_plain",
+ "purposes": {
+  "本人確認提出": {
+   "mask": [],
+   "recommend": [],
+   "keep": [
+    "address",
+    "m1_name",
+    "m1_birth"
+   ],
+   "legal_basis": "個人番号は番号法で収集制限／本籍・他世帯員は提出先指示で不要が多い",
+   "source": "https://www.pref.osaka.lg.jp/documents/135080/6tempujichui.pdf"
+  },
+  "個人番号手続": {
+   "mask": [],
+   "keep": [],
+   "legal_basis": "個人番号記載が目的の提出"
+  }
+ },
+ "note": "jpg는 회전·흐림 적용으로 박스 좌표 불일치 → 탐지는 OCR 좌표로 재계산, png/pdf 좌표만 골든 비교"
+}

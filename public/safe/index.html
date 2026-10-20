@@ -193,6 +193,13 @@ header{border-bottom:1px solid var(--line);background:var(--paper);position:stic
 .wm-body.on{display:flex}
 .wm-body select,.wm-body input[type=text]{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff;min-height:38px}
 .wm-body input[type=text]{flex:1;min-width:180px}
+.jp-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0 2px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--marker-soft)}
+.jp-bar .jp-doc{font-size:12.5px;font-weight:700}
+.jp-bar .jp-purpose-l{font-size:12px;color:var(--sub)}
+.jp-bar select{font-family:inherit;font-size:12.5px;border:1px solid var(--line);border-radius:8px;padding:4px 6px;background:#fff}
+.jp-bar .jp-note{width:100%;font-size:11.5px;line-height:1.5;color:var(--no);background:var(--no-bg);border-radius:8px;padding:6px 10px}
+.cat-row.sec-keep{border-color:var(--ok);background:var(--ok-bg)}
+.cat-row.sec-keep .cl{color:var(--ok)}
 .band-pick{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--sub)}
 .band-pick select,.band-pick input[type=color]{font-family:inherit;font-size:12.5px;border:1px solid var(--line);border-radius:8px;padding:4px 6px;background:#fff}
 .band-pick input[type=color]{padding:2px;width:36px;height:28px}
@@ -346,6 +353,12 @@ footer a{color:var(--sub)}
             <span class="chip" id="fileName"></span>
             <span id="fileInfo"></span>
             <button class="btn ghost small" id="btnReset" style="margin-left:auto" data-i18n="btnReset">다른 문서</button>
+          </div>
+          <div class="jp-bar" id="jpBar" style="display:none">
+            <span class="jp-doc" id="jpDocName"></span>
+            <label class="jp-purpose-l" for="jpPurpose" data-i18n="jpPurposeLabel">提出目的</label>
+            <select id="jpPurpose"></select>
+            <div class="jp-note" id="jpNote" style="display:none"></div>
           </div>
           <div class="sel-bar">
             <button class="btn ghost small" id="btnSelect" data-i18n="btnSelect">🖐 영역 직접 선택</button>
@@ -530,10 +543,12 @@ ko:{
   notLocated:'위치 못 찾음',
   btnSelect:'🖐 영역 직접 선택', selHint:'가릴 영역을 손가락이나 마우스로 드래그하세요 (사진·서명·도장·이름 등)',
   manualSection:'직접 선택한 영역', candSection:'확인 필요 — 이것도 가릴까요?', manualItem:'직접 선택한 영역',
-  reasons:{name:'이름일 수 있음', addr:'주소일 수 있음', addr_contact:'주소일 수 있음 · 연락처 영역', addr_edge:'주소일 수 있음 · 문서 상·하단', addr_kw:'주소일 수 있음 · 지명·주소어'},
+  jpFields:{address_loose:'문서 내 주소',tel:'전화·FAX',doc_shikaku_kakuninsho:'資格確認書(자격확인서)', doc_unten_menkyo:'運転免許証(운전면허증)', doc_mynumber_card:'マイナンバーカード(마이넘버카드)', doc_juminhyo:'住民票(주민표)', side_front:'앞면', side_back:'뒷면', purpose_identity_submit:'本人確認 제출', purpose_my_number_procedure:'個人番号 절차', purpose_bid_attachment:'입찰 첨부', purpose_consult_share:'상담용 공유', back_all:'뒷면 전체', my_number:'개인번호', jumin_code:'주민표 코드', hokensha_bango:'보험자번호', kigo:'기호', bango:'번호', edaban:'가지번호', hihokensha_bango:'피보험자번호', qr:'2차원 코드', license_no:'면허증번호', biko_change:'비고란(변경 기재)', organ_donor:'장기기증 의사표시란', setaiin:'다른 세대원', honseki:'본적', hittosha:'필두자', sex:'성별', name:'성명', birth:'생년월일', address:'주소', expiry:'유효기간', issue:'교부일', issuer:'발행자'},
+  jpPurposeLabel:'제출 목적', jpBackNotice:'本人確認(신원확인)만 필요하다면 앞면만 제출하세요. 번호법상 뒷면의 個人番号는 법정 목적 외 수집·보관이 금지됩니다. 個人番号 절차를 고르면 해제됩니다.', jpKeepWarn:'제출처가 요구하는 항목입니다. 가리면 접수되지 않을 수 있습니다.', keepSection:'남겨야 하는 항목',
+  reasons:{name:'이름일 수 있음', jp_auto:'법적 근거로 자동 가림', jp_gate:'목적에 따라 자동 가림', jp_recommend:'가리는 것을 권장', jp_optional:'선택 가능', jp_keep:'제출처가 요구 — 가리지 마세요', addr:'주소일 수 있음', addr_contact:'주소일 수 있음 · 연락처 영역', addr_edge:'주소일 수 있음 · 문서 상·하단', addr_kw:'주소일 수 있음 · 지명·주소어'},
   tManualAdded:'영역을 추가했어요', tManualRemoved:'영역을 삭제했어요', tSelSmall:'너무 작아요. 조금 더 크게 드래그하세요.', btnSelectOn:'✓ 선택 모드 (끄기)',
   wmToggle:'워터마크 넣기 (선택)', wmPlaceholder:'워터마크 문구 (직접 입력 가능)', wmCustom:'직접 입력…',
-  wmPresets:['○○ 제출용','부동산 임대용','구직 지원용','YYYY-MM-DD ○○에 제출'],
+  wmPresets:['○○ 제출용','본인확인용으로만 사용','전용(轉用) 금지','{date} ○○에 제출'],
   wmQR:'⚠ 워터마크가 QR코드·바코드·도장을 가리지 않았는지 결과 미리보기에서 꼭 확인하세요. (하단 여백은 자동으로 비웁니다)',
   pasted:'붙여넣은 텍스트', aiChars:n=>`${n}자 (AI 추출)`, chars:n=>`${n}자`, pages:n=>`${n}페이지`,
   types:{rrn:'주민등록번호',ssn:'SSN(미국)',passport:'여권번호',license:'운전면허번호',card:'카드번호',account:'계좌번호',phone:'전화번호',email:'이메일',birth:'생년월일',address:'주소',name:'이름',company:'회사·소속',title:'직책',ip:'IP 주소',url:'SNS·URL',health:'건강·민감정보',other:'기타',manual:'직접 선택'}
@@ -585,10 +600,12 @@ en:{
   notLocated:'not located',
   btnSelect:'🖐 Select area manually', selHint:'Drag with your finger or mouse over the area to hide (photo, signature, stamp, name…)',
   manualSection:'Manually selected areas', candSection:'Please review — hide these too?', manualItem:'Selected area',
-  reasons:{name:'Possibly a name', addr:'Possibly an address', addr_contact:'Possibly an address · near contact info', addr_edge:'Possibly an address · header/footer', addr_kw:'Possibly an address · place/street term'},
+  jpFields:{address_loose:'Address in body',tel:'Phone / FAX',doc_shikaku_kakuninsho:'Qualification certificate (資格確認書)', doc_unten_menkyo:'Driver\'s licence (運転免許証)', doc_mynumber_card:'My Number card', doc_juminhyo:'Residence record (住民票)', side_front:'front', side_back:'back', purpose_identity_submit:'Identity verification', purpose_my_number_procedure:'My Number procedure', purpose_bid_attachment:'Tender attachment', purpose_consult_share:'Sharing for advice', back_all:'Entire back face', my_number:'My Number', jumin_code:'Residence code', hokensha_bango:'Insurer number', kigo:'Symbol', bango:'Number', edaban:'Branch number', hihokensha_bango:'Insured number', qr:'2-D code', license_no:'Licence number', biko_change:'Remarks (changes)', organ_donor:'Organ donation section', setaiin:'Other household members', honseki:'Registered domicile', hittosha:'Head of register', sex:'Sex', name:'Name', birth:'Date of birth', address:'Address', expiry:'Valid until', issue:'Issued', issuer:'Issuer'},
+  jpPurposeLabel:'Purpose of submission', jpBackNotice:'If only identity needs checking, submit the front face. Under the My Number Act the number on the back may not be collected or kept outside statutory purposes. Choosing “My Number procedure” releases this.', jpKeepWarn:'The recipient asks for this field. Hiding it may get your submission rejected.', keepSection:'Fields to keep visible',
+  reasons:{name:'Possibly a name', jp_auto:'Hidden automatically (legal basis)', jp_gate:'Hidden for this purpose', jp_recommend:'Recommended to hide', jp_optional:'Optional', jp_keep:'Recipient needs this — keep it', addr:'Possibly an address', addr_contact:'Possibly an address · near contact info', addr_edge:'Possibly an address · header/footer', addr_kw:'Possibly an address · place/street term'},
   tManualAdded:'Area added', tManualRemoved:'Area removed', tSelSmall:'Too small — drag a bit larger.', btnSelectOn:'✓ Selecting (turn off)',
   wmToggle:'Add watermark (optional)', wmPlaceholder:'Watermark text (editable)', wmCustom:'Custom…',
-  wmPresets:['For submission to ○○','For property rental','For job application','Submitted to ○○ on YYYY-MM-DD'],
+  wmPresets:['For submission to ○○','For identity verification only','Not for any other use','Submitted to ○○ on {date}'],
   wmQR:'⚠ Check the result preview to ensure the watermark does not cover any QR code, barcode, or stamp. (The bottom margin is kept clear automatically.)',
   pasted:'Pasted text', aiChars:n=>`${n} chars (AI extracted)`, chars:n=>`${n} chars`, pages:n=>`${n} pages`,
   types:{rrn:'Korean RRN',ssn:'SSN (US)',passport:'Passport no.',license:"Driver's license",card:'Card number',account:'Bank account',phone:'Phone',email:'Email',birth:'Date of birth',address:'Address',name:'Name',company:'Company',title:'Job title',ip:'IP address',url:'Social · URL',health:'Health / sensitive',other:'Other',manual:'Manual'}
@@ -640,10 +657,12 @@ ja:{
   notLocated:'位置不明',
   btnSelect:'🖐 範囲を手動で選択', selHint:'隠したい範囲を指またはマウスでドラッグしてください（写真・署名・印鑑・氏名など）',
   manualSection:'手動で選択した範囲', candSection:'要確認 — これも隠しますか？', manualItem:'選択した範囲',
-  reasons:{name:'氏名の可能性', addr:'住所の可能性', addr_contact:'住所の可能性 · 連絡先の近く', addr_edge:'住所の可能性 · 文書の上部・下部', addr_kw:'住所の可能性 · 地名・住所語'},
+  jpFields:{address_loose:'本文中の住所',tel:'電話・FAX',doc_shikaku_kakuninsho:'資格確認書', doc_unten_menkyo:'運転免許証', doc_mynumber_card:'マイナンバーカード', doc_juminhyo:'住民票の写し', side_front:'表面', side_back:'裏面', purpose_identity_submit:'本人確認提出', purpose_my_number_procedure:'個人番号手続', purpose_bid_attachment:'入札添付', purpose_consult_share:'相談用共有', back_all:'裏面全体', my_number:'個人番号', jumin_code:'住民票コード', hokensha_bango:'保険者番号', kigo:'記号', bango:'番号', edaban:'枝番', hihokensha_bango:'被保険者番号', qr:'二次元コード', license_no:'免許証番号', biko_change:'備考欄（変更記載）', organ_donor:'臓器提供意思表示欄', setaiin:'本人以外の世帯員', honseki:'本籍', hittosha:'筆頭者', sex:'性別', name:'氏名', birth:'生年月日', address:'住所', expiry:'有効期限', issue:'交付日', issuer:'発行者'},
+  jpPurposeLabel:'提出目的', jpBackNotice:'身元確認なら表面のみ提出。番号法により、法定目的以外で裏面の個人番号を収集・保管することはできません。「個人番号手続」を選ぶと解除されます。', jpKeepWarn:'提出先が受付できない可能性があります（本人特定事項）。', keepSection:'残す項目',
+  reasons:{name:'氏名の可能性', jp_auto:'法令根拠により自動で黒塗り', jp_gate:'この目的では自動で黒塗り', jp_recommend:'黒塗りを推奨', jp_optional:'任意', jp_keep:'提出先が必要とする項目', addr:'住所の可能性', addr_contact:'住所の可能性 · 連絡先の近く', addr_edge:'住所の可能性 · 文書の上部・下部', addr_kw:'住所の可能性 · 地名・住所語'},
   tManualAdded:'範囲を追加しました', tManualRemoved:'範囲を削除しました', tSelSmall:'小さすぎます。もう少し大きくドラッグしてください。', btnSelectOn:'✓ 選択モード（オフ）',
   wmToggle:'ウォーターマークを入れる（任意）', wmPlaceholder:'ウォーターマーク文言（自由入力可）', wmCustom:'自由入力…',
-  wmPresets:['○○ 提出用','不動産賃貸用','求職応募用','YYYY-MM-DD ○○ に提出'],
+  wmPresets:['○○ 提出用','本人確認のみに使用','転用禁止','{date} ○○ に提出'],
   wmQR:'⚠ ウォーターマークがQRコード・バーコード・印鑑を隠していないか、結果プレビューで必ずご確認ください。（下部の余白は自動で空けます）',
   pasted:'貼り付けたテキスト', aiChars:n=>`${n}文字（AI抽出）`, chars:n=>`${n}文字`, pages:n=>`${n}ページ`,
   types:{rrn:'住民登録番号(韓国)',ssn:'SSN(米国)',passport:'パスポート番号',license:'運転免許番号',card:'カード番号',account:'口座番号',phone:'電話番号',email:'メール',birth:'生年月日',address:'住所',name:'氏名',company:'会社・所属',title:'役職',ip:'IPアドレス',url:'SNS・URL',health:'健康・センシティブ情報',other:'その他',manual:'手動選択'}
@@ -695,10 +714,12 @@ es:{
   notLocated:'sin ubicar',
   btnSelect:'🖐 Seleccionar área manualmente', selHint:'Arrastra con el dedo o el ratón sobre el área a ocultar (foto, firma, sello, nombre…)',
   manualSection:'Áreas seleccionadas manualmente', candSection:'Revisar — ¿ocultar también esto?', manualItem:'Área seleccionada',
-  reasons:{name:'Puede ser un nombre', addr:'Puede ser una dirección', addr_contact:'Puede ser una dirección · cerca del contacto', addr_edge:'Puede ser una dirección · encabezado/pie', addr_kw:'Puede ser una dirección · término de lugar/calle'},
+  jpFields:{address_loose:'Dirección en el texto',tel:'Teléfono / FAX',doc_shikaku_kakuninsho:'Certificado de cobertura (資格確認書)', doc_unten_menkyo:'Permiso de conducir (運転免許証)', doc_mynumber_card:'Tarjeta My Number', doc_juminhyo:'Certificado de residencia (住民票)', side_front:'anverso', side_back:'reverso', purpose_identity_submit:'Verificación de identidad', purpose_my_number_procedure:'Trámite de My Number', purpose_bid_attachment:'Anexo de licitación', purpose_consult_share:'Compartir para consulta', back_all:'Todo el reverso', my_number:'My Number', jumin_code:'Código de residencia', hokensha_bango:'N.º de aseguradora', kigo:'Símbolo', bango:'Número', edaban:'N.º de rama', hihokensha_bango:'N.º de asegurado', qr:'Código 2D', license_no:'N.º de permiso', biko_change:'Observaciones (cambios)', organ_donor:'Apartado de donación de órganos', setaiin:'Otros miembros del hogar', honseki:'Domicilio registral', hittosha:'Titular del registro', sex:'Sexo', name:'Nombre', birth:'Fecha de nacimiento', address:'Dirección', expiry:'Válido hasta', issue:'Emitido', issuer:'Emisor'},
+  jpPurposeLabel:'Finalidad del envío', jpBackNotice:'Si solo hay que verificar la identidad, envía el anverso. La Ley My Number prohíbe recoger o conservar el número del reverso fuera de los fines legales. Elegir «Trámite de My Number» lo libera.', jpKeepWarn:'El destinatario pide este dato. Ocultarlo puede provocar el rechazo del envío.', keepSection:'Campos que deben quedar visibles',
+  reasons:{name:'Puede ser un nombre', jp_auto:'Oculto automáticamente (base legal)', jp_gate:'Oculto para esta finalidad', jp_recommend:'Se recomienda ocultar', jp_optional:'Opcional', jp_keep:'El destinatario lo necesita', addr:'Puede ser una dirección', addr_contact:'Puede ser una dirección · cerca del contacto', addr_edge:'Puede ser una dirección · encabezado/pie', addr_kw:'Puede ser una dirección · término de lugar/calle'},
   tManualAdded:'Área añadida', tManualRemoved:'Área eliminada', tSelSmall:'Demasiado pequeña — arrastra un poco más.', btnSelectOn:'✓ Seleccionando (desactivar)',
   wmToggle:'Añadir marca de agua (opcional)', wmPlaceholder:'Texto de la marca de agua (editable)', wmCustom:'Personalizado…',
-  wmPresets:['Para presentar a ○○','Para alquiler','Para solicitud de empleo','Presentado a ○○ el YYYY-MM-DD'],
+  wmPresets:['Para presentar a ○○','Solo para verificar la identidad','Prohibido otro uso','Presentado a ○○ el {date}'],
   wmQR:'⚠ Revisa la vista previa del resultado para que la marca de agua no cubra ningún código QR, de barras o sello. (El margen inferior se deja libre automáticamente.)',
   pasted:'Texto pegado', aiChars:n=>`${n} caracteres (extraído por IA)`, chars:n=>`${n} caracteres`, pages:n=>`${n} páginas`,
   types:{rrn:'RRN de Corea',ssn:'SSN (EE. UU.)',passport:'N.º de pasaporte',license:'Permiso de conducir',card:'N.º de tarjeta',account:'Cuenta bancaria',phone:'Teléfono',email:'Correo',birth:'Fecha de nacimiento',address:'Dirección',name:'Nombre',company:'Empresa',title:'Cargo',ip:'Dirección IP',url:'Redes · URL',health:'Salud / sensible',other:'Otro',manual:'Manual'}
@@ -1033,6 +1054,806 @@ function addressCandidates(){
   return out;
 }
 
+/* ═══════════════════ JP-1 · Japanese document presets ═══════════════════
+   Strategy v2 §3-2. A regular expression NEVER auto-masks on its own here.
+   An automatic band needs three independent agreements:
+     (1) the page classifies as one of the four alpha document types,
+     (2) a label anchor in the same visual row — or one documented, narrower
+         structural fallback for the case where OCR destroyed the label,
+     (3) the value matches the field's format (and, for 個人番号, its check digit).
+   Everything short of that surfaces as a review candidate instead.
+   The asymmetry is deliberate: a missed 保険者番号 is the exact harm the
+   product exists to prevent, while a wrongly banded 氏名 gets the submission
+   rejected — so automatic banding is confined to the fields the legal matrix
+   says may be hidden for the selected purpose. */
+
+/* ── normalisation with index preservation ──
+   Boxes come from item/char indices, so normalisation must never lose the way
+   back to the source character. Each SOURCE character is normalised on its own
+   (never a whole string), so NFKC can expand 1→n but can never combine n→1 and
+   silently drop a source index. Folds that are not 1:1 are simply not applied. */
+const JP_VARIANT = {'髙':'高','﨑':'崎','邊':'辺','邉':'辺'};
+const JP_DASH = new Set(['ー','−','―','‐','—','－','ｰ','‑','–','_']);
+const JP_ZERO = new Set(['〇','○','◯']);
+const JP_ONE  = new Set(['l','I','|','ｌ','Ｉ','丨']);
+const isDigit = c => c >= '0' && c <= '9';
+// Returns {t, src} — t[k] is the k-th normalised char, src[k] its index in `s`.
+function jpNorm(s){
+  let t = '', src = [];
+  for (let i = 0; i < (s||'').length; i++){
+    let o = s[i];
+    try { o = o.normalize('NFKC'); } catch(e){}
+    if (o.length !== 1) { // expansion: every output char points back at this source char
+      for (const c of o) { t += (JP_VARIANT[c] || c); src.push(i); }
+      continue;
+    }
+    t += (JP_VARIANT[o] || o); src.push(i);
+  }
+  // Context-sensitive OCR folds, applied in place so the map stays valid.
+  // ー→- unconditionally would wreck katakana (コード→コ-ド) and with it the
+  // 二次元コード label anchor, so these only fire next to a digit.
+  const a = t.split('');
+  for (let k = 0; k < a.length; k++){
+    const p = a[k-1], n = a[k+1];
+    const nearDigit = (p && isDigit(p)) || (n && isDigit(n));
+    if (JP_DASH.has(a[k]) && nearDigit) a[k] = '-';
+    else if (JP_ZERO.has(a[k]) && nearDigit) a[k] = '0';
+    else if (JP_ONE.has(a[k]) && p && n && isDigit(p) && isDigit(n)) a[k] = '1';
+  }
+  return { t: a.join(''), src };
+}
+
+/* ── row / segment model ──
+   These documents are label-value forms: the label sits left of its value on
+   the same visual row, and several label-value pairs share a row in separate
+   columns. So we group items into rows, then split each row into SEGMENTS at
+   horizontal gaps. The gap threshold has to be wider than a label→value gap
+   (~80px at this scale) and narrower than a column→column gap (~140px);
+   10% of page width sits between them for every alpha fixture.
+   `rowText` keeps the WHOLE visual line, because date context ("年月日") has to
+   be judged per line, not per column. */
+const JP_SEG_GAP = p => Math.max(90, p.w * 0.10);
+function jpPushItem(seg, o){
+  const n = jpNorm(o.it.str || '');
+  seg.start[o.i] = seg.t.length;              // where this item's chars begin in seg.t
+  for (let k = 0; k < n.t.length; k++){ seg.t += n.t[k]; seg.map.push([o.i, n.src[k]]); }
+  seg.x1 = Math.max(seg.x1, o.it.x + o.it.w);
+  seg.items.push(o);
+}
+function jpSegments(pi){
+  const page = pages[pi];
+  if (page._jpsegs) return page._jpsegs;
+  const arr = page.items.map((it,i)=>({it,i})).sort((a,b)=>a.it.y-b.it.y||a.it.x-b.it.x);
+  const rows = []; let row = null;
+  for (const o of arr){
+    if (row && Math.abs(o.it.y - row.y) < row.h * 0.7){ row.list.push(o); row.h = Math.max(row.h, o.it.h); }
+    else { if (row) rows.push(row); row = { y:o.it.y, h:o.it.h, list:[o] }; }
+  }
+  if (row) rows.push(row);
+  const gapT = JP_SEG_GAP(page), segs = [];
+  rows.forEach((r, ri) => {
+    r.list.sort((a,b)=>a.it.x-b.it.x);
+    let rowText = ''; for (const o of r.list) rowText += jpNorm(o.it.str||'').t;
+    const y0 = Math.min(...r.list.map(o=>o.it.y)), y1 = Math.max(...r.list.map(o=>o.it.y+o.it.h));
+    let seg = null;
+    const open = o => ({ pi, row:ri, rowText, y:y0, h:y1-y0, x0:o.it.x, x1:o.it.x, t:'', map:[], items:[], used:[], start:{} });
+    for (const o of r.list){
+      if (seg && o.it.x - seg.x1 < gapT) jpPushItem(seg, o);
+      else { if (seg) segs.push(seg); seg = open(o); jpPushItem(seg, o); }
+    }
+    if (seg) segs.push(seg);
+  });
+  return (page._jpsegs = segs);
+}
+// Boxes for the normalised-text span [a,b) of a segment, via the char map.
+function jpBoxes(seg, a, b){
+  const out = [];
+  boxesFromRange(pages[seg.pi], seg.pi, seg.map, a, b, out);
+  return out;
+}
+function jpSegBox(seg){
+  const page = pages[seg.pi];
+  const b = { page: seg.pi, x: seg.x0, y: seg.y, w: seg.x1 - seg.x0, h: seg.h };
+  b.bg = sampleBg(page, b);
+  return b;
+}
+
+/* ── document classification ──
+   Weighted keyword vote over the whole page's normalised text. Weights express
+   how exclusive a term is to that document: 資格確認書 appears on nothing else,
+   while 本籍 also appears on 戸籍 documents. The threshold is deliberately a
+   SUM, not a single magic keyword, because OCR reliably destroys some share of
+   any given line — on the alpha fixtures the garbled labels are never the same
+   ones twice. Below threshold the page is "一般文書" and NO Japanese automatic
+   masking happens at all. */
+const JP_CLASSES = {
+  shikaku_kakuninsho: { min: 4, kw: [['資格確認書',3],['保険者番号',2],['被保険者',2],['保険者名',2],
+      ['国民健康保険',2],['後期高齢者',2],['枝番',2],['記号',1],['健康保険',1],['一部負担金',1]] },
+  unten_menkyo: { min: 4, kw: [['運転免許証',4],['免許証',2],['公安委員会',2],['備考欄',2],
+      ['臓器提供',1],['提供意思',1],['優良',1],['原付',1]] },
+  mynumber_card: { min: 4, kw: [['個人番号カード',4],['マイナンバーカード',4],['個人番号',2],
+      ['券面記載事項',2],['マイナンバー',2]] },
+  juminhyo: { min: 4, kw: [['住民票',3],['世帯主',2],['続柄',2],['筆頭者',2],['世帯全員',2],
+      ['住民となった日',2],['住民票コード',2],['本籍',1],['住民となつた日',2]] },
+};
+function jpPageText(pi){
+  const page = pages[pi];
+  if (page._jptext != null) return page._jptext;
+  let s = ''; for (const it of page.items) s += jpNorm(it.str || '').t;
+  return (page._jptext = s);
+}
+function jpClassify(pi){
+  const txt = jpPageText(pi);
+  let best = null;
+  for (const [id, def] of Object.entries(JP_CLASSES)){
+    let score = 0, hits = [];
+    for (const [k, w] of def.kw) if (txt.includes(k)) { score += w; hits.push(k); }
+    if (score >= def.min && (!best || score > best.score)) best = { doc: id, score, hits };
+  }
+  if (!best) return null;
+  // Side: cards have two faces with completely different legal treatment.
+  if (best.doc === 'mynumber_card' || best.doc === 'unten_menkyo'){
+    best.side = txt.includes('裏面') ? 'back' : txt.includes('表面') ? 'front'
+              : (best.doc === 'mynumber_card' && /\d[\d\s.\-]{10,}\d/.test(txt)) ? 'back' : 'front';
+  }
+  return best;
+}
+
+/* ── 個人番号 check digit (番号法施行令 別表) ──
+   Σ P_n·Q_n over the 11-digit body counted from the RIGHT (n = 1..11),
+   Q_n = n+1 for n ≤ 6 else n−5; check = 11 − (Σ mod 11), and ≥10 → 0. */
+function myNumberCheckOk(d12){
+  if (!/^\d{12}$/.test(d12)) return false;
+  const d = d12.slice(0, 11).split('').map(Number);
+  let s = 0;
+  for (let n = 1; n <= 11; n++){ const q = n <= 6 ? n + 1 : n - 5; s += d[11 - n] * q; }
+  let chk = 11 - (s % 11); if (chk >= 10) chk = 0;
+  return chk === Number(d12[11]);
+}
+
+/* ── pixel helpers for field FRAMES and code blocks ──
+   A 欄 (field box) is drawn as a thin rectangle; its contents may be empty, so
+   there is nothing for a text-based detector to find. Scanning for the drawn
+   rule is the only way to cover 臓器提供意思表示欄 on a card whose box the
+   holder left blank — and a blank-looking box is exactly where a faint
+   handwritten mark hides. */
+function jpPageBg(page){
+  if (page._jpbg) return page._jpbg;
+  const ctx = page.canvas.getContext('2d', { willReadFrequently: true });
+  const W = page.canvas.width, H = page.canvas.height;
+  const pick = [];
+  for (let i = 0; i < 24; i++){
+    const x = Math.round(W * (i % 6 + 0.5) / 6);
+    const y = [2, H - 3, Math.round(H * 0.01), Math.round(H * 0.99)][Math.floor(i / 6)];
+    const d = ctx.getImageData(Math.max(0, Math.min(W-1, x)), Math.max(0, Math.min(H-1, y)), 1, 1).data;
+    pick.push([d[0], d[1], d[2]]);
+  }
+  const med = c => { const s = pick.map(p => p[c]).sort((a,b)=>a-b); return s[s.length >> 1]; };
+  return (page._jpbg = [med(0), med(1), med(2)]);
+}
+function jpRowInk(page, y, bg, thr){
+  const ctx = page.canvas.getContext('2d', { willReadFrequently: true });
+  const W = page.canvas.width;
+  const d = ctx.getImageData(0, y, W, 1).data;
+  let best = null, runStart = -1;
+  for (let x = 0; x <= W; x++){
+    const ink = x < W && (Math.abs(d[x*4] - bg[0]) > thr || Math.abs(d[x*4+1] - bg[1]) > thr || Math.abs(d[x*4+2] - bg[2]) > thr);
+    if (ink){ if (runStart < 0) runStart = x; }
+    else if (runStart >= 0){ const len = x - runStart; if (!best || len > best.len) best = { x0: runStart, x1: x, len }; runStart = -1; }
+  }
+  return best;
+}
+// The drawn rectangle that starts just under `anchor`. Returns null if none.
+// Starting the scan at the anchor's MIDDLE (not its bottom) matters: on the
+// licence back the 備考欄 frame's top rule overlaps the label's own glyph box.
+// Text can never produce a 150px CONTIGUOUS ink run, so the label cannot be
+// mistaken for a rule, and a diagonal watermark stroke cannot either.
+const JP_RULE_MIN = 150, JP_RULE_TOL = 12;
+function jpFrameBelow(page, anchor){
+  const bg = jpPageBg(page), H = page.canvas.height;
+  const y0 = Math.round(anchor.y + anchor.h * 0.5);
+  const yMax = Math.min(H - 1, Math.round(anchor.y + anchor.h * 12));
+  let top = null;
+  for (let y = y0; y <= yMax; y++){
+    const r = jpRowInk(page, y, bg, 40);
+    if (r && r.len >= JP_RULE_MIN){ top = { y, ...r }; break; }
+  }
+  if (!top) return null;
+  for (let y = top.y + 6; y <= yMax; y++){
+    const r = jpRowInk(page, y, bg, 40);
+    if (r && r.len >= JP_RULE_MIN && Math.abs(r.x0 - top.x0) <= JP_RULE_TOL && Math.abs(r.x1 - top.x1) <= JP_RULE_TOL)
+      return { page: pages.indexOf(page), x: top.x0, y: top.y, w: top.x1 - top.x0, h: y - top.y, region: true };
+  }
+  return null;
+}
+/* A 二次元コード block. Two paths, with different confidence:
+   (a) LABELLED — the page says 二次元コード / QR near it. The block is the
+       cluster of items around that label, squared up. Verified by the golden.
+   (b) UNLABELLED — a solid, near-square, high-fill block of non-background
+       pixels. This is what a real printed QR looks like, but the alpha dummies
+       carry NO real QR (strategy v2 §4 forbids generating one), so this path
+       has no golden coverage. It therefore emits a CANDIDATE, never an
+       automatic band: untested detection must not delete pixels by itself. */
+function jpSquareAround(boxes){
+  const x0 = Math.min(...boxes.map(b=>b.x)), y0 = Math.min(...boxes.map(b=>b.y));
+  const x1 = Math.max(...boxes.map(b=>b.x+b.w)), y1 = Math.max(...boxes.map(b=>b.y+b.h));
+  const side = Math.max(x1-x0, y1-y0), cx = (x0+x1)/2, cy = (y0+y1)/2;
+  return { x: cx - side/2, y: cy - side/2, w: side, h: side };
+}
+function jpCodeBlocks(pi){
+  const page = pages[pi], segs = jpSegments(pi);
+  // 1) Solid, near-square blocks of non-background pixels. This is what a printed
+  //    code BLOCK is, independent of whether anything near it is readable.
+  const blocks = jpSolidSquares(page, pi);
+  const hit = (a,b)=> !(a.x+a.w < b.x || b.x+b.w < a.x || a.y+a.h < b.y || b.y+b.h < a.y);
+  const out = [], usedBlock = blocks.map(()=>false);
+  // 2) Label anchors. A label makes the block's identity CERTAIN, which is what
+  //    lifts it to an automatic band.
+  for (const seg of segs){
+    if (!/二次元コード|次元コード|コード欄|QRコード|ＱＲ/.test(seg.t)) continue;
+    const sb = jpSegBox(seg);
+    const bi = blocks.findIndex(b => hit(b, sb));
+    if (bi >= 0){
+      // Snap to the measured block. The label text sits in one corner of the
+      // block, so a square grown around the TEXT is offset from the block and
+      // leaves a readable strip — 80% of the fixture's code area, which passed a
+      // 60% gate while a real QR stayed decodable. The pixels know better.
+      usedBlock[bi] = true;
+      const g = Math.max(4, blocks[bi].w * 0.04);
+      out.push({ box: { page: pi, x: blocks[bi].x-g, y: blocks[bi].y-g, w: blocks[bi].w+2*g, h: blocks[bi].h+2*g, region: true }, labelled: true });
+      continue;
+    }
+    // No measurable block (a code printed in a light colour, or a frame we
+    // cannot see): fall back to a square around the label's connected cluster.
+    const M = 20;
+    let cl = sb, grew = true;
+    const pool = segs.filter(x => x !== seg && x.pi === pi).map(jpSegBox);
+    const taken = pool.map(()=>false);
+    const touches = (a,b)=> !(a.x+a.w < b.x-M || b.x+b.w < a.x-M || a.y+a.h < b.y-M || b.y+b.h < a.y-M);
+    while (grew){
+      grew = false;
+      pool.forEach((b,k)=>{
+        if (taken[k] || !touches(cl,b)) return;
+        taken[k] = true; grew = true;
+        const x1=Math.max(cl.x+cl.w,b.x+b.w), y1=Math.max(cl.y+cl.h,b.y+b.h);
+        cl = { x:Math.min(cl.x,b.x), y:Math.min(cl.y,b.y), w:0, h:0 };
+        cl.w = x1-cl.x; cl.h = y1-cl.y;
+      });
+    }
+    const sq = jpSquareAround([cl]), g = sq.w * 0.1;
+    out.push({ box: { page: pi, x: sq.x-g, y: sq.y-g, w: sq.w+2*g, h: sq.h+2*g, region: true }, labelled: true });
+  }
+  // 3) Blocks with no label: see the note above — detection without golden
+  //    coverage emits a candidate, never an automatic band.
+  blocks.forEach((b,k)=>{ if (!usedBlock[k]) out.push({ box: { page: pi, ...b, region: true }, labelled: false }); });
+  return out;
+}
+// Connected components of "solidly non-background" 16px cells that are big,
+// near-square and well filled. A diagonal watermark stroke is thin, so its cells
+// never reach the 0.6 density floor; body text never reaches the 0.75 fill.
+function jpSolidSquares(page, pi){
+  const bg = jpPageBg(page), W = page.canvas.width, H = page.canvas.height;
+  const CELL = 16, gw = Math.floor(W / CELL), gh = Math.floor(H / CELL);
+  const ctx = page.canvas.getContext('2d', { willReadFrequently: true });
+  const dense = [];
+  for (let gy = 0; gy < gh; gy++){
+    dense.push([]);
+    for (let gx = 0; gx < gw; gx++){
+      const d = ctx.getImageData(gx*CELL, gy*CELL, CELL, CELL).data;
+      let ink = 0;
+      for (let k = 0; k < CELL*CELL; k++){
+        if (Math.abs(d[k*4]-bg[0]) > 40 || Math.abs(d[k*4+1]-bg[1]) > 40 || Math.abs(d[k*4+2]-bg[2]) > 40) ink++;
+      }
+      dense[gy].push(ink / (CELL*CELL) >= 0.6);
+    }
+  }
+  const seen = dense.map(r => r.map(()=>false)), out = [];
+  for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++){
+    if (!dense[gy][gx] || seen[gy][gx]) continue;
+    const st = [[gy,gx]]; let minx=gx,maxx=gx,miny=gy,maxy=gy,n=0;
+    seen[gy][gx] = true;
+    while (st.length){
+      const [y,x] = st.pop(); n++;
+      minx=Math.min(minx,x); maxx=Math.max(maxx,x); miny=Math.min(miny,y); maxy=Math.max(maxy,y);
+      for (const [dy,dx] of [[1,0],[-1,0],[0,1],[0,-1]]){
+        const ny=y+dy, nx=x+dx;
+        if (ny>=0&&ny<gh&&nx>=0&&nx<gw&&dense[ny][nx]&&!seen[ny][nx]){ seen[ny][nx]=true; st.push([ny,nx]); }
+      }
+    }
+    const bw = maxx-minx+1, bh = maxy-miny+1, ar = bw/bh, fill = n/(bw*bh);
+    if (bw*CELL >= 60 && bh*CELL >= 60 && ar >= 0.8 && ar <= 1.25 && fill >= 0.75)
+      out.push({ page: pi, x: minx*CELL, y: miny*CELL, w: bw*CELL, h: bh*CELL });
+  }
+  return out;
+}
+
+/* ── legal matrix, as code ──
+   Mirrors test/safe/fixtures/jp/jp_legal_matrix_alpha4.json. Levels:
+     auto      文書分類+ラベル一致で自動黒塗り
+     gate      目的選択後に自動（別目的では解除）= auto_with_purpose_gate
+     recommend 既定ON・解除可
+     optional  既定OFF・選択可
+     keep      黒塗り禁止（警告）
+   Two documented deviations from the JSON, both widening what may be hidden:
+   本籍/筆頭者 also carry `recommend` for my_number_procedure and bid_attachment
+   (the 本籍 is not part of a 個人番号 or tender filing either), matching the
+   fixture expectations. */
+const P_ALL = ['identity_submit','my_number_procedure','bid_attachment','consult_share'];
+const P_NOT_MYNUM = ['identity_submit','bid_attachment','consult_share'];
+// Shared by all four documents: neither a free-standing address nor a phone
+// number is part of what any of them has to prove, so both are always OFFERED —
+// and recommended when the point of sharing is advice, not identification.
+const JP_EXTRA = { address_loose: { recommend: ['consult_share'], optional: P_ALL },
+                   tel:           { recommend: ['consult_share'], optional: P_ALL } };
+const JP_RULES = {
+  shikaku_kakuninsho: {
+    // 健康保険法等 告知要求制限 (2020-10-01) — mhlw.go.jp/stf/newpage_13989.html
+    hokensha_bango:   { auto: P_NOT_MYNUM },
+    kigo:             { auto: P_NOT_MYNUM },
+    bango:            { auto: P_NOT_MYNUM },
+    edaban:           { auto: P_NOT_MYNUM },
+    hihokensha_bango: { auto: P_NOT_MYNUM },
+    // QRは番号を判読可能なため同一扱い（大阪府・千葉市運用）
+    qr:               { auto: P_NOT_MYNUM },
+    // 法定ではない。民間KYC運用（SoftBank, PayPay銀行等）
+    sex:              { recommend: ['identity_submit'] },
+    name:{keep:P_ALL}, birth:{keep:P_ALL}, address:{keep:P_ALL}, expiry:{keep:P_ALL},
+    jigyosho:{keep:P_ALL}, hokensha_name:{keep:P_ALL}, shikaku_date:{keep:P_ALL},
+    ...JP_EXTRA,
+  },
+  unten_menkyo: {
+    biko_change:  { recommend: ['identity_submit','consult_share'] },
+    organ_donor:  { recommend: ['identity_submit','consult_share'] },
+    // 個人識別符号だが、KYCでは照合に必要な提出先が多い → 既定OFF
+    license_no:   { optional: P_ALL },
+    name:{keep:P_ALL}, birth:{keep:P_ALL}, address:{keep:P_ALL}, expiry:{keep:P_ALL}, issue:{keep:P_ALL},
+    ...JP_EXTRA,
+  },
+  mynumber_card: {
+    // 番号法: 法令で認められた者・目的以外での個人番号の収集・保管禁止
+    back_all:   { gate: P_NOT_MYNUM, keep: ['my_number_procedure'] },
+    my_number:  { gate: P_NOT_MYNUM, keep: ['my_number_procedure'] },
+    qr:         { gate: P_NOT_MYNUM, keep: ['my_number_procedure'] },
+    sex:        { recommend: ['identity_submit'] },
+    organ_donor:{ recommend: ['identity_submit'] },
+    name:{keep:P_ALL}, birth:{keep:P_ALL}, address:{keep:P_ALL}, expiry:{keep:P_ALL},
+    ...JP_EXTRA,
+  },
+  juminhyo: {
+    my_number:  { gate: P_NOT_MYNUM, keep: ['my_number_procedure'] },
+    // 住民基本台帳法 利用制限（個人識別符号）
+    jumin_code: { auto: P_NOT_MYNUM },
+    honseki:    { recommend: P_ALL },
+    hittosha:   { recommend: P_ALL },
+    setaiin:    { recommend: ['identity_submit','consult_share'] },
+    name:{keep:P_ALL}, birth:{keep:P_ALL}, address:{keep:P_ALL}, issuer:{keep:P_ALL},
+    ...JP_EXTRA,
+  },
+};
+function jpLevel(doc, field, purpose){
+  const r = (JP_RULES[doc] || {})[field];
+  if (!r) return null;
+  for (const lv of ['auto','gate','recommend','optional','keep'])
+    if (r[lv] && r[lv].includes(purpose)) return lv;
+  // A field the matrix knows but this purpose does not list is simply available,
+  // never silently promoted to automatic.
+  return r.keep ? 'optional' : 'optional';
+}
+
+/* ── field extraction ─────────────────────────────────────────────────────
+   Each rule is {field, labels[], re, last} — `labels` are the anchors accepted
+   in the segment (several spellings, because OCR drops or swaps one character
+   of a label far more often than it mangles a digit run), `re` is the value
+   format, and `last` allows falling back to the segment's final item when the
+   value itself was garbled but its POSITION is still certain (e.g. 性別 whose
+   single kanji OCR read as "&" — the box is what we need, not the character). */
+const JP_FIELD_RULES = {
+  shikaku_kakuninsho: [
+    { field:'hokensha_bango',   labels:['保険者番号','険者番号','保険者番'], re:/\d{4,10}/ },
+    { field:'hihokensha_bango', labels:['被保険者番号','被保険者等記号','被保険者番'], re:/[0-9A-Z]{4,12}/ },
+    { field:'kigo',   labels:['記号'], re:/[0-9A-Z]{2,12}/ },
+    { field:'edaban', labels:['枝番'], re:/\d{1,3}/ },
+    // 「番号」単独アンカー禁止 — it is a substring of 保険者番号/被保険者番号, so it
+    // only counts when the segment actually STARTS with it (its own column).
+    { field:'bango',  labels:['番号'], re:/[0-9A-Z]{1,12}/, headOnly:true },
+    { field:'sex',    labels:['性別'], re:/[男女]/, last:true },
+    { field:'name',   labels:['氏名'], re:null, last:true },
+    { field:'birth',  labels:['生年月日'], re:null, last:true },
+    { field:'address',labels:['住所'], re:null, last:true, addr:true },
+    { field:'expiry', labels:['有効期限'], re:null, last:true },
+    { field:'tel',    labels:['電話番号','電話','TEL','携帯','FAX'], tel:true },
+  ],
+  // Front-only: the back carries a 住所変更 line inside 備考欄, and calling that
+  // a keep-field would contradict the very region we are hiding.
+  unten_menkyo: [
+    { field:'license_no', labels:['番号'], re:/第?\s?[0-9A-Z]{10,14}/, headOnly:true, sides:['front'] },
+    { field:'name',   labels:['氏名'], re:null, last:true, sides:['front'] },
+    { field:'birth',  labels:['生年月日'], re:null, last:true, sides:['front'] },
+    { field:'address',labels:['住所'], re:null, last:true, sides:['front'], addr:true },
+    { field:'expiry', labels:['有効期限'], re:null, last:true, sides:['front'] },
+  ],
+  mynumber_card: [
+    { field:'my_number', labels:['個人番号','マイナンバー'], digits:12 },
+    { field:'sex',    labels:['性別'], re:/[男女]/, last:true, sides:['front'] },
+    { field:'name',   labels:['氏名'], re:null, last:true },
+    { field:'birth',  labels:['生年月日'], re:null, last:true },
+    { field:'address',labels:['住所'], re:null, last:true, sides:['front'], addr:true },
+    { field:'expiry', labels:['有効期限'], re:null, last:true, sides:['front'] },
+  ],
+  juminhyo: [
+    { field:'my_number', labels:['個人番号','マイナンバー'], digits:12 },
+    { field:'jumin_code',labels:['住民票コード'], digits:11 },
+    { field:'honseki',  labels:['本籍'], re:null, last:true, addr:true },
+    { field:'hittosha', labels:['筆頭者'], re:null, last:true },
+    { field:'name',   labels:['氏名'], re:null, last:true },
+    { field:'birth',  labels:['生年月日'], re:null, last:true },
+    { field:'address',labels:['住所'], re:null, last:true, addr:true },
+    { field:'tel',    labels:['電話番号','電話','TEL','携帯','FAX'], tel:true },
+  ],
+};
+// Field boxes marked as 欄/regions rather than values.
+const JP_REGION_LABELS = {
+  unten_menkyo: [
+    { field:'biko_change', labels:['備考欄','備考'] },
+    { field:'organ_donor', labels:['臓器提供','提供意思','意思表示欄'] },
+  ],
+  mynumber_card: [
+    { field:'organ_donor', labels:['臓器提供','提供意思','意思表示欄'] },
+  ],
+};
+const JP_DATE_RE = /[年月日]/;
+
+/* ── 住所 hierarchy ──────────────────────────────────────────────────────────
+   郵便番号 → 都道府県 → 市区郡町村 → 町域 → 丁目番地号 → 建物, scored rather than
+   matched as one regex, because a Japanese address is a sequence of optional
+   layers and any single regex either demands them all (misses most real
+   addresses) or demands none (matches every company name ending in 市).
+
+   The span is ANCHORED on a 郵便番号 or a real prefecture from the 47-name list.
+   An invented head like 「架空県」 therefore cannot anchor one — which is exactly
+   what keeps 「架空県後期高齢者医療広域連合」 (a 保険者名) and 「見本市長 架空 太郎」
+   (the issuing mayor) out. Requiring the prefecture misses addresses that omit
+   it, which is common in Japan; for the alpha that trade is deliberate, since a
+   wrongly banded issuer is a rejected submission.
+
+   Institution words are a PENALTY, not an exclusion (strategy v2 §3-2): a real
+   address can legitimately contain 「…市役所前」, so the word lowers the score
+   instead of vetoing the span. */
+const JP_PREFS = ['北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県','茨城県','栃木県','群馬県','埼玉県','千葉県','東京都','神奈川県','新潟県','富山県','石川県','福井県','山梨県','長野県','岐阜県','静岡県','愛知県','三重県','滋賀県','京都府','大阪府','兵庫県','奈良県','和歌山県','鳥取県','島根県','岡山県','広島県','山口県','徳島県','香川県','愛媛県','高知県','福岡県','佐賀県','長崎県','熊本県','大分県','宮崎県','鹿児島県','沖縄県'];
+const JP_POSTAL_RE = /〒?\d{3}-\d{4}/;
+const JP_CITY_RE = /^.{1,8}?[市区郡町村]/;
+// 丁目/番地/番/号 accept 漢数字 一〜十・百・千 as well as digits (official
+// 住民票 printouts still use them, and OCR reads them as kanji, not digits).
+const JP_NUM = '(?:[0-9]{1,4}|[一二三四五六七八九十百千]{1,6})';
+// The numeric tail has to be anchored on a TERMINATOR, not just on "a numeral".
+// A lazy prefix followed by a bare numeral stops at the first numeral-looking
+// kanji in a place name — 「三条通一丁目二番三号」 matched just 「三」 — and a
+// fixed 丁目/番/号 sequence misses the hyphenated form 「霞が関1-3-2」 entirely.
+// So: skip forward to the first position where NUM is followed by one of
+// 丁目/番地/番/号/-, then repeat that pair greedily.
+const JP_SEP = '(?:丁目|番地|番|号|[-－])';
+const JP_BANCHI_RE = new RegExp(`^.{0,14}?${JP_NUM}${JP_SEP}(?:の?${JP_NUM}${JP_SEP})*(?:の?${JP_NUM})?号?`);
+const JP_INSTITUTION_RE = /市役所|区役所|町役場|村役場|株式会社|有限会社|合同会社|大学|学校|病院|診療所|協会|広域連合|組合|銀行|支店|連合会|振興局/;
+// Finds an address starting at or after `from`. Returns {a,b,score,postal,pref}.
+function jpAddressSpan(t, from){
+  let a = -1, score = 0, postal = false, pref = '';
+  const pm = JP_POSTAL_RE.exec(t.slice(from));
+  for (const p of JP_PREFS){
+    const i = t.indexOf(p, from);
+    if (i >= 0 && (a < 0 || i < a)) { a = i; pref = p; }
+  }
+  if (pm && (a < 0 || from + pm.index < a)) { a = from + pm.index; postal = true; }
+  if (a < 0) return null;
+  if (postal) score += 2;
+  let b = a;
+  if (postal) b = a + (pm ? pm[0].length : 0);
+  if (pref){
+    const pi = t.indexOf(pref, a);
+    if (pi >= 0){ score += 2; b = Math.max(b, pi + pref.length); }
+  }
+  const city = JP_CITY_RE.exec(t.slice(b));
+  if (city){ score += 1; b += city[0].length; }
+  const ban = JP_BANCHI_RE.exec(t.slice(b));
+  if (ban && ban[0].length && /[0-9一二三四五六七八九十百千]/.test(ban[0])){ score += 2; b += ban[0].length; }
+  // The penalty looks a little PAST the span, because the shape it is meant to
+  // catch is a city match swallowing the head of an institution name
+  // (「大阪府見本市」+「役所」). −2, not a veto: a complete address scores 5 and
+  // survives at 3 (a candidate), while a partial one falls under the floor.
+  if (JP_INSTITUTION_RE.test(t.slice(a, Math.min(t.length, b + 8)))) score -= 2;
+  return { a, b, score, postal, pref: !!pref };
+}
+
+/* ── 電話・FAX ──
+   Anchored on TEL/電話/携帯/FAX; the value must fit the Japanese numbering plan.
+   A hyphenated value is the confirmed shape; an unseparated digit run of the
+   same length is a CANDIDATE, because at that point it is indistinguishable
+   from an account or reference number and only the label suggests otherwise.
+   NOTE: none of the four alpha documents carries a phone number, so this rule
+   has no golden coverage — it is unexercised code until a fixture has one. */
+const JP_TEL_HYPHEN_RE = /0120-\d{3}-\d{3}|0800-\d{3}-\d{4}|0\d{1,4}-\d{1,4}-\d{4}/;
+const JP_TEL_PLAIN_RE = /(?<!\d)0\d{9,10}(?!\d)/;
+function jpFindLabel(seg, labels, headOnly){
+  for (const L of labels){
+    const p = seg.t.indexOf(L);
+    if (p < 0) continue;
+    if (headOnly && p !== 0) continue;
+    return { at: p, end: p + L.length };
+  }
+  return null;
+}
+// Span of the first `n` digits after `from`, tolerating group separators.
+function jpDigitSpan(seg, from, n){
+  let first = -1, last = -1, count = 0;
+  for (let k = from; k < seg.t.length; k++){
+    const c = seg.t[k];
+    if (isDigit(c)){ if (first < 0) first = k; last = k; if (++count === n) return { a:first, b:last+1, digits: seg.t.slice(first,last+1).replace(/\D/g,'') }; }
+    else if (first >= 0 && !/[\s.\-・,/]/.test(c)) { first = -1; last = -1; count = 0; }
+  }
+  return null;
+}
+function jpExtract(pi, cls){
+  const segs = jpSegments(pi), found = [];
+  // Every value rule anchors at the SEGMENT HEAD. In these forms the label always
+  // opens its own column, so a label found mid-segment is prose, not an anchor —
+  // that is how the 「裏面の生年月日有無は…要確認」 footnote on the card dummy got
+  // read as a 生年月日 field. (The 欄 region labels below deliberately do not use
+  // this: OCR puts a garbled 騰 in front of 器提供意思表示欄.)
+  const rules = (JP_FIELD_RULES[cls.doc] || [])
+    .filter(r => !r.sides || r.sides.includes(cls.side))
+    .map(r => ({ ...r, headOnly: true }));
+  const push = (field, boxes, value, extra) => { if (boxes && boxes.length) found.push({ field, boxes, value, pi, ...extra }); };
+
+  for (const seg of segs){
+    for (const r of rules){
+      const L = jpFindLabel(seg, r.labels, r.headOnly);
+      if (!L) continue;
+      if (r.tel){
+        const tail = seg.t.slice(L.end);
+        const hy = JP_TEL_HYPHEN_RE.exec(tail);
+        const pl = hy ? null : JP_TEL_PLAIN_RE.exec(tail);
+        const m = hy || pl;
+        if (!m) continue;
+        const a2 = L.end + m.index, b2 = a2 + m[0].length;
+        push('tel', jpBoxes(seg, a2, b2), m[0], { loose: !hy });
+        for (let k = a2; k < b2; k++) seg.used[k] = 1;
+        continue;
+      }
+      if (r.digits){
+        const sp = jpDigitSpan(seg, L.end, r.digits);
+        if (!sp) continue;
+        const extra = r.field === 'my_number' ? { checkOk: myNumberCheckOk(sp.digits) } : {};
+        push(r.field, jpBoxes(seg, sp.a, sp.b), sp.digits, extra);
+        for (let k = sp.a; k < sp.b; k++) seg.used[k] = 1;
+        continue;
+      }
+      let a = -1, b = -1, val = '';
+      if (r.addr){
+        // 住所/本籍: bound the value by the address hierarchy rather than by
+        // "everything after the label", so a second column that drifted into
+        // this segment is not swept into the band.
+        const sp = jpAddressSpan(seg.t, L.end);
+        if (sp && sp.b > sp.a){ a = sp.a; b = sp.b; val = seg.t.slice(a, b); }
+      } else if (r.re){
+        const m = r.re.exec(seg.t.slice(L.end));
+        if (m){ a = L.end + m.index; b = a + m[0].length; val = m[0]; }
+      }
+      if (a < 0 && r.last !== true) continue;
+      if (a < 0){
+        // value position certain, characters not: take the items after the label
+        const after = seg.items.filter(o => seg.start[o.i] >= L.end);
+        if (!after.length) continue;
+        const boxes = after.map(o => { const b2 = { page: pi, x:o.it.x, y:o.it.y, w:o.it.w, h:o.it.h }; b2.bg = sampleBg(pages[pi], b2); return b2; });
+        push(r.field, boxes, seg.t.slice(L.end).trim() || '(value)');
+        for (let k = L.end; k < seg.t.length; k++) seg.used[k] = 1;
+        continue;
+      }
+      push(r.field, jpBoxes(seg, a, b), val.trim());
+      for (let k = a; k < b; k++) seg.used[k] = 1;
+    }
+  }
+
+  /* Structural fallback — ONLY where OCR has destroyed the label but the format
+     plus the document class still pin the field down. Each is narrow and stated:
+       資格確認書: a bare 6–10 digit run outside any date line is a member of the
+         保険者番号・記号・番号・枝番 family. The 告知要求制限 covers that whole
+         family as ONE rule, so the cost of guessing which member it is, is zero —
+         while a miss is the exact leak the product exists to prevent. Measured:
+         OCR renders 保険者番号 as "RREES"/"REEES"/"WREEES" on 3 of 5 fixtures.
+       住民票: 12 digits = 個人番号, 11 digits = 住民票コード. Both lengths are
+         fixed by statute and nothing else on the form is that long. */
+  const isDateRow = s => JP_DATE_RE.test(s.rowText) || s.rowText.includes('〒');
+  const unconsumed = (seg, a, b) => { for (let k=a;k<b;k++) if (seg.used[k]) return false; return true; };
+  const runs = seg => { const out=[]; let st=-1;
+    for (let k=0;k<=seg.t.length;k++){ const d = k<seg.t.length && isDigit(seg.t[k]);
+      if (d){ if (st<0) st=k; } else if (st>=0){ out.push([st,k]); st=-1; } } return out; };
+  if (cls.doc === 'shikaku_kakuninsho'){
+    for (const seg of segs){
+      if (isDateRow(seg)) continue;
+      for (const [a,b] of runs(seg)){
+        const len = b - a;
+        if (len < 6 || len > 10 || !unconsumed(seg, a, b)) continue;
+        push('hokensha_bango', jpBoxes(seg, a, b), seg.t.slice(a,b), { viaFallback: true });
+        for (let k=a;k<b;k++) seg.used[k]=1;
+      }
+    }
+  }
+  if (cls.doc === 'juminhyo'){
+    for (const seg of segs){
+      if (isDateRow(seg)) continue;
+      for (const [a,b] of runs(seg)){
+        const len = b - a;
+        if (!unconsumed(seg, a, b)) continue;
+        if (len === 12) push('my_number', jpBoxes(seg, a, b), seg.t.slice(a,b), { checkOk: myNumberCheckOk(seg.t.slice(a,b)), viaFallback: true });
+        else if (len === 11) push('jumin_code', jpBoxes(seg, a, b), seg.t.slice(a,b), { viaFallback: true });
+        else continue;
+        for (let k=a;k<b;k++) seg.used[k]=1;
+      }
+    }
+  }
+
+  /* Unlabelled addresses. Anything a label already claimed is marked consumed,
+     so this only sees text standing on its own — 備考欄 contents, free-form
+     notes. Per strategy v2 §3-2 it is automatic ONLY with 郵便番号 AND 都道府県
+     together; otherwise it is a review candidate. It is filed under its own
+     field key so it can never be confused with the LABELLED 住所, which on all
+     four alpha documents is a keep-field the recipient needs. */
+  for (const seg of segs){
+    let from = 0;
+    for (let guard = 0; guard < 4; guard++){
+      const sp = jpAddressSpan(seg.t, from);
+      if (!sp || sp.b <= sp.a) break;
+      from = sp.b;
+      if (sp.score < 3) continue;
+      let free = true; for (let k = sp.a; k < sp.b; k++) if (seg.used[k]) { free = false; break; }
+      if (!free) continue;
+      push('address_loose', jpBoxes(seg, sp.a, sp.b), seg.t.slice(sp.a, sp.b), { strong: sp.postal && sp.pref });
+      for (let k = sp.a; k < sp.b; k++) seg.used[k] = 1;
+    }
+  }
+
+  // 欄 regions (備考欄 / 臓器提供意思表示欄): the drawn rectangle under the label.
+  for (const rr of (JP_REGION_LABELS[cls.doc] || [])){
+    for (const seg of segs){
+      if (!jpFindLabel(seg, rr.labels, false)) continue;
+      const fr = jpFrameBelow(pages[pi], { y: seg.y, h: seg.h });
+      const box = fr ? { ...fr, page: pi }
+                     : { page: pi, x: seg.x0, y: seg.y, w: Math.max(seg.x1-seg.x0, pages[pi].w*0.5), h: seg.h*3.5, region: true };
+      push(rr.field, [box], rr.field);
+      break;
+    }
+  }
+
+  // 二次元コード
+  if (cls.doc === 'shikaku_kakuninsho' || (cls.doc === 'mynumber_card' && cls.side === 'back')){
+    for (const cb of jpCodeBlocks(pi)) push('qr', [cb.box], '二次元コード', { unlabelledCode: !cb.labelled });
+  }
+
+  // 住民票: household member blocks. Block 1 is the subject; blocks 2..n are
+  // third parties whose data the recipient did not ask for. Found by the 氏名
+  // label rows, because 続柄 (本人/妻/子) is a single kanji that OCR mangles far
+  // more often than it mangles a whole label.
+  if (cls.doc === 'juminhyo'){
+    const nameRows = segs.filter(s => jpFindLabel(s, ['氏名'], false)).sort((a,b)=>a.y-b.y);
+    const endRe = /住民票コード|この写し|相違|証明し|市長|区長|町長|村長|公印/;
+    if (nameRows.length > 1){
+      for (let i = 1; i < nameRows.length; i++){
+        const top = nameRows[i].y;
+        const next = i + 1 < nameRows.length ? nameRows[i+1].y : Infinity;
+        const stop = segs.filter(s => s.y > top && s.y < next && endRe.test(s.rowText)).map(s=>s.y);
+        const bottom = stop.length ? Math.min(...stop) : next;
+        const byRow = {};
+        for (const s of segs){
+          if (s.y < top || s.y >= bottom) continue;
+          (byRow[s.row] = byRow[s.row] || []).push(s);
+        }
+        for (const list of Object.values(byRow))
+          push('setaiin', list.map(jpSegBox), (list[0].t || '(世帯員)').slice(0, 24));
+      }
+    }
+    // 氏名/生年月日 inside a THIRD PARTY's block are not the subject's keep-fields.
+    // Leaving them in would put the same pixels in the 残す項目 list and under a
+    // band at the same time — the list would be telling the user the opposite of
+    // what the page shows.
+    const regions = found.filter(f => f.field === 'setaiin').flatMap(f => f.boxes);
+    if (regions.length){
+      const inside = b => regions.some(r => b.x + b.w/2 >= r.x && b.x + b.w/2 <= r.x + r.w
+                                         && b.y + b.h/2 >= r.y && b.y + b.h/2 <= r.y + r.h);
+      for (let i = found.length - 1; i >= 0; i--){
+        const f = found[i];
+        if (!['name','birth','address'].includes(f.field)) continue;
+        if (f.boxes.every(inside)) found.splice(i, 1);
+      }
+    }
+  }
+  return found;
+}
+
+/* ── state + application ── */
+const JP_PURPOSES = ['identity_submit','my_number_procedure','bid_attachment','consult_share'];
+let jpState = { cls: null, purpose: 'identity_submit', findings: [] };
+function jpScan(){
+  jpState.cls = null; jpState.findings = [];
+  if (!pages.length) return null;
+  const cls = jpClassify(0);
+  if (!cls) return null;
+  jpState.cls = cls;
+  let all = [];
+  for (let pi = 0; pi < pages.length; pi++){
+    const c = pi === 0 ? cls : (jpClassify(pi) || cls);
+    all = all.concat(jpExtract(pi, c));
+  }
+  jpState.findings = all;
+  return cls;
+}
+function jpFieldLabel(f){ return (T().jpFields && T().jpFields[f]) || f; }
+// Build entities from the findings for the current purpose. Called on load and
+// on every purpose change — the purpose IS the policy, so it re-derives rather
+// than patching modes in place.
+function jpApply(){
+  entities = entities.filter(e => !e.jp);
+  const cls = jpState.cls; if (!cls) { renderAll(); return; }
+  const purpose = jpState.purpose;
+  const add = (f, level, boxes, value, note) => {
+    const kind = (level === 'auto' || level === 'gate') ? 'auto'
+               : level === 'keep' ? 'keep' : 'candidate';
+    const mode = (level === 'auto' || level === 'gate' || level === 'recommend') ? 'no' : 'ok';
+    entities.push({ id:'j'+Math.random().toString(36).slice(2,8), type: JP_TYPE[f] || 'other',
+      value, mode, kind, reason: 'jp_' + level, boxes, jp: { doc: cls.doc, side: cls.side || null, field: f, level, note: note || null } });
+  };
+
+  // マイナンバーカード裏面 under a 本人確認 purpose: the whole face. 番号法 does not
+  // let the recipient hold the 個人番号 at all for identity checking, so the
+  // honest instruction is "submit the front instead", and the band says so.
+  if (cls.doc === 'mynumber_card' && cls.side === 'back'){
+    const lv = jpLevel('mynumber_card', 'back_all', purpose);
+    if (lv === 'auto' || lv === 'gate'){
+      for (let pi = 0; pi < pages.length; pi++)
+        add('back_all', lv, [{ page: pi, x: 0, y: 0, w: pages[pi].w, h: pages[pi].h, region: true }], jpFieldLabel('back_all'));
+    }
+  }
+  for (const f of jpState.findings){
+    let level = jpLevel(cls.doc, f.field, purpose);
+    if (!level) continue;
+    // 個人番号 with a check digit that does not verify is NOT confirmed to be a
+    // 個人番号 — it could be any 12-digit reference. Demote the automatic band
+    // to a review candidate (still default-ON) rather than assert something the
+    // arithmetic contradicts.
+    let note = null;
+    if (f.field === 'my_number' && (level === 'auto' || level === 'gate') && f.checkOk === false){ level = 'recommend'; note = 'checkdigit'; }
+    // An unlabelled code block is detection without golden coverage — candidate.
+    if (f.unlabelledCode && (level === 'auto' || level === 'gate')){ level = 'recommend'; note = 'unlabelled_code'; }
+    add(f.field, level, f.boxes, f.field === 'qr' || f.boxes.some(b=>b.region) ? jpFieldLabel(f.field) : (f.value || jpFieldLabel(f.field)), note);
+  }
+  entities.sort((a,b)=>Object.keys(TYPES).indexOf(a.type)-Object.keys(TYPES).indexOf(b.type));
+  jpRenderBar();
+  renderAll();
+}
+const JP_TYPE = { address_loose:'address', tel:'phone', my_number:'rrn', jumin_code:'rrn', hokensha_bango:'health', kigo:'health',
+  bango:'health', edaban:'health', hihokensha_bango:'health', license_no:'license', qr:'other',
+  back_all:'other', biko_change:'address', organ_donor:'health', setaiin:'name', honseki:'address',
+  hittosha:'name', sex:'other', name:'name', birth:'birth', address:'address', expiry:'other', issue:'other' };
+
+function jpSetPurpose(p){
+  if (!JP_PURPOSES.includes(p)) return;
+  jpState.purpose = p;
+  const sel = $('jpPurpose'); if (sel) sel.value = p;
+  jpApply();
+}
+function jpRenderBar(){
+  const bar = $('jpBar'); if (!bar) return;
+  const cls = jpState.cls;
+  if (!cls){ bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  $('jpDocName').textContent = jpFieldLabel('doc_' + cls.doc) + (cls.side ? ' · ' + jpFieldLabel('side_' + cls.side) : '');
+  const sel = $('jpPurpose');
+  sel.innerHTML = JP_PURPOSES.map(p => `<option value="${p}">${escapeHtml(jpFieldLabel('purpose_' + p))}</option>`).join('');
+  sel.value = jpState.purpose;
+  const note = $('jpNote');
+  const backMasked = entities.some(e => e.jp && e.jp.field === 'back_all');
+  note.textContent = backMasked ? T().jpBackNotice : '';
+  note.style.display = backMasked ? 'block' : 'none';
+}
+
 /* ───────── text masking (list display + "copy text") ─────────
    Band-only: there are exactly two states. 'ok' shows the value; anything else
    shows a block run of the same rough length. No partial reveal exists, so the
@@ -1271,8 +2092,14 @@ async function ocrCanvas(cv){
     else { setStatus(T().ocrStart); }
   }});
   const words=(data && data.words) ? data.words : [];
+  // TRIM the word text. Tesseract sometimes returns a word with leading or
+  // trailing whitespace, but its bbox is the INK box — the space has no pixels.
+  // Keeping the space makes str.length one too many, and every character box is
+  // derived by dividing the item width by that length, so the whole run shifts
+  // right by one cell. Measured: " 99221010" on 資格確認書 left the first 9
+  // uncovered by ~7px — a digit of a 保険者番号 surviving the band.
   return words.filter(w=>w.text && w.text.trim()).map(w=>({
-    str:w.text, x:w.bbox.x0, y:w.bbox.y0, w:w.bbox.x1-w.bbox.x0, h:w.bbox.y1-w.bbox.y0
+    str:w.text.trim(), x:w.bbox.x0, y:w.bbox.y0, w:w.bbox.x1-w.bbox.x0, h:w.bbox.y1-w.bbox.y0
   }));
 }
 
@@ -1313,16 +2140,31 @@ function afterLoad(keepEntities){
   if(!keepEntities){
     entities=[]; aiDone=false; showAllCats=false;
     addEntities(regexScan(docText));
-    addEntities(nameCandidates());     // conservative top-of-doc name suggestion (defaults to visible)
-    addEntities(addressCandidates());  // place/city lines without a number → review candidates
+    // A classified Japanese document gets its own preset. The Latin name/address
+    // heuristics are suppressed there — they are tuned for résumé typography and
+    // on a JP form they only ever produced junk ("(被用者", "カー", "裏面"), which
+    // would sit next to the legally-grounded preset looking equally authoritative.
+    const jp = jpScan();
+    if(!jp){
+      addEntities(nameCandidates());     // conservative top-of-doc name suggestion (defaults to visible)
+      addEntities(addressCandidates());  // place/city lines without a number → review candidates
+    }
     setStatus(T().scanDone(entities.filter(e=>e.kind!=='candidate').length)); setProg(0);
   }
   const ab=$('btnAI'); if(!aiDone){ ab.disabled=false; }
-  buildPreview(); renderAll();
+  buildPreview();
+  if(jpState.cls){
+    jpApply();
+    // The status line is written before the preset runs, so on a JP document it
+    // used to report "0 found" next to a list of five bands. Keep-fields are not
+    // "found personal info" — they are what the recipient needs — so they do not count.
+    if(!keepEntities) setStatus(T().scanDone(entities.filter(e=>e.kind!=='keep'&&e.kind!=='manual').length));
+  } else { jpRenderBar(); renderAll(); }
 }
 function resetResult(){ $('result').style.display='none'; lastOut=null; }
 function resetAll(){
   pages=[]; docText=''; entities=[]; aiDone=false; showAllCats=false; previewCanvases=[];
+  jpState={cls:null, purpose:'identity_submit', findings:[]}; jpRenderBar();
   $('docWrap').style.display='none'; dz.style.display='flex'; $('preview').innerHTML=''; clearDzAlert();
   if(typeof setSelectMode==='function') setSelectMode(false);
   setStatus(''); setProg(0); resetResult();
@@ -1552,6 +2394,7 @@ function finalizeSel(){
   toast(T().tManualAdded);
 }
 $('btnSelect').addEventListener('click',()=>setSelectMode(!selectMode));
+$('jpPurpose').addEventListener('change',e=>jpSetPurpose(e.target.value));
 
 /* ───────── detection list (live value next to toggle) ───────── */
 function catRowHtml(type,items){
@@ -1583,17 +2426,18 @@ function catRowHtml(type,items){
 // Flat item box for manual selections / name candidates (not category-grouped).
 function sectionHtml(kind,title,items){
   const t=T(), cand=kind==='candidate';
+  const icon=kind==='candidate'?'❓':kind==='keep'?'🛡':'✏️';
   return `
   <div class="cat-row sec-${kind}">
     <div class="cat-head">
-      <span class="cl">${cand?'❓':'✏️'} ${title}</span>
+      <span class="cl">${icon} ${title}</span>
       <span class="cnt hit">${t.cnt(items.length)}</span>
     </div>
     <div class="cat-items">${items.map(e=>`
       <div class="pii-item${cand?' is-cand':''}">
         <div class="val-wrap">
           <span class="val ${cand?'':'mono'}" title="${escapeHtml(e.value)}">${escapeHtml(kind==='manual'? t.manualItem : displayValue(e))}</span>
-          ${cand?`<span class="reason">${(TYPES[e.type]||{}).icon||''} ${t.reasons[e.reason]||t.reasons.name}</span>`:''}
+          ${(cand||kind==='keep')?`<span class="reason">${(TYPES[e.type]||{}).icon||''} ${t.reasons[e.reason]||(e.jp?t.reasons.jp_keep:t.reasons.name)}</span>`:''}
         </div>
         <div class="seg" role="radiogroup">
           <button class="${e.mode==='ok'?'on-ok':''}" data-id="${e.id}" data-mode="ok">${t.segOk}</button>
@@ -1605,9 +2449,10 @@ function sectionHtml(kind,title,items){
 }
 function renderList(){
   const list=$('piiList'), t=T();
-  const autoE=entities.filter(e=>e.kind!=='candidate'&&e.kind!=='manual');
+  const autoE=entities.filter(e=>e.kind!=='candidate'&&e.kind!=='manual'&&e.kind!=='keep');
   const manualE=entities.filter(e=>e.kind==='manual');
   const candE=entities.filter(e=>e.kind==='candidate');
+  const keepE=entities.filter(e=>e.kind==='keep');
   const total=entities.filter(isOn).length;
   $('piiCount').textContent= total? t.cntUse(total):'';
   document.querySelectorAll('#bulkBtns button').forEach(b=>b.disabled=!total);
@@ -1628,6 +2473,7 @@ function renderList(){
   }
   if(manualE.length) html+=sectionHtml('manual', t.manualSection, manualE);
   if(candE.length)   html+=sectionHtml('candidate', t.candSection, candE);
+  if(keepE.length)   html+=sectionHtml('keep', t.keepSection, keepE);
   list.innerHTML=html;
 }
 $('piiList').addEventListener('change',e=>{
@@ -1647,12 +2493,17 @@ $('piiList').addEventListener('click',e=>{
   }
   const b=e.target.closest('button[data-id]'); if(!b) return;
   const ent=entities.find(x=>x.id===b.dataset.id); if(!ent) return;
+  // A `keep` field is one the legal matrix says the RECIPIENT needs. Hiding it
+  // is the user's call, but it must not be a silent one — the usual failure is
+  // a rejected submission and a second round of sending the same document.
+  if(ent.kind==='keep' && b.dataset.mode!=='ok') toast(T().jpKeepWarn);
   ent.mode=b.dataset.mode; renderAll();
 });
 $('bulkBtns').addEventListener('click',e=>{
   const b=e.target.closest('button[data-mode]'); if(!b||b.disabled) return;
+  const hidesKeep = b.dataset.mode!=='ok' && entities.some(x=>isOn(x)&&x.kind==='keep');
   entities.filter(isOn).forEach(x=>x.mode=b.dataset.mode); renderAll();
-  toast(b.dataset.mode==='ok'?T().tBulkOk:T().tBulkNo);
+  toast(hidesKeep? T().jpKeepWarn : b.dataset.mode==='ok'?T().tBulkOk:T().tBulkNo);
 });
 
 /* ───────── AI scan (text-only; maps found strings back to boxes) ───────── */
@@ -1684,17 +2535,21 @@ async function runAI(){
 }
 
 /* ───────── watermark controls ───────── */
+// {date} is filled with today's date at build time rather than left as a
+// "YYYY-MM-DD" placeholder: the dated preset exists so the recipient can see WHEN
+// the copy was handed over, and a watermark reading "YYYY-MM-DD" says nothing.
+const wmPreset=i=>(T().wmPresets[i]||'').replace('{date}', new Date().toISOString().slice(0,10));
 function buildWmPresets(){
   const sel=$('wmPreset'); if(!sel) return;
   const prev=sel.value;
   const t=T();
-  sel.innerHTML = t.wmPresets.map((p,i)=>`<option value="p${i}">${escapeHtml(p)}</option>`).join('') + `<option value="custom">${t.wmCustom}</option>`;
+  sel.innerHTML = t.wmPresets.map((p,i)=>`<option value="p${i}">${escapeHtml(wmPreset(i))}</option>`).join('') + `<option value="custom">${t.wmCustom}</option>`;
   // keep prior selection if still valid
   if(prev && [...sel.options].some(o=>o.value===prev)) sel.value=prev; else sel.value='p0';
-  if($('wmText') && !$('wmText').value) $('wmText').value=t.wmPresets[0];
+  if($('wmText') && !$('wmText').value) $('wmText').value=wmPreset(0);
 }
 $('wmOn').addEventListener('change',()=>{ $('wmBody').classList.toggle('on',$('wmOn').checked); drawPreview(); updateMake(); });
-$('wmPreset').addEventListener('change',()=>{ const v=$('wmPreset').value; if(v!=='custom'){ const i=+v.slice(1); $('wmText').value=T().wmPresets[i]; } else { $('wmText').focus(); } drawPreview(); updateMake(); });
+$('wmPreset').addEventListener('change',()=>{ const v=$('wmPreset').value; if(v!=='custom'){ const i=+v.slice(1); $('wmText').value=wmPreset(i); } else { $('wmText').focus(); } drawPreview(); updateMake(); });
 $('wmText').addEventListener('input',()=>{ drawPreview(); updateMake(); });
 const wmEnabled=()=>$('wmOn').checked && $('wmText').value.trim().length>0;
 const wmText=()=>$('wmText').value.trim();

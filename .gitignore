@@ -49,3 +49,10 @@
 /docs/ai-blog-automation-blueprint.md
 /docs/블로그에 올릴 사진 모음/
 /public/safe/작업물/
+
+# SafeFile JP alpha fixture ARCHIVE. The individual files under
+# test/safe/fixtures/jp/ are committed because the golden harness cannot run
+# without them; a zip of the same bytes in docs/ is a redistribution-shaped
+# artifact with no technical purpose, and strategy v2 §4 holds the card dummies
+# to internal test use until a Japanese lawyer has reviewed them.
+docs/jp/*.zip

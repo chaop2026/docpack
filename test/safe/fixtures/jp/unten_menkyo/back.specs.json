@@ -1,0 +1,35 @@
+{
+ "file": "back",
+ "size": [
+  1100,
+  700
+ ],
+ "boxes_png": {
+  "biko_change": [
+   40,
+   145,
+   1060,
+   330
+  ],
+  "organ_donor": [
+   40,
+   395,
+   1060,
+   560
+  ]
+ },
+ "doc": "運転免許証",
+ "variant": "back",
+ "purposes": {
+  "本人確認提出": {
+   "mask": [
+    "biko_change",
+    "organ_donor"
+   ],
+   "keep": [],
+   "legal_basis": "裏面変更記載は旧住所等の不要情報、臓器提供欄は要配慮情報に準ずる（SoftBank等の提出先指示）",
+   "source": "https://tm.softbank.jp/content/dam/common/services/dialpad/pdf/cidn-dialpad-online-identification.pdf"
+  }
+ },
+ "note": "jpg는 회전·흐림 적용으로 박스 좌표 불일치 → 탐지는 OCR 좌표로 재계산, png/pdf 좌표만 골든 비교"
+}
