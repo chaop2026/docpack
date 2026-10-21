@@ -18,6 +18,14 @@
   **다크모드는 이 앱에 없다** — `prefers-color-scheme` 가 `app/`·`public/` 어디에도 없다.
 - SafeFile(`public/safe/index.html`) v2 좌표 기반 마스킹. 최근 작업은 상단바 로고/네비 정리와
   서비스워커 stale-shell 고정, 포맷별 "PDF로 저장" 경로 추가.
+- **SafeFile JP-1 알파 4종 (2026-10-21, 미배포).** 資格確認書·運転免許証·マイナンバーカード·
+  住民票 프리셋 + 제출 목적 게이트 + 띠 단일화(부분 마스킹 제거). 법적 정본은
+  `test/safe/fixtures/jp/jp_legal_matrix_alpha4.json` 하나이고 `test/safe/check_matrix.mjs` 가
+  코드의 `JP_RULES`·`JP_LEGAL` 과 (doc, field, purpose) 전수 + 법령 그룹을 대조한다.
+  라운드 3회(S3 → S3b → S3c) 모두 Codex 교차검증을 받았고, **S3c 에서 배포 차단 AMBER 4건이
+  전부 닫혔다** — 골든 **533/533**, 변이 프로브 7/7. 자세한 내용은 CLAUDE.md 의 JP-1 세 절과
+  `docs/jp/s3c_report.md`. **남은 공백은 그 보고서 §5 가 정본이다**(여기 복사하지 않는다).
+  ⚠️ 카드 더미는 공개 저장소에 있다(2026-10-21 사람 결정). **일본 변호사 검토는 아직 없다.**
 - **SEO 정본 URL 정리 완료 (2026-09-17~18, 전부 미배포).** `/safe/` 중복 4개 · 미색인 63개 ·
   GSC 지명 3개 · 트레일링/반복 슬래시를 모두 잡았다. 한 URL = 한 주소가 `lib/canonical_path_redirect.rb`
   (Rack 301, `ActionDispatch::Static` 앞) + self-referencing canonical 로 보장된다.
@@ -70,6 +78,12 @@
      열리는지 눈으로 한 번 볼 것 (자동 검증은 통과했다).
    - 선택: 42개 글 중 몇 개라도 `body_en` 을 채우면 그만큼 en URL 이 색인 대상으로 바뀐다.
      지금은 42개 전부 한국어 단독이라 en/ja/es 126개가 구조적으로 noindex 다.
+
+1b. **JP-1 S3c 교차검증 → 그 결과를 보고 배포 판단.** `docs/jp/codex_prompt_s3c.md` 를
+   `cross-review` 스킬로 돌린다. 검토 범위는 **「AMBER 4건이 닫혔는가」만**이고 그 밖의
+   발견은 백로그로만 받는다(프롬프트에 명시해 뒀다). 새 (a) 가 0건이면 배포 가능.
+   **배포와 무관하게 남은 사람 결정 2건**: 미명시 조합을 숨길지(S3b 발견 6) ·
+   출처 없는 must_keep 을 제3의 레벨로 분리할지(발견 7). 그리고 **변호사 검토**.
 
 2. **ghcr.io PAT 재발급.** 2026-08-25 디버깅 중 `od -c` 로 토큰을 평문 출력해 세션 기록에 남았다.
    교체 후 `.env.production.local` 과 `.env` 두 파일 모두 갱신 (두 파일은 같은 값을 유지해야 함).

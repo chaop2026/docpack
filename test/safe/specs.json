@@ -275,7 +275,7 @@
             "qr",
             "hokensha_bango"
           ],
-          "auto_allow": [
+          "required_auto": [
             "kigo",
             "bango",
             "edaban",
@@ -307,7 +307,7 @@
             "qr",
             "hokensha_bango"
           ],
-          "auto_allow": [
+          "required_auto": [
             "kigo",
             "bango",
             "edaban",
@@ -336,11 +336,11 @@
             "qr",
             "hokensha_bango"
           ],
-          "auto_allow": [
-            "hihokensha_bango",
+          "required_auto": [
             "hokensha_bango",
             "qr"
           ],
+          "_why_no_hihokensha": "The 後期高齢者 variant prints 被保険者番号 and no 記号/番号/枝番, and its label OCRs badly enough that the value is recovered by the STRUCTURAL FALLBACK \u2014 which files the whole 保険者番号 family under one key. So the auto set is {hokensha_bango, qr}; hihokensha_bango never fires here. The 告知要求制限 covers that family as ONE rule, so which member the key names changes nothing about what is covered. It was listed as an allowed extra while the check was subset-only; under set equality the expectation has to be what actually fires (Codex 6b-16).",
           "expect_warn": false
         }
       ]
@@ -361,7 +361,7 @@
           "require_clear": [
             "license_no"
           ],
-          "auto_allow": []
+          "required_auto": []
         }
       ]
     },
@@ -382,7 +382,7 @@
           "require_clear": [
             "address_loose"
           ],
-          "auto_allow": []
+          "required_auto": []
         }
       ]
     },
@@ -406,7 +406,7 @@
             "biko_change",
             "organ_donor"
           ],
-          "auto_allow": []
+          "required_auto": []
         }
       ]
     },
@@ -424,7 +424,7 @@
             "sex",
             "organ_donor"
           ],
-          "auto_allow": []
+          "required_auto": []
         }
       ]
     },
@@ -449,7 +449,7 @@
           "require_legal": [
             "back_all"
           ],
-          "auto_allow": [
+          "required_auto": [
             "back_all"
           ],
           "expect_warn": false
@@ -465,7 +465,7 @@
           "require_clear": [
             "my_number"
           ],
-          "auto_allow": [],
+          "required_auto": [],
           "_why_confirm": "個人番号手続 releases a band 番号法 put there. The dropdown alone does not: the release also needs the confirmation that the recipient performs a statutory 個人番号関係事務. This case ticks it; the 'unconfirmed' case below is the other half — same purpose, no tick, band stays."
         },
         {
@@ -503,9 +503,10 @@
             "setaiin"
           ],
           "require_legal": [
-            "jumin_code"
+            "my_number"
           ],
-          "auto_allow": [],
+          "_why_legal_my_number": "住民票コード left the legal group on 2026-10-21c: its own matrix entry says the statutory citation could NOT be secured (verified:false), and the legal group's banner asserts a statutory restriction (Codex 6b-10). It is still default-ON \u2014 require_banded above is what guards its band \u2014 but it is now governed by the category checkboxes like any other 要確認 item. 個人番号 on 住民票 IS 番号法-grounded, so it is what carries the \"survives all-categories-off\" assertion for this document. (Its check digit fails by fixture design, so its level is recommend/checkdigit; `legal` depends on the band being ON, not on the level being automatic.)",
+          "required_auto": [],
           "expect_warn": false,
           "_why_no_min_auto": "住民票コード moved from auto to recommend (matrix verified:false), and every 個人番号 in the alpha fixtures fails its check digit by design, so this document legitimately produces ZERO `auto` entities. require_banded/JP_INK is what guards the band here, not a count."
         },
@@ -517,7 +518,7 @@
             "honseki"
           ],
           "confirm_mynumber": true,
-          "auto_allow": []
+          "required_auto": []
         }
       ]
     },
@@ -530,7 +531,7 @@
           "purpose": "identity_submit",
           "key": "本人確認提出",
           "max_auto": 2,
-          "auto_allow": []
+          "required_auto": []
         }
       ]
     },
@@ -547,7 +548,7 @@
             "honseki",
             "hittosha"
           ],
-          "auto_allow": []
+          "required_auto": []
         },
         {
           "purpose": "my_number_procedure",
@@ -556,7 +557,7 @@
           "require_clear": [
             "honseki"
           ],
-          "auto_allow": [],
+          "required_auto": [],
           "_why": "This variant carries no 個人番号 box, so there is nothing for the confirmation checkbox to release and it is correctly not shown. 本籍 is `optional` here."
         }
       ]
@@ -570,7 +571,7 @@
           "purpose": "identity_submit",
           "key": "本人確認提出",
           "max_auto": 2,
-          "auto_allow": []
+          "required_auto": []
         }
       ]
     },
@@ -598,7 +599,7 @@
             "qr",
             "hokensha_bango"
           ],
-          "auto_allow": [
+          "required_auto": [
             "kigo",
             "bango",
             "edaban",
@@ -631,7 +632,7 @@
             "qr",
             "hokensha_bango"
           ],
-          "auto_allow": [
+          "allowed_auto": [
             "kigo",
             "bango",
             "edaban",
@@ -660,7 +661,7 @@
             "jumin_code",
             "my_number"
           ],
-          "auto_allow": []
+          "allowed_auto": []
         }
       ]
     },
@@ -686,9 +687,27 @@
           "require_legal": [
             "back_all"
           ],
-          "auto_allow": [
+          "allowed_auto": [
             "back_all"
           ],
+          "expect_warn": false
+        }
+      ]
+    },
+    {
+      "doc": "jp/shikaku_kakuninsho/kenpo.png",
+      "fixture": "fixtures/jp/shikaku_kakuninsho/kenpo.specs.json",
+      "expect_doc": "shikaku_kakuninsho",
+      "geometry": false,
+      "_why": "資格確認書 under 個人番号手続. The matrix names no (field, purpose) pair for this combination at all \u2014 the 告知要求制限 rules are `null` here because whether a 医療保険関係事務 exception exists could not be confirmed, and the 本人特定事項 keep rules name only identity_submit / bid_attachment. So the list legitimately comes out EMPTY, and a dropdown that empties the page with no explanation reads as a broken tool whose next-most-likely reading is \"nothing needed covering\" (Codex 6b-12). The notice is the mitigation; the underlying product question \u2014 whether an unnamed combination should expose detections at `optional` instead of hiding them \u2014 is Codex 6b-6 and is on the backlog, NOT closed here.",
+      "cases": [
+        {
+          "purpose": "my_number_procedure",
+          "key": "本人確認提出",
+          "max_auto": 0,
+          "required_auto": [],
+          "expect_jp_entities": 0,
+          "expect_empty_notice": true,
           "expect_warn": false
         }
       ]
@@ -1024,20 +1043,32 @@
     "purpose": "identity_submit"
   },
   "jp_warn": {
-    "_why": "資格確認書 scores 3 on its title alone and needs 4. One garbled label used to drop the ENTIRE Japanese preset and fall through to the Latin name/address heuristics with nothing said (Codex 1-1). Now: a title-only page classifies at LOW confidence (candidate scan only — no automatic band) and a page that merely looks Japanese-official raises the blocking banner. Both are driven through the paste path so the page text is exactly what the case says it is.",
+    "_why": "資格確認書 scores 3 on its title alone and needs 4. One garbled label used to drop the ENTIRE Japanese preset and fall through to the Latin name/address heuristics with nothing said (Codex 1-1). The two outcomes are NOT the same thing and no longer share a string: `lowconf` = we know which form this is, every automatic level was demoted to a candidate, and candidates are default-ON — so bands ARE in the output and what is owed is a CHECK. `unclassified` = no Japanese rule ran and nothing was covered. The old single banner said \u300c自動黒塗りは適用していません\u300d in both, which was false in the first (Codex 6b-1), so every case now asserts the banner TEXT and the measured number of bands in the default output. The suspect test also no longer fires on a bare 和暦: every Japanese r\u00e9sum\u00e9, invoice and contract carries 令和/平成/昭和, and a banner that means \"this text is Japanese\" gets dismissed (Codex 6b-2). All cases are driven through the paste path so the page text is exactly what the case says it is.",
     "cases": [
       {
-        "label": "資格確認書 제목 단독 (3점) → low confidence, candidate scan only",
-        "text": "資格確認書\n氏名 架空 太郎\n住所 東京都架空区架空町99丁目98番97号\n",
+        "label": "資格確認書 제목 단독 (3점) → low confidence, 후보 띠 적용 + 확인 요구",
+        "text": "資格確認書\n氏名 架空 太郎\n99221010\n住所 東京都架空区架空町99丁目98番97号\n",
         "expect_warn": "lowconf",
         "expect_doc": "shikaku_kakuninsho",
-        "expect_low": true
+        "expect_low": true,
+        "expect_text_has": "候補の黒塗りを既定で適用しました",
+        "expect_mask_rects": "some",
+        "_why_digits": "A bare 8-digit run is what the structural fallback files under the 保険者番号 family — level `auto`, demoted to `recommend` by the low confidence, still default-ON. That is the band whose existence the lowconf wording promises; without it the case could not tell the two banners apart by measurement."
       },
       {
-        "label": "和暦のみ・分類不能 → 차단성 경고",
-        "text": "令和7年4月1日 発行\n架空町内会 会費のお知らせ\n氏名 架空 太郎\n",
+        "label": "免許証 언급만 (분류 불가) → 차단성 경고 + 띠 0",
+        "text": "免許証のコピーを添付してください\n受付番号 A-7781\n氏名 架空 太郎\n",
         "expect_warn": "unclassified",
-        "expect_doc": null
+        "expect_doc": null,
+        "expect_text_has": "自動黒塗りは適用していません",
+        "expect_mask_rects": "none"
+      },
+      {
+        "label": "和暦만 있는 일본어 이력서 → 경고 없음 (늑대소년 방지)",
+        "text": "履歴書\n令和7年4月1日 現在\n氏名 架空 太郎\n昭和60年1月1日生\n学歴 平成20年3月 架空大学 卒業\n",
+        "expect_warn": false,
+        "expect_doc": null,
+        "_why": "和暦 used to be a suspect trigger on its own, so this document — which is not any of the four and never was — got a red \"we could not identify this document\" banner. The warning has to mean \"this looks like one of the four\", not \"this is Japanese\"."
       },
       {
         "label": "日本語の特徴なし → 경고 없음",
@@ -1051,6 +1082,36 @@
         "expect_warn": false,
         "expect_doc": "shikaku_kakuninsho",
         "expect_low": false
+      }
+    ]
+  },
+  "jp_synth": {
+    "_why": "Rows where two label-value pairs share one segment. The alpha fixtures put 保険者名 and 保険者番号 230px apart — wider than the segment threshold — so no committed fixture can reach the state where a keep field's `last:true` tail swallows the insurer NUMBER and marks it `used`, which is exactly what silences the structural fallback (Codex 6b-5). Built through the paste path: what this pins is the label\u2192value boundary, not OCR.",
+    "cases": [
+      {
+        "label": "保険者名 과 保険者番号 가 한 행",
+        "text": "資格確認書\n保険者名 架空健康保険協会 保険者番号 99221010\n氏名 架空 太郎\n",
+        "purpose": "identity_submit",
+        "expect_doc": "shikaku_kakuninsho",
+        "expect_fields": {
+          "hokensha_bango": { "level": "auto", "kind": "auto", "banded": true, "legal": true },
+          "hokensha_name": { "level": "keep", "kind": "keep", "banded": false, "legal": false }
+        },
+        "masked": ["99221010"],
+        "not_masked": ["架空健康保険協会"]
+      },
+      {
+        "label": "保険者番号 라벨이 OCR 로 깨진 한 행",
+        "text": "資格確認書\n記号 90001234\n保険者名 架空健康保険協会 RREES 99221010\n氏名 架空 太郎\n",
+        "purpose": "identity_submit",
+        "expect_doc": "shikaku_kakuninsho",
+        "expect_fields": {
+          "hokensha_bango": { "level": "auto", "kind": "auto", "banded": true, "legal": true },
+          "hokensha_name": { "level": "keep", "kind": "keep", "banded": false, "legal": false }
+        },
+        "masked": ["99221010"],
+        "not_masked": ["架空健康保険協会"],
+        "_why": "The other half of Codex 6b-5, and the one that makes the digit-run rule load-bearing. Here the neighbouring LABEL is unreadable \u2014 which is the measured normal on these forms: 保険者番号 OCRs as RREES/REEES/WREEES on 3 of 5 alpha fixtures \u2014 so the tail boundary has nothing to stop at. What keeps the number out of 保険者名's claim is the rule that a keep-only field never consumes a 4+ digit run. Mutation-checked: with that rule disabled the number is NOT banded while the boundary alone still passes the case above. The claim is withheld from `used`, from the entity's BOXES and from its displayed VALUE together \u2014 a band in the output with the number still printed in the sidebar list would be the list contradicting the page."
       }
     ]
   }

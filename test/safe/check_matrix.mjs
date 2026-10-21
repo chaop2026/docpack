@@ -12,7 +12,13 @@
  *   2. read JP_RULES + jpLevel out of index.html and evaluate them,
  *   3. compare EVERY (doc, field, purpose) triple in either table,
  *   4. enforce the invariant `verified:false ⇒ never auto/gate` on the JSON,
- *   5. enforce that the fields JP_RULES names are the fields the JSON names.
+ *   5. enforce that the fields JP_RULES names are the fields the JSON names,
+ *   6. derive the LEGAL group per document from `legal_enforcement: true` and
+ *      require set equality with JP_LEGAL — plus the invariant
+ *      `verified:false ⇒ never legal_enforcement`. The old check only asked
+ *      whether a field name appeared somewhere in the matrix, which let
+ *      住民票コード (verified:false, no citation secured) sit under a banner
+ *      asserting the recipient may not keep it (Codex 6b-10).
  *
  * run.mjs calls this first, so the golden cannot pass while the tables disagree.
  * Usage: node check_matrix.mjs   (exit 0 = identical)
@@ -37,12 +43,19 @@ const M = JSON.parse(fs.readFileSync(MATRIX, 'utf8'));
 const PURPOSES = Object.keys(M.purposes);
 const matrix = {};            // doc → field → purpose → level
 const matrixFields = {};      // doc → Set(field)
+const matrixLegal = {};       // doc → Set(field) grounded in statute
 function applyRule(docId, rule, where) {
   const token = LEVEL_TOKEN[rule.level];
   if (!token) { fail(where, `unknown level "${rule.level}"`); return; }
   if (!Array.isArray(rule.fields) || !rule.fields.length) { fail(where, 'rule has no `fields` (code field keys)'); return; }
   if (rule.verified === false && AUTOMATIC.has(token))
     fail(where, `verified:false but level "${rule.level}" is automatic — an unsourced rule may not delete pixels on its own`);
+  if (rule.legal_enforcement === true) {
+    if (rule.verified === false)
+      fail(where, 'verified:false but legal_enforcement:true — a rule whose citation we could not secure may not assert a statutory restriction');
+    matrixLegal[docId] = matrixLegal[docId] || new Set();
+    for (const f of rule.fields) matrixLegal[docId].add(f);
+  }
   const seen = {};
   const put = (purpose, level) => {
     if (!PURPOSES.includes(purpose)) { fail(where, `unknown purpose "${purpose}"`); return; }
@@ -79,11 +92,11 @@ function slice(startMarker, endMarker) {
 // Everything from the purpose shorthands through the end of JP_RULES, then jpLevel.
 const rulesSrc = slice('const P_NOT_MYNUM =', '\n};\n');
 const levelSrc = slice('function jpLevel(', '\n}\n');
-const legalSrc = slice('const JP_LEGAL_FIELDS =', ']);');
-let JP_RULES, jpLevel, JP_LEGAL_FIELDS;
+const legalSrc = slice('const JP_LEGAL = {', '\n};\n');
+let JP_RULES, jpLevel, JP_LEGAL;
 try {
-  ({ JP_RULES, jpLevel, JP_LEGAL_FIELDS } =
-    new Function(`${rulesSrc}\n${levelSrc}\n${legalSrc}\nreturn {JP_RULES, jpLevel, JP_LEGAL_FIELDS};`)());
+  ({ JP_RULES, jpLevel, JP_LEGAL } =
+    new Function(`${rulesSrc}\n${levelSrc}\n${legalSrc}\nreturn {JP_RULES, jpLevel, JP_LEGAL};`)());
 } catch (e) {
   console.error('could not evaluate JP_RULES / jpLevel out of index.html:', e.message);
   process.exit(2);
@@ -110,11 +123,21 @@ for (const doc of docs) {
 // times prints the same green as one that checked two hundred.
 if (compared < 100) fail('coverage', `only ${compared} (doc, field, purpose) triples compared — the extraction is probably broken`);
 
-/* ── 4/5. the legal group must be a subset of what the matrix grounds in statute ── */
-for (const f of JP_LEGAL_FIELDS) {
-  const inSome = Object.keys(matrix).some(d => matrix[d][f]);
-  if (!inSome) fail(`JP_LEGAL_FIELDS.${f}`, 'not a field the legal matrix knows');
+/* ── 6. the legal group IS what the matrix grounds in statute, per document ──
+   Set equality, not subset: a missing member silently drops a statutory band
+   back under the category checkboxes (the Codex 4-6 failure), and an extra one
+   asserts a restriction the matrix does not claim (the Codex 6b-10 failure). */
+let legalPairs = 0;
+for (const doc of new Set([...Object.keys(matrixLegal), ...Object.keys(JP_LEGAL)])) {
+  const want = matrixLegal[doc] || new Set();
+  const got = new Set(JP_LEGAL[doc] || []);
+  if (!JP_LEGAL[doc]) fail(`JP_LEGAL.${doc}`, 'document missing from JP_LEGAL (write [] if it has no statutory field)');
+  for (const f of got) if (!want.has(f)) fail(`JP_LEGAL.${doc}.${f}`, 'in the legal group but the matrix does not mark it legal_enforcement:true');
+  for (const f of want) if (!got.has(f)) fail(`JP_LEGAL.${doc}.${f}`, 'matrix says legal_enforcement:true but the code leaves it to the category checkboxes');
+  legalPairs += new Set([...want, ...got]).size;
 }
+// Same reason as `compared`: zero comparisons print the same green as many.
+if (legalPairs < 8) fail('coverage', `only ${legalPairs} legal (doc, field) pairs compared — the extraction is probably broken`);
 
 if (problems.length) {
   console.log(`\n✗ legal matrix ↔ code: ${problems.length} disagreement(s) over ${compared} triples\n`);
@@ -122,4 +145,4 @@ if (problems.length) {
   console.log('');
   process.exit(1);
 }
-console.log(`✅ legal matrix ↔ code: ${compared} (doc, field, purpose) triples identical, verified:false⇒no-auto holds`);
+console.log(`✅ legal matrix ↔ code: ${compared} (doc, field, purpose) triples identical, ${legalPairs} legal pairs identical, verified:false⇒no-auto/no-legal holds`);

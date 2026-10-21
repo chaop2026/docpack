@@ -200,10 +200,16 @@ header{border-bottom:1px solid var(--line);background:var(--paper);position:stic
 .jp-bar .jp-note{width:100%;font-size:11.5px;line-height:1.5;color:var(--no);background:var(--no-bg);border-radius:8px;padding:6px 10px}
 .jp-bar .jp-mn{width:100%;display:flex;align-items:flex-start;gap:7px;font-size:11.5px;line-height:1.5;font-weight:600;cursor:pointer}
 .jp-bar .jp-mn input{margin-top:2px;flex:none}
+.jp-bar .jp-empty{width:100%;font-size:11.5px;line-height:1.5;color:var(--sub);background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 10px}
 /* Classification failed. This has to read as a stop sign, not a hint: nothing
-   was masked automatically and the user has to act. */
+   was masked automatically and the user has to act.
+   `is-low` is the OTHER state and must not look the same: there the document
+   WAS recognised, candidate bands ARE applied by default, and what the user
+   owes us is a check — not an action we failed to take. Saying both in one red
+   box made one sentence describe two opposite outputs (Codex 6b-1). */
 .jp-warn{margin:8px 0 2px;padding:9px 11px;border:1.5px solid var(--no);border-left-width:5px;border-radius:10px;
   background:var(--no-bg);color:var(--no);font-size:12.5px;font-weight:700;line-height:1.55}
+.jp-warn.is-low{border-color:var(--half);background:var(--half-bg);color:var(--half)}
 .cat-row.sec-keep{border-color:var(--ok);background:var(--ok-bg)}
 .cat-row.sec-keep .cl{color:var(--ok)}
 /* Statutory bands: outside the category checkboxes, released one at a time. */
@@ -373,6 +379,7 @@ footer a{color:var(--sub)}
               <input type="checkbox" id="jpMnConfirm">
               <span id="jpMnLabel"></span>
             </label>
+            <div class="jp-empty" id="jpEmpty" style="display:none"></div>
           </div>
           <div class="sel-bar">
             <button class="btn ghost small" id="btnSelect" data-i18n="btnSelect">🖐 영역 직접 선택</button>
@@ -558,7 +565,7 @@ ko:{
   btnSelect:'🖐 영역 직접 선택', selHint:'가릴 영역을 손가락이나 마우스로 드래그하세요 (사진·서명·도장·이름 등)',
   manualSection:'직접 선택한 영역', candSection:'확인 필요 — 이것도 가릴까요?', manualItem:'직접 선택한 영역',
   jpFields:{address_loose:'문서 내 주소',tel:'전화·FAX',doc_shikaku_kakuninsho:'資格確認書(자격확인서)', doc_unten_menkyo:'運転免許証(운전면허증)', doc_mynumber_card:'マイナンバーカード(마이넘버카드)', doc_juminhyo:'住民票(주민표)', side_front:'앞면', side_back:'뒷면', purpose_identity_submit:'本人確認 제출', purpose_my_number_procedure:'個人番号 절차', purpose_bid_attachment:'입찰 첨부', purpose_consult_share:'상담용 공유', back_all:'뒷면 전체', my_number:'개인번호', jumin_code:'주민표 코드', hokensha_bango:'보험자번호', kigo:'기호', bango:'번호', edaban:'가지번호', hihokensha_bango:'피보험자번호', qr:'2차원 코드', license_no:'면허증번호', biko_change:'비고란(변경 기재)', organ_donor:'장기기증 의사표시란', setaiin:'다른 세대원', honseki:'본적', hittosha:'필두자', sex:'성별', name:'성명', birth:'생년월일', address:'주소', expiry:'유효기간', issue:'교부일', issuer:'발행자'},
-  jpPurposeLabel:'제출 목적', jpBackNotice:'신원확인이 목적이라면 앞면만 제출하세요. 번호법상 법령이 인정한 사무 외의 목적으로 個人番号를 복사·보관하는 것은 제한됩니다. 「個人番号 절차」는 제출처가 법정 個人番号関係事務를 수행하는 경우에만 선택하세요.', jpKeepWarn:'제출처가 요구하는 항목입니다. 가리면 접수되지 않을 수 있습니다.', jpUnclassifiedWarn:'文書の種類を特定できなかったため自動黒塗りは適用していません。手動で範囲を選択してください。 (문서 종류를 특정하지 못해 자동 마스킹을 적용하지 않았습니다. 가릴 영역을 직접 선택하세요.)', jpMnConfirm:'제출처가 법정 個人番号関係事務를 수행함을 확인했습니다.', jpLegalSection:'法令・提出先ルール (법령·제출처 규칙)', jpLegalWarn:'법령 근거가 있는 항목입니다. 해제하면 제출처가 보관할 수 없는 정보가 그대로 나갑니다.', keepSection:'남겨야 하는 항목',
+  jpPurposeLabel:'제출 목적', jpBackNotice:'신원확인이 목적이라면 앞면만 제출하세요. 번호법상 법령이 인정한 사무 외의 목적으로 個人番号를 복사·보관하는 것은 제한될 수 있습니다. 「個人番号 절차」는 제출처 안내문이 個人番号(뒷면) 제출을 명시적으로 요구하는 경우에만 선택하세요.', jpKeepWarn:'제출처가 요구하는 항목입니다. 가리면 접수되지 않을 수 있습니다.', jpWarnUnclassified:'문서 종류를 특정하지 못해 자동 마스킹을 적용하지 않았습니다. 가릴 영역을 직접 선택하세요.', jpWarnLowconf:'문서 종류의 확신도가 낮아 후보 항목에 기본값으로 띠를 적용했습니다. 반드시 확인하세요.', jpEmptyPurpose:'이 문서에서 찾은 항목에는 이 목적에 적용되는 규칙이 없습니다. 가릴 영역을 직접 선택하세요.', jpMnConfirm:'제출처 안내문에서 個人番号(뒷면) 제출을 명시적으로 요구하는 것을 확인했습니다. 요구가 없으면 해제하지 마세요.', jpLegalSection:'법령·제출처 규칙 (法令・提出先ルール)', jpLegalWarn:'법령에 근거가 있는 항목입니다. 해제하면 법령상 수집·보관이 제한될 수 있는 정보가 그대로 나갑니다.', keepSection:'남겨야 하는 항목',
   reasons:{name:'이름일 수 있음', jp_auto:'법적 근거로 자동 가림', jp_gate:'목적에 따라 자동 가림', jp_recommend:'가리는 것을 권장', jp_optional:'선택 가능', jp_keep:'제출처가 요구 — 가리지 마세요', addr:'주소일 수 있음', addr_contact:'주소일 수 있음 · 연락처 영역', addr_edge:'주소일 수 있음 · 문서 상·하단', addr_kw:'주소일 수 있음 · 지명·주소어'},
   tManualAdded:'영역을 추가했어요', tManualRemoved:'영역을 삭제했어요', tSelSmall:'너무 작아요. 조금 더 크게 드래그하세요.', btnSelectOn:'✓ 선택 모드 (끄기)',
   wmToggle:'워터마크 넣기 (선택)', wmPlaceholder:'워터마크 문구 (직접 입력 가능)', wmCustom:'직접 입력…',
@@ -615,7 +622,7 @@ en:{
   btnSelect:'🖐 Select area manually', selHint:'Drag with your finger or mouse over the area to hide (photo, signature, stamp, name…)',
   manualSection:'Manually selected areas', candSection:'Please review — hide these too?', manualItem:'Selected area',
   jpFields:{address_loose:'Address in body',tel:'Phone / FAX',doc_shikaku_kakuninsho:'Qualification certificate (資格確認書)', doc_unten_menkyo:'Driver\'s licence (運転免許証)', doc_mynumber_card:'My Number card', doc_juminhyo:'Residence record (住民票)', side_front:'front', side_back:'back', purpose_identity_submit:'Identity verification', purpose_my_number_procedure:'My Number procedure', purpose_bid_attachment:'Tender attachment', purpose_consult_share:'Sharing for advice', back_all:'Entire back face', my_number:'My Number', jumin_code:'Residence code', hokensha_bango:'Insurer number', kigo:'Symbol', bango:'Number', edaban:'Branch number', hihokensha_bango:'Insured number', qr:'2-D code', license_no:'Licence number', biko_change:'Remarks (changes)', organ_donor:'Organ donation section', setaiin:'Other household members', honseki:'Registered domicile', hittosha:'Head of register', sex:'Sex', name:'Name', birth:'Date of birth', address:'Address', expiry:'Valid until', issue:'Issued', issuer:'Issuer'},
-  jpPurposeLabel:'Purpose of submission', jpBackNotice:'If identity is what needs checking, submit the front face only. Under the My Number Act, copying or keeping a My Number for anything other than a task the law recognises is restricted. Choose “My Number procedure” only when the recipient performs a statutory My Number task.', jpKeepWarn:'The recipient asks for this field. Hiding it may get your submission rejected.', jpUnclassifiedWarn:'文書の種類を特定できなかったため自動黒塗りは適用していません。手動で範囲を選択してください。 (The document type could not be identified, so no automatic redaction was applied. Please select the areas to cover by hand.)', jpMnConfirm:'I confirm the recipient performs a statutory My Number (個人番号関係事務) task.', jpLegalSection:'Statutory / recipient rules (法令・提出先ルール)', jpLegalWarn:'This band has a legal basis. Releasing it sends data the recipient is not allowed to keep.', keepSection:'Fields to keep visible',
+  jpPurposeLabel:'Purpose of submission', jpBackNotice:'If identity is what needs checking, submit the front face only. Under the My Number Act, copying or keeping a My Number for anything other than a task the law recognises may be restricted. Choose “My Number procedure” only when the recipient’s own instructions explicitly ask for the My Number (back face).', jpKeepWarn:'The recipient asks for this field. Hiding it may get your submission rejected.', jpWarnUnclassified:'The document type could not be identified, so no automatic redaction was applied. Please select the areas to cover by hand.', jpWarnLowconf:'Confidence in the document type is low, so candidate bands were applied by default. Please check them.', jpEmptyPurpose:'None of the fields found in this document has a rule for this purpose. Select the areas to cover by hand.', jpMnConfirm:'I have checked that the recipient’s instructions explicitly ask for the My Number (back face). Do not release this if they do not.', jpLegalSection:'Statutory / recipient rules', jpLegalWarn:'This band has a legal basis. Releasing it sends data whose collection or retention may be restricted by law.', keepSection:'Fields to keep visible',
   reasons:{name:'Possibly a name', jp_auto:'Hidden automatically (legal basis)', jp_gate:'Hidden for this purpose', jp_recommend:'Recommended to hide', jp_optional:'Optional', jp_keep:'Recipient needs this — keep it', addr:'Possibly an address', addr_contact:'Possibly an address · near contact info', addr_edge:'Possibly an address · header/footer', addr_kw:'Possibly an address · place/street term'},
   tManualAdded:'Area added', tManualRemoved:'Area removed', tSelSmall:'Too small — drag a bit larger.', btnSelectOn:'✓ Selecting (turn off)',
   wmToggle:'Add watermark (optional)', wmPlaceholder:'Watermark text (editable)', wmCustom:'Custom…',
@@ -672,7 +679,7 @@ ja:{
   btnSelect:'🖐 範囲を手動で選択', selHint:'隠したい範囲を指またはマウスでドラッグしてください（写真・署名・印鑑・氏名など）',
   manualSection:'手動で選択した範囲', candSection:'要確認 — これも隠しますか？', manualItem:'選択した範囲',
   jpFields:{address_loose:'本文中の住所',tel:'電話・FAX',doc_shikaku_kakuninsho:'資格確認書', doc_unten_menkyo:'運転免許証', doc_mynumber_card:'マイナンバーカード', doc_juminhyo:'住民票の写し', side_front:'表面', side_back:'裏面', purpose_identity_submit:'本人確認提出', purpose_my_number_procedure:'個人番号手続', purpose_bid_attachment:'入札添付', purpose_consult_share:'相談用共有', back_all:'裏面全体', my_number:'個人番号', jumin_code:'住民票コード', hokensha_bango:'保険者番号', kigo:'記号', bango:'番号', edaban:'枝番', hihokensha_bango:'被保険者番号', qr:'二次元コード', license_no:'免許証番号', biko_change:'備考欄（変更記載）', organ_donor:'臓器提供意思表示欄', setaiin:'本人以外の世帯員', honseki:'本籍', hittosha:'筆頭者', sex:'性別', name:'氏名', birth:'生年月日', address:'住所', expiry:'有効期限', issue:'交付日', issuer:'発行者'},
-  jpPurposeLabel:'提出目的', jpBackNotice:'身元確認が目的なら表面のみ提出してください。番号法上、法令で認められた事務以外で個人番号を複写・保管することは制限されています。「個人番号手続」は、提出先が法定の個人番号関係事務を行う場合にのみ選んでください。', jpKeepWarn:'提出先が受付できない可能性があります（本人特定事項）。', jpUnclassifiedWarn:'文書の種類を特定できなかったため自動黒塗りは適用していません。手動で範囲を選択してください。', jpMnConfirm:'提出先が法定の個人番号関係事務を行うことを確認しました。', jpLegalSection:'法令・提出先ルール', jpLegalWarn:'法令に根拠がある項目です。解除すると、提出先が保管できない情報がそのまま出力されます。', keepSection:'残す項目',
+  jpPurposeLabel:'提出目的', jpBackNotice:'身元確認が目的なら表面のみ提出してください。番号法上、法令で認められた事務以外で個人番号を複写・保管することは制限される場合があります。「個人番号手続」は、提出先の案内で個人番号（裏面）の提出が明示的に求められている場合にのみ選んでください。', jpKeepWarn:'提出先が受付できない可能性があります（本人特定事項）。', jpWarnUnclassified:'文書の種類を特定できなかったため自動黒塗りは適用していません。手動で範囲を選択してください。', jpWarnLowconf:'文書の種類の確信度が低いため、候補の黒塗りを既定で適用しました。必ず確認してください。', jpEmptyPurpose:'この文書で検出した項目には、この目的に適用されるルールがありません。手動で範囲を選択してください。', jpMnConfirm:'提出先の案内で、個人番号（裏面）の提出が明示的に求められていることを確認しました。求められていない場合は解除しないでください。', jpLegalSection:'法令・提出先ルール', jpLegalWarn:'法令に根拠がある項目です。解除すると、法令上、収集・保管が制限される場合がある情報がそのまま出力されます。', keepSection:'残す項目',
   reasons:{name:'氏名の可能性', jp_auto:'法令根拠により自動で黒塗り', jp_gate:'この目的では自動で黒塗り', jp_recommend:'黒塗りを推奨', jp_optional:'任意', jp_keep:'提出先が必要とする項目', addr:'住所の可能性', addr_contact:'住所の可能性 · 連絡先の近く', addr_edge:'住所の可能性 · 文書の上部・下部', addr_kw:'住所の可能性 · 地名・住所語'},
   tManualAdded:'範囲を追加しました', tManualRemoved:'範囲を削除しました', tSelSmall:'小さすぎます。もう少し大きくドラッグしてください。', btnSelectOn:'✓ 選択モード（オフ）',
   wmToggle:'ウォーターマークを入れる（任意）', wmPlaceholder:'ウォーターマーク文言（自由入力可）', wmCustom:'自由入力…',
@@ -729,7 +736,7 @@ es:{
   btnSelect:'🖐 Seleccionar área manualmente', selHint:'Arrastra con el dedo o el ratón sobre el área a ocultar (foto, firma, sello, nombre…)',
   manualSection:'Áreas seleccionadas manualmente', candSection:'Revisar — ¿ocultar también esto?', manualItem:'Área seleccionada',
   jpFields:{address_loose:'Dirección en el texto',tel:'Teléfono / FAX',doc_shikaku_kakuninsho:'Certificado de cobertura (資格確認書)', doc_unten_menkyo:'Permiso de conducir (運転免許証)', doc_mynumber_card:'Tarjeta My Number', doc_juminhyo:'Certificado de residencia (住民票)', side_front:'anverso', side_back:'reverso', purpose_identity_submit:'Verificación de identidad', purpose_my_number_procedure:'Trámite de My Number', purpose_bid_attachment:'Anexo de licitación', purpose_consult_share:'Compartir para consulta', back_all:'Todo el reverso', my_number:'My Number', jumin_code:'Código de residencia', hokensha_bango:'N.º de aseguradora', kigo:'Símbolo', bango:'Número', edaban:'N.º de rama', hihokensha_bango:'N.º de asegurado', qr:'Código 2D', license_no:'N.º de permiso', biko_change:'Observaciones (cambios)', organ_donor:'Apartado de donación de órganos', setaiin:'Otros miembros del hogar', honseki:'Domicilio registral', hittosha:'Titular del registro', sex:'Sexo', name:'Nombre', birth:'Fecha de nacimiento', address:'Dirección', expiry:'Válido hasta', issue:'Emitido', issuer:'Emisor'},
-  jpPurposeLabel:'Finalidad del envío', jpBackNotice:'Si lo que hay que verificar es la identidad, envía solo el anverso. La Ley My Number restringe copiar o conservar un My Number para fines distintos de los trámites reconocidos por la ley. Elige «Trámite de My Number» solo si el destinatario realiza un trámite legal de My Number.', jpKeepWarn:'El destinatario pide este dato. Ocultarlo puede provocar el rechazo del envío.', jpUnclassifiedWarn:'文書の種類を特定できなかったため自動黒塗りは適用していません。手動で範囲を選択してください。 (No se ha podido identificar el tipo de documento, por lo que no se aplicó ningún tachado automático. Selecciona a mano las zonas que quieras cubrir.)', jpMnConfirm:'Confirmo que el destinatario realiza un trámite legal de My Number (個人番号関係事務).', jpLegalSection:'Reglas legales / del destinatario (法令・提出先ルール)', jpLegalWarn:'Esta banda tiene base legal. Al liberarla envías datos que el destinatario no puede conservar.', keepSection:'Campos que deben quedar visibles',
+  jpPurposeLabel:'Finalidad del envío', jpBackNotice:'Si lo que hay que verificar es la identidad, envía solo el anverso. La Ley My Number puede restringir copiar o conservar un My Number para fines distintos de los trámites reconocidos por la ley. Elige «Trámite de My Number» solo si las instrucciones del destinatario piden expresamente el My Number (reverso).', jpKeepWarn:'El destinatario pide este dato. Ocultarlo puede provocar el rechazo del envío.', jpWarnUnclassified:'No se ha podido identificar el tipo de documento, por lo que no se aplicó ningún tachado automático. Selecciona a mano las zonas que quieras cubrir.', jpWarnLowconf:'La confianza en el tipo de documento es baja, así que se aplicaron bandas de candidatos por defecto. Compruébalas.', jpEmptyPurpose:'Ninguno de los campos encontrados en este documento tiene una regla para esta finalidad. Selecciona a mano las zonas que quieras cubrir.', jpMnConfirm:'He comprobado que las instrucciones del destinatario piden expresamente el My Number (reverso). No lo liberes si no lo piden.', jpLegalSection:'Reglas legales / del destinatario', jpLegalWarn:'Esta banda tiene base legal. Al liberarla envías datos cuya recogida o conservación puede estar restringida por ley.', keepSection:'Campos que deben quedar visibles',
   reasons:{name:'Puede ser un nombre', jp_auto:'Oculto automáticamente (base legal)', jp_gate:'Oculto para esta finalidad', jp_recommend:'Se recomienda ocultar', jp_optional:'Opcional', jp_keep:'El destinatario lo necesita', addr:'Puede ser una dirección', addr_contact:'Puede ser una dirección · cerca del contacto', addr_edge:'Puede ser una dirección · encabezado/pie', addr_kw:'Puede ser una dirección · término de lugar/calle'},
   tManualAdded:'Área añadida', tManualRemoved:'Área eliminada', tSelSmall:'Demasiado pequeña — arrastra un poco más.', btnSelectOn:'✓ Seleccionando (desactivar)',
   wmToggle:'Añadir marca de agua (opcional)', wmPlaceholder:'Texto de la marca de agua (editable)', wmCustom:'Personalizado…',
@@ -1196,12 +1203,18 @@ const JP_CLASSES = {
   juminhyo: { min: 4, title: ['住民票'], kw: [['住民票',3],['世帯主',2],['続柄',2],['筆頭者',2],['世帯全員',2],
       ['住民となった日',2],['住民票コード',2],['本籍',1],['住民となつた日',2]] },
 };
-/* Does this page LOOK Japanese-official even though no class reached threshold?
-   Any one of the four document names, or a 和暦 era marker, is enough. This is
-   not a classification — it is the trigger for telling the user that automatic
-   masking did NOT run, which is the failure the previous build was silent about
-   (a single garbled label dropped the whole JP preset and nothing said so). */
-const JP_SUSPECT_RE = /資格確認書|免許証|個人番号|マイナンバー|住民票|令和|平成|昭和/;
+/* Does this page LOOK like one of the FOUR documents even though no class
+   reached threshold? This is not a classification — it is the trigger for
+   telling the user that automatic masking did NOT run, which is the failure the
+   previous build was silent about (a single garbled label dropped the whole JP
+   preset and nothing said so).
+   和暦 (令和|平成|昭和) used to be enough on its own, and that was wrong: every
+   Japanese résumé, invoice and contract carries an era date, so the banner said
+   "we could not identify this document" on documents that are not any of the
+   four and never were. A warning that fires on "this text is Japanese" teaches
+   the user to dismiss it, and then it is not there when it matters (Codex 6b-2).
+   The names below are document names, not date formats. */
+const JP_SUSPECT_RE = /資格確認書|免許証|個人番号|マイナンバー|住民票/;
 function jpSuspect(pi){ return JP_SUSPECT_RE.test(jpPageText(pi)); }
 function jpPageText(pi){
   const page = pages[pi];
@@ -1236,6 +1249,21 @@ function jpClassify(pi){
   }
   return best;
 }
+/* Anchors that appear ONLY on the back face of each card. A card scanned into
+   two pages leaves the back face unclassifiable on its own — 個人番号 is worth 2
+   of the 4 points the card needs and the card's NAME is printed on the front —
+   so without something the back page can be recognised BY, the only way to
+   govern it was to inherit page 1's class. That inheritance also governed a
+   bank-book copy or any other unrelated attachment bound into the same PDF, and
+   it governed it with CARD rules: the error direction is destroying required
+   evidence, not leaking (Codex 6b-3). These anchors are what a promotion to
+   「the back of the card on the previous page」 has to prove.
+   臓器提供 is deliberately absent from the card list — on マイナンバーカード it is
+   a FRONT field, so it is not evidence of a back face there. */
+const JP_BACK_ANCHORS = {
+  mynumber_card: /個人番号|マイナンバー|二次元コード/,
+  unten_menkyo: /備考欄|臓器提供|提供意思|意思表示欄/,
+};
 
 /* ── 個人番号 check digit ──
    Source: 行政手続における特定の個人を識別するための番号の利用等に関する法律の
@@ -1494,14 +1522,26 @@ const JP_RULES = {
     ...JP_EXTRA,
   },
 };
-/* The legal-preset fields: the ones the matrix grounds in 番号法 / 告知要求制限 /
-   住民基本台帳法 rather than in a submission-desk convention. They are NOT
-   subject to the general category checkboxes — turning off 「その他」 used to
-   silently remove the マイナカード裏面 band and the 資格確認書 QR band from the
-   output, with no warning (Codex 4-6). They live in their own group and can only
-   be released one item at a time. */
-const JP_LEGAL_FIELDS = new Set(['back_all','qr','my_number','jumin_code',
-  'hokensha_bango','kigo','bango','edaban','hihokensha_bango']);
+/* The legal-preset fields, PER DOCUMENT: the ones the matrix grounds in 番号法 /
+   告知要求制限 rather than in a submission-desk convention. They are NOT subject
+   to the general category checkboxes — turning off 「その他」 used to silently
+   remove the マイナカード裏面 band and the 資格確認書 QR band from the output, with
+   no warning (Codex 4-6). They live in their own group and can only be released
+   one item at a time, and releasing one says 「法令上…制限される場合があります」.
+   Mirrors `legal_enforcement: true` in the matrix, which check_matrix.mjs
+   compares field-for-field AND allows only on `verified: true` rules. A flat
+   field-name Set could not express that distinction: it put 住民票コード — whose
+   own matrix entry says the statutory citation could NOT be secured
+   (verified:false) — under a banner asserting the recipient may not keep it
+   (Codex 6b-10). Document scope matters for the same reason: `my_number` is
+   番号法-grounded on 住民票, `jumin_code` is not grounded at all. */
+const JP_LEGAL = {
+  shikaku_kakuninsho: ['hokensha_bango','kigo','bango','edaban','hihokensha_bango','qr'],
+  unten_menkyo: [],
+  mynumber_card: ['back_all','my_number','qr'],
+  juminhyo: ['my_number'],
+};
+function jpIsLegal(doc, field){ return (JP_LEGAL[doc] || []).includes(field); }
 function jpLevel(doc, field, purpose){
   const r = (JP_RULES[doc] || {})[field];
   if (!r) return null;
@@ -1658,10 +1698,47 @@ function jpFindLabel(seg, labels, headOnly){
   }
   return null;
 }
-// Span of the first `n` digits after `from`, tolerating group separators.
-function jpDigitSpan(seg, from, n){
+/* Every label this document's rules can anchor on, and where the next one
+   starts. A `last:true` tail has to STOP there. Two label-value pairs on one
+   visual row collapse into ONE segment whenever the gap between the columns
+   falls under the segment threshold, and "every item after my label" then
+   swallows the neighbouring column: 「保険者名 架空健康保険協会 保険者番号 99221010」
+   handed the 保険者名 rule the insurer NUMBER's items and marked them `used` —
+   and `used` is exactly what the structural fallback refuses to re-claim. A
+   field we promise never to redact was suppressing one the 告知要求制限 requires
+   us to redact, and nothing about the output said so (Codex 6b-5). */
+function jpKnownLabels(doc){
+  const out = [];
+  for (const r of (JP_FIELD_RULES[doc] || [])) out.push(...r.labels);
+  for (const r of (JP_REGION_LABELS[doc] || [])) out.push(...(r.labels || []));
+  return out;
+}
+function jpTailEnd(seg, from, labels){
+  let end = seg.t.length;
+  for (const lb of labels){ const i = seg.t.indexOf(lb, from); if (i >= from && i < end) end = i; }
+  return end;
+}
+/* Can this field ever be banded automatically on this document? A field whose
+   only levels are keep/optional never redacts anything — so it must not CONSUME
+   an identifier either. Marking a 4+ digit run as `used` is a claim ("this span
+   belongs to me"), and from a field that will never cover it, that claim only
+   has the effect of hiding the span from the rule that would. */
+function jpKeepOnly(doc, field){
+  const r = (JP_RULES[doc] || {})[field];
+  return !!r && !r.auto && !r.gate && !r.recommend;
+}
+function jpInLongDigitRun(s, k){
+  if (!isDigit(s[k])) return false;
+  let a = k, b = k;
+  while (a > 0 && isDigit(s[a - 1])) a--;
+  while (b + 1 < s.length && isDigit(s[b + 1])) b++;
+  return (b - a + 1) >= 4;
+}
+// Span of the first `n` digits in [from, to), tolerating group separators.
+function jpDigitSpan(seg, from, n, to){
   let first = -1, last = -1, count = 0;
-  for (let k = from; k < seg.t.length; k++){
+  const lim = to == null ? seg.t.length : to;
+  for (let k = from; k < lim; k++){
     const c = seg.t[k];
     if (isDigit(c)){ if (first < 0) first = k; last = k; if (++count === n) return { a:first, b:last+1, digits: seg.t.slice(first,last+1).replace(/\D/g,'') }; }
     else if (first >= 0 && !/[\s.\-・,/]/.test(c)) { first = -1; last = -1; count = 0; }
@@ -1687,27 +1764,51 @@ function jpExtract(pi, cls){
     if (boxes && boxes.length) found.push({ field, boxes, value, pi, doc: cls.doc, side: cls.side || null, low: !!cls.low, ...extra });
   };
 
+  const labelSet = jpKnownLabels(cls.doc);
   for (const seg of segs){
     for (const r of rules){
       const L = jpFindLabel(seg, r.labels, r.headOnly);
       if (!L) continue;
+      // Where this label's own value has to end: the next known label in the
+      // same segment, i.e. the next column's anchor. Every value path is bounded
+      // by it, not just the positional `last:true` one — a 性別 regex has no
+      // business matching the 男 that belongs to the column after it either.
+      const tailEnd = jpTailEnd(seg, L.end, labelSet);
+      /* A keep-only field (jpKeepOnly) does not claim an identifier it happens
+         to sit next to — not its `used` marks, and in the positional branch not
+         its pixels or its text either. The boundary above handles the case
+         where the neighbouring LABEL was read; this handles the case where it
+         was not, which on these forms is the measured normal (保険者番号 OCRs as
+         "RREES"/"REEES"/"WREEES" on 3 of 5 fixtures). Without it, the keep
+         field's tail consumes the number and the structural fallback — which
+         only claims spans nothing else marked used — leaves it in the clear.
+         The trade is stated: a 4+ digit run that genuinely belongs to a keep
+         field's own value (a code inside 事業所名称, say) now stays unclaimed
+         and the 資格確認書 fallback may band it. That is the direction this
+         document's rules already choose deliberately — the 告知要求制限 covers
+         the whole 保険者番号 family as one rule, "so the cost of guessing which
+         member it is, is zero, while a miss is the exact leak the product
+         exists to prevent" — and the band is releasable one item at a time. */
+      const keepOnly = jpKeepOnly(cls.doc, r.field);
+      const skip = k => keepOnly && jpInLongDigitRun(seg.t, k);
+      const consume = (from, to) => { for (let k = from; k < to; k++) if (!skip(k)) seg.used[k] = 1; };
       if (r.tel){
-        const tail = seg.t.slice(L.end);
+        const tail = seg.t.slice(L.end, tailEnd);
         const hy = JP_TEL_HYPHEN_RE.exec(tail);
         const pl = hy ? null : JP_TEL_PLAIN_RE.exec(tail);
         const m = hy || pl;
         if (!m) continue;
         const a2 = L.end + m.index, b2 = a2 + m[0].length;
         push('tel', jpBoxes(seg, a2, b2), m[0], { loose: !hy });
-        for (let k = a2; k < b2; k++) seg.used[k] = 1;
+        consume(a2, b2);
         continue;
       }
       if (r.digits){
-        const sp = jpDigitSpan(seg, L.end, r.digits);
+        const sp = jpDigitSpan(seg, L.end, r.digits, tailEnd);
         if (!sp) continue;
         const extra = r.field === 'my_number' ? { checkOk: myNumberCheckOk(sp.digits) } : {};
         push(r.field, jpBoxes(seg, sp.a, sp.b), sp.digits, extra);
-        for (let k = sp.a; k < sp.b; k++) seg.used[k] = 1;
+        consume(sp.a, sp.b);
         continue;
       }
       let a = -1, b = -1, val = '';
@@ -1715,24 +1816,34 @@ function jpExtract(pi, cls){
         // 住所/本籍: bound the value by the address hierarchy rather than by
         // "everything after the label", so a second column that drifted into
         // this segment is not swept into the band.
-        const sp = jpAddressSpan(seg.t, L.end);
+        const sp = jpAddressSpan(seg.t.slice(0, tailEnd), L.end);
         if (sp && sp.b > sp.a){ a = sp.a; b = sp.b; val = seg.t.slice(a, b); }
       } else if (r.re){
-        const m = r.re.exec(seg.t.slice(L.end));
+        const m = r.re.exec(seg.t.slice(L.end, tailEnd));
         if (m){ a = L.end + m.index; b = a + m[0].length; val = m[0]; }
       }
       if (a < 0 && r.last !== true) continue;
       if (a < 0){
-        // value position certain, characters not: take the items after the label
-        const after = seg.items.filter(o => seg.start[o.i] >= L.end);
+        // value position certain, characters not: the items after the label, up
+        // to the next column's anchor — minus anything a keep-only field must
+        // not claim (an item that is nothing but a 4+ digit run).
+        const itemChars = o => { const a0 = seg.start[o.i]; const n = (jpNorm(o.it.str || '').t || '').length; return [a0, a0 + n]; };
+        const after = seg.items.filter(o => {
+          const [a0, b0] = itemChars(o);
+          if (!(a0 >= L.end && a0 < tailEnd)) return false;
+          if (b0 <= a0) return true;
+          for (let k = a0; k < Math.min(b0, tailEnd); k++) if (!skip(k)) return true;
+          return false;                       // every character of this item is an identifier we must not claim
+        });
         if (!after.length) continue;
         const boxes = after.map(o => { const b2 = { page: pi, x:o.it.x, y:o.it.y, w:o.it.w, h:o.it.h }; b2.bg = sampleBg(pages[pi], b2); return b2; });
-        push(r.field, boxes, seg.t.slice(L.end).trim() || '(value)');
-        for (let k = L.end; k < seg.t.length; k++) seg.used[k] = 1;
+        let val = ''; for (let k = L.end; k < tailEnd; k++) if (!skip(k)) val += seg.t[k];
+        push(r.field, boxes, val.trim() || '(value)');
+        consume(L.end, tailEnd);
         continue;
       }
       push(r.field, jpBoxes(seg, a, b), val.trim());
-      for (let k = a; k < b; k++) seg.used[k] = 1;
+      consume(a, b);
     }
   }
 
@@ -1861,11 +1972,26 @@ function jpScan(){
   jpState = JP_STATE0(); jpState.purpose = keepPurpose;
   if (!pages.length) return null;
   // Per-page classification. Page 0 names the document in the UI, but each page
-  // is governed by its OWN class — and a page that cannot be classified falls
-  // back to page 0's class only when page 0 HAS one.
+  // is governed by its OWN class. A page that cannot be classified stays null —
+  // NO Japanese rule runs on it. The single exception is a card's back face,
+  // which carries no document name and therefore cannot classify itself: it is
+  // promoted only when the PREVIOUS page is that card's front AND this page
+  // carries a back-only anchor for that same card (JP_BACK_ANCHORS). Anything
+  // else bound into the PDF — a bank book, a tax slip, a blank separator — is
+  // governed by nothing, which is the honest answer for a page we cannot read.
   const cls0 = jpClassify(0);
   const pageCls = [];
-  for (let pi = 0; pi < pages.length; pi++) pageCls.push(pi === 0 ? cls0 : (jpClassify(pi) || cls0));
+  for (let pi = 0; pi < pages.length; pi++){
+    if (pi === 0){ pageCls.push(cls0); continue; }
+    let c = jpClassify(pi);
+    if (!c){
+      const prev = pageCls[pi - 1];
+      const re = prev && prev.side === 'front' && JP_BACK_ANCHORS[prev.doc];
+      if (re && re.test(jpPageText(pi)))
+        c = { doc: prev.doc, side: 'back', score: prev.score, hits: prev.hits, low: !!prev.low, viaBackAnchor: true };
+    }
+    pageCls.push(c);
+  }
   jpState.pageCls = pageCls;
   if (!cls0){
     // No Japanese rule will run. Say so if the page looks like one of these
@@ -1900,11 +2026,12 @@ function jpApply(){
     const kind = (level === 'auto' || level === 'gate') ? 'auto'
                : level === 'keep' ? 'keep' : 'candidate';
     const mode = (level === 'auto' || level === 'gate' || level === 'recommend') ? 'no' : 'ok';
+    const doc = (ctx && ctx.doc) || cls.doc;
     // A legal-preset band is not governed by the general category checkboxes.
-    const legal = JP_LEGAL_FIELDS.has(f) && mode === 'no';
+    const legal = jpIsLegal(doc, f) && mode === 'no';
     entities.push({ id:'j'+Math.random().toString(36).slice(2,8), type: JP_TYPE[f] || 'other',
       value, mode, kind, legal, reason: 'jp_' + level, boxes,
-      jp: { doc: (ctx && ctx.doc) || cls.doc, side: (ctx && ctx.side) || cls.side || null, page: ctx ? ctx.page : null, field: f, level, note: note || null } });
+      jp: { doc, side: (ctx && ctx.side) || cls.side || null, page: ctx ? ctx.page : null, field: f, level, note: note || null } });
   };
   // Resolve the level for one finding under the current purpose, including the
   // two demotions and the confirmation gate. Returns null = not offered.
@@ -1973,11 +2100,19 @@ function jpSetMnConfirmed(v){ jpState.mnConfirmed = !!v; jpApply(); }
 function jpRenderBar(){
   const bar = $('jpBar'), warn = $('jpWarn'); if (!bar) return;
   const cls = jpState.cls;
-  // The blocking warning is independent of the bar: its whole point is to be
-  // visible in the case where there is no classification and therefore no bar.
+  /* The blocking warning is independent of the bar: its whole point is to be
+     visible in the case where there is no classification and therefore no bar.
+     The two states say OPPOSITE things about the output and must not share a
+     string. `unclassified` = no Japanese rule ran, nothing was covered, act.
+     `lowconf` = we know which form this is, every automatic level was demoted
+     to a candidate — which is still default-ON, so bands ARE in the output —
+     and what is owed is a check. The old single string claimed "no automatic
+     redaction was applied" in both, which was false in the second (Codex 6b-1). */
   if (warn){
+    const low = jpState.warn === 'lowconf';
     const show = !!jpState.warn;
-    warn.textContent = show ? T().jpUnclassifiedWarn : '';
+    warn.textContent = !show ? '' : low ? T().jpWarnLowconf : T().jpWarnUnclassified;
+    warn.classList.toggle('is-low', low);
     warn.style.display = show ? 'block' : 'none';
   }
   if (!cls){ bar.style.display = 'none'; return; }
@@ -2000,6 +2135,18 @@ function jpRenderBar(){
     cw.style.display = need ? 'flex' : 'none';
     cb.checked = !!jpState.mnConfirmed;
     const lb = $('jpMnLabel'); if (lb) lb.textContent = T().jpMnConfirm;
+  }
+  /* The matrix names every (document, field, purpose) it means to offer, and a
+     combination it does not name is `null` — not offered. That is deliberate,
+     but it means switching purpose can empty the list completely: 資格確認書
+     under 個人番号手続 offers nothing at all. Changing a dropdown and getting a
+     blank result with no explanation reads as a broken page, and the user's next
+     move is to assume nothing needed covering (Codex 6b-12). Say it instead. */
+  const empty = $('jpEmpty');
+  if (empty){
+    const none = !entities.some(e => e.jp);
+    empty.textContent = none ? T().jpEmptyPurpose : '';
+    empty.style.display = none ? 'block' : 'none';
   }
 }
 

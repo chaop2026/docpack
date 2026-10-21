@@ -40,10 +40,11 @@ function startServer() {
     const srv = http.createServer((req, res) => {
       let p = decodeURIComponent(req.url.split('?')[0]);
       if (p === '/') p = '/index.html';
-      // `/__fx/...` serves the fixture tree, so the page can read fixture images
-      // back as <img> (used to compose the multi-page PDF fixture at run time).
-      const root = p.startsWith('/__fx/') ? FIXTURES : PUBLIC;
-      if (p.startsWith('/__fx/')) p = p.slice(5);
+      // `/__fx/...` serves the fixture tree and `/__td/...` the Korean testdocs,
+      // so the page can read them back as <img>/pdf.js (used to compose the
+      // multi-page PDF fixtures at run time).
+      const root = p.startsWith('/__fx/') ? FIXTURES : p.startsWith('/__td/') ? DOCS : PUBLIC;
+      if (p.startsWith('/__fx/') || p.startsWith('/__td/')) p = p.slice(5);
       const fp = path.join(root, p);
       if (!fp.startsWith(root) || !fs.existsSync(fp) || fs.statSync(fp).isDirectory()) { res.writeHead(404); res.end('nf'); return; }
       res.writeHead(200, { 'content-type': MIME[path.extname(fp)] || 'application/octet-stream' });
@@ -189,13 +190,24 @@ const PAGE_HELPERS = () => {
     });
   };
   window.__jpState = function () {
+    const warnEl = document.getElementById('jpWarn'), emptyEl = document.getElementById('jpEmpty');
     return { cls: jpState.cls && { doc: jpState.cls.doc, side: jpState.cls.side || null, score: jpState.cls.score, low: !!jpState.cls.low },
       purpose: jpState.purpose, warn: jpState.warn, mnConfirmed: jpState.mnConfirmed,
-      pageCls: jpState.pageCls.map(c => c && { doc: c.doc, side: c.side || null, low: !!c.low }),
-      warnShown: (() => { const el = document.getElementById('jpWarn'); return !!el && el.style.display !== 'none' && !!el.textContent.trim(); })(),
+      pageCls: jpState.pageCls.map(c => c && { doc: c.doc, side: c.side || null, low: !!c.low, viaBackAnchor: !!c.viaBackAnchor }),
+      warnShown: !!warnEl && warnEl.style.display !== 'none' && !!warnEl.textContent.trim(),
+      // The TEXT, not just "a banner is up": the two warning states describe
+      // opposite outputs, so a test that only checks visibility passes while
+      // the page tells the user the reverse of what it did (Codex 6b-1).
+      warnText: warnEl ? warnEl.textContent.trim() : '',
+      warnLowStyle: !!warnEl && warnEl.classList.contains('is-low'),
+      // Bands actually painted in the default output, so "no automatic masking"
+      // can be contradicted by measurement rather than taken on trust.
+      maskRectCount: window.__maskRects().length,
+      emptyShown: !!emptyEl && emptyEl.style.display !== 'none' && !!emptyEl.textContent.trim(),
       mnBoxShown: (() => { const el = document.getElementById('jpMnWrap'); return !!el && el.style.display !== 'none'; })(),
+      mnLabel: (() => { const el = document.getElementById('jpMnLabel'); return el ? el.textContent.trim() : ''; })(),
       pw: pages.map(p => p.w),
-      fields: entities.filter(e => e.jp).map(e => ({ field: e.jp.field, level: e.jp.level, note: e.jp.note, page: e.jp.page, kind: e.kind, mode: e.mode, legal: !!e.legal, on: isOn(e) })) };
+      fields: entities.filter(e => e.jp).map(e => ({ field: e.jp.field, level: e.jp.level, note: e.jp.note, page: e.jp.page, doc: e.jp.doc, side: e.jp.side, kind: e.kind, mode: e.mode, legal: !!e.legal, on: isOn(e) })) };
   };
   // Field labels of every ACTIVE auto entity — the allowlist assertion's input.
   window.__autoFields = function () {
@@ -615,29 +627,67 @@ async function checkJpDoc(page, spec) {
       const clear = bs.length > 0 && bs.every(b => b.mode === 'ok' && !b.inMask);
       rec(tag, 'JP_CLEAR', f, 'detected+clear', !bs.length ? 'MISSING' : (clear ? `detected+clear ×${bs.length}` : 'BANDED'), clear);
     }
-    // Legal-preset fields are not governed by the category checkboxes. Turn
-    // every category off and require the band to still be there.
+    /* Legal-preset fields are not governed by the category checkboxes. Turn
+       every category off and require the band to still be there.
+       `catEnabled` is module state that neither resetAll() nor a fresh file load
+       restores, so an exception anywhere between the two calls below used to
+       leave EVERY category off for the remaining assertions — once already, 11
+       of the 14 reds it produced belonged to other documents. try/finally, and
+       the restore is itself asserted. */
     for (const f of (c.require_legal || [])) {
-      const left = await page.evaluate(() => window.__allCatsOff());
-      const bs = await page.evaluate(x => window.__fieldBands(x), f);
-      const ok = left.length === 0 && bs.length > 0 && bs.every(b => b.legal && b.on && b.mode !== 'ok' && b.inMask);
-      rec(tag, 'JP_LEGAL', f, 'survives all-categories-off',
-        left.length ? 'cats still on: ' + left.join(',') : !bs.length ? 'MISSING'
-          : bs.every(b => b.legal && b.on && b.mode !== 'ok' && b.inMask) ? `banded ×${bs.length}` : 'DROPPED', ok);
-      // put the page back the way the rest of the case expects it
-      const restored = await page.evaluate(() => window.__restoreCats());
-      rec(tag, 'JP_LEGAL', f + ' (categories restored)', 'restored', restored ? 'restored' : 'NOT RESTORED', restored, true);
-      await loadDoc(page, spec.doc, true);
-      await page.evaluate(p => jpSetPurpose(p), c.purpose);
-      if (c.confirm_mynumber) await page.evaluate(() => window.__setMnConfirm(true));
+      try {
+        const left = await page.evaluate(() => window.__allCatsOff());
+        const bs = await page.evaluate(x => window.__fieldBands(x), f);
+        const ok = left.length === 0 && bs.length > 0 && bs.every(b => b.legal && b.on && b.mode !== 'ok' && b.inMask);
+        rec(tag, 'JP_LEGAL', f, 'survives all-categories-off',
+          left.length ? 'cats still on: ' + left.join(',') : !bs.length ? 'MISSING'
+            : bs.every(b => b.legal && b.on && b.mode !== 'ok' && b.inMask) ? `banded ×${bs.length}` : 'DROPPED', ok);
+      } finally {
+        // put the page back the way the rest of the case expects it — on the
+        // error path too, where the rest of the run is what is at stake.
+        const restored = await page.evaluate(() => window.__restoreCats());
+        const stillOff = await page.evaluate(() => Object.keys(catEnabled).filter(t => catEnabled[t] === false));
+        rec(tag, 'JP_LEGAL', f + ' (categories restored)', 'restored+none-off',
+          !restored ? 'NOT RESTORED' : stillOff.length ? 'STILL OFF: ' + stillOff.join(',') : 'restored',
+          restored && stillOff.length === 0);
+        await loadDoc(page, spec.doc, true);
+        await page.evaluate(p => jpSetPurpose(p), c.purpose);
+        if (c.confirm_mynumber) await page.evaluate(() => window.__setMnConfirm(true));
+      }
     }
-    // No auto entity outside the allowlist. A ceiling on the COUNT cannot tell
-    // "the right five" from "two right and three wrong" (Codex 5-6).
-    if (c.auto_allow) {
+    /* Which fields were automatically banded. Two strengths, because the
+       fixtures are two different kinds of evidence:
+         required_auto — SET EQUALITY. A ceiling on the count cannot tell "the
+           right five" from "two right and three wrong" (Codex 5-6), and a
+           subset-only allowlist cannot tell "the right five" from NONE: an
+           empty actual set is a subset of everything, so a detection that
+           stopped firing entirely still printed green (Codex 6b-16).
+         allowed_auto — subset only, for the rotated/blurred JPG and the
+           re-rendered PDF, where WHICH member of the 保険者番号 family OCR
+           recovers is not a promise we can make. */
+    if (c.required_auto || c.allowed_auto) {
       const af = await page.evaluate(() => window.__autoFields());
-      const bad = af.filter(f => !c.auto_allow.includes(f));
-      rec(tag, 'JP_AUTO_SET', 'auto fields ⊆ allowlist', c.auto_allow.join(',') || '(none)',
-        bad.length ? 'UNEXPECTED: ' + [...new Set(bad)].join(',') : (af.length ? [...new Set(af)].join(',') : '(none)'), bad.length === 0);
+      const got = [...new Set(af)].sort();
+      if (c.required_auto) {
+        const want = [...new Set(c.required_auto)].sort();
+        rec(tag, 'JP_AUTO_SET', 'auto fields == expected set', want.join(',') || '(none)',
+          got.join(',') || '(none)', want.length === got.length && want.every((f, i) => f === got[i]));
+      } else {
+        const bad = got.filter(f => !c.allowed_auto.includes(f));
+        rec(tag, 'JP_AUTO_SET', 'auto fields ⊆ allowlist', '⊆ ' + (c.allowed_auto.join(',') || '(none)'),
+          bad.length ? 'UNEXPECTED: ' + bad.join(',') : (got.join(',') || '(none)'), bad.length === 0);
+      }
+    }
+    // Re-read: the require_legal loop above reloads the document, so `st` from
+    // the top of the case may no longer describe the page.
+    if (c.expect_empty_notice != null || c.expect_jp_entities != null) {
+      const now = await page.evaluate(() => window.__jpState());
+      if (c.expect_empty_notice != null)
+        rec(tag, 'JP_EMPTY', 'no-rules-for-purpose notice', c.expect_empty_notice ? 'shown' : 'absent',
+          now.emptyShown ? 'shown' : 'absent', now.emptyShown === !!c.expect_empty_notice);
+      if (c.expect_jp_entities != null)
+        rec(tag, 'JP_ENTITIES', 'jp entities', String(c.expect_jp_entities), String(now.fields.length),
+          now.fields.length === c.expect_jp_entities);
     }
     if (spec.geometry === false || c.geometry === false) continue;
 
@@ -730,18 +780,41 @@ function checkMatrix() {
    over the front as well (Codex 6-4). Both orders are built here from the
    committed single-page PNGs — written under out/gen, not committed, so the
    repo gains no new card binaries. */
+/* Page sources: a URL string (whole image), {url, crop:[x0,y0,x1,y1]} (a
+   sub-rectangle of a committed fixture — used to take the card's own TITLE away
+   so the page can no longer classify itself), or {pdf, page} (a page of a
+   committed testdoc, rendered through pdf.js — an attachment that is genuinely
+   not one of the four documents). No new binaries enter the repo: everything is
+   composed at run time from files already committed. */
 async function buildPdfFromImages(page, srcs, outPath) {
-  const b64 = await page.evaluate(async (urls) => {
+  const b64 = await page.evaluate(async (list) => {
     const { jsPDF } = await ensureJsPDF();
     let pdf = null;
-    for (const u of urls) {
-      const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = u; });
-      const cv = document.createElement('canvas'); cv.width = im.width; cv.height = im.height;
-      cv.getContext('2d').drawImage(im, 0, 0);
+    const addCanvas = cv => {
       const data = cv.toDataURL('image/jpeg', 0.95);
-      if (!pdf) pdf = new jsPDF({ unit: 'pt', format: [im.width, im.height], compress: true });
-      else pdf.addPage([im.width, im.height]);
-      pdf.addImage(data, 'JPEG', 0, 0, im.width, im.height);
+      if (!pdf) pdf = new jsPDF({ unit: 'pt', format: [cv.width, cv.height], compress: true });
+      else pdf.addPage([cv.width, cv.height]);
+      pdf.addImage(data, 'JPEG', 0, 0, cv.width, cv.height);
+    };
+    for (const s of list) {
+      if (s && typeof s === 'object' && s.pdf) {
+        const doc = await pdfjsLib.getDocument(s.pdf).promise;
+        const pg = await doc.getPage(s.page || 1);
+        const vp = pg.getViewport({ scale: s.scale || 1.5 });
+        const cv = document.createElement('canvas');
+        cv.width = Math.round(vp.width); cv.height = Math.round(vp.height);
+        const cx = cv.getContext('2d');
+        cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height);
+        await pg.render({ canvasContext: cx, viewport: vp }).promise;
+        addCanvas(cv); continue;
+      }
+      const url = typeof s === 'string' ? s : s.url;
+      const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+      const cr = (s && typeof s === 'object' && s.crop) || [0, 0, im.width, im.height];
+      const cv = document.createElement('canvas');
+      cv.width = cr[2] - cr[0]; cv.height = cr[3] - cr[1];
+      cv.getContext('2d').drawImage(im, cr[0], cr[1], cv.width, cv.height, 0, 0, cv.width, cv.height);
+      addCanvas(cv);
     }
     return pdf.output('datauristring').split(',')[1];
   }, srcs);
@@ -775,6 +848,58 @@ async function checkJpMultiPage(page, port) {
       const cov = await page.evaluate(() => pages.map((p, pi) => window.__coverage({ pi, x: 0, y: 0, w: p.w, h: p.h })));
       rec(tag, 'JP_BACK_COVER', `page ${c.backPage} covered`, '>=99%', `${(cov[c.backPage] * 100).toFixed(0)}%`, cov[c.backPage] >= 0.99);
       rec(tag, 'JP_FRONT_CLEAR', `page ${c.frontPage} not full-face`, '<=60%', `${(cov[c.frontPage] * 100).toFixed(0)}%`, cov[c.frontPage] <= 0.6);
+    } catch (e) { rec(tag, 'LOAD', c.file, 'loads', 'ERR:' + e.message.split('\n')[0], false); }
+    await page.evaluate(() => { LANG = 'ko'; applyLang(); });
+  }
+
+  /* Page 2 cannot classify itself. Two of those, and they must come out
+     OPPOSITE — which is what the old `jpClassify(pi) || cls0` could not do: it
+     governed both with page 1's rules, so an unrelated attachment bound into
+     the same PDF was redacted with CARD rules. The error direction there is
+     destroying required evidence, not leaking (Codex 6b-3).
+       (a) the card's own back face with its TITLE cropped away — it still
+           carries 個人番号, a back-only anchor, so it is promoted to 裏面;
+       (b) a Korean résumé page — no anchor, stays `null`, no Japanese rule runs.
+     Both pages are composed at run time from committed files. */
+  const front = `${B}/front.png`;
+  const mixed = [
+    { label: '表 + 裏(タイトル切除) → 裏面に昇格', file: 'gen/mn_front_backcrop.pdf',
+      srcs: [front, { url: `${B}/back.png`, crop: [0, 100, 1100, 700] }],
+      wantSide: 'mynumber_card/back', wantPromoted: true, wantBand: true },
+    { label: '表 + 無関係な添付 → 分類なし', file: 'gen/mn_front_attach.pdf',
+      srcs: [front, { pdf: `http://127.0.0.1:${port}/__td/1_text.pdf`, page: 1, scale: 1.5 }],
+      wantSide: 'null', wantPromoted: false, wantBand: false },
+  ];
+  for (const c of mixed) {
+    const tag = `jp/2page ${c.label}`;
+    await page.evaluate(() => { LANG = 'ja'; applyLang(); });
+    try {
+      await buildPdfFromImages(page, c.srcs, path.join(OUT, c.file));
+      await loadDoc(page, c.file, true);
+      await page.evaluate(() => jpSetPurpose('identity_submit'));
+      const st = await page.evaluate(() => window.__jpState());
+      const sides = st.pageCls.map(x => x ? (x.doc + '/' + (x.side || '-')) : 'null');
+      rec(tag, 'JP_PAGECLASS', 'per-page doc/side', `mynumber_card/front + ${c.wantSide}`, sides.join(' + '),
+        sides.length === 2 && sides[0] === 'mynumber_card/front' && sides[1] === c.wantSide);
+      rec(tag, 'JP_BACKANCHOR', 'page 2 promoted via back anchor', String(c.wantPromoted),
+        String(!!(st.pageCls[1] && st.pageCls[1].viaBackAnchor)),
+        !!(st.pageCls[1] && st.pageCls[1].viaBackAnchor) === c.wantPromoted);
+      // Japanese entities per page. Page 1 must still have its own (otherwise
+      // "page 2 has none" could be true because the whole preset collapsed).
+      const onP0 = st.fields.filter(f => f.page === 0).length;
+      const onP1 = st.fields.filter(f => f.page === 1).length;
+      rec(tag, 'JP_ENTITIES', 'page 1 jp entities', '>=1', String(onP0), onP0 >= 1);
+      rec(tag, 'JP_ENTITIES', 'page 2 jp entities', c.wantBand ? '>=1' : '0', String(onP1),
+        c.wantBand ? onP1 >= 1 : onP1 === 0);
+      const bs = await page.evaluate(() => window.__fieldBands('back_all'));
+      const bandPages = bs.filter(b => b.mode !== 'ok' && b.inMask).map(b => b.page);
+      rec(tag, 'JP_BACK_ONLY', 'back_all pages', c.wantBand ? '[1]' : '[]', `[${bandPages.join(',')}]`,
+        c.wantBand ? (bandPages.length === 1 && bandPages[0] === 1) : bandPages.length === 0);
+      const cov = await page.evaluate(() => pages.map((p, pi) => window.__coverage({ pi, x: 0, y: 0, w: p.w, h: p.h })));
+      rec(tag, c.wantBand ? 'JP_BACK_COVER' : 'JP_ATTACH_CLEAR', 'page 2 coverage',
+        c.wantBand ? '>=99%' : '<=10%', `${(cov[1] * 100).toFixed(0)}%`,
+        c.wantBand ? cov[1] >= 0.99 : cov[1] <= 0.10);
+      rec(tag, 'JP_FRONT_CLEAR', 'page 1 not full-face', '<=60%', `${(cov[0] * 100).toFixed(0)}%`, cov[0] <= 0.6);
     } catch (e) { rec(tag, 'LOAD', c.file, 'loads', 'ERR:' + e.message.split('\n')[0], false); }
     await page.evaluate(() => { LANG = 'ko'; applyLang(); });
   }
@@ -824,6 +949,56 @@ async function checkJpMyNumber(page) {
   }
 }
 
+/* ── merged rows: a keep field must not eat the next column ─────────────────
+   Every value rule anchors at the SEGMENT HEAD, and two label-value pairs on
+   one visual row become ONE segment whenever the column gap falls under the
+   threshold. In that segment 保険者番号 is no longer at the head, so its own
+   rule cannot anchor — the insurer number is left to the structural fallback,
+   and the fallback only claims spans nothing else marked `used`. 保険者名 is a
+   `last:true` keep field: it used to take every item after its label and mark
+   the whole tail used, which silenced the fallback and left the number in the
+   clear. A field we promise never to redact was suppressing one the
+   告知要求制限 requires us to redact (Codex 6b-5).
+   The alpha fixtures put those two columns 230px apart, so none of them can
+   reach this state; the row is built through the paste path instead, where the
+   page text is exactly what the case says it is. What this pins is the
+   label→value BOUNDARY, not OCR. */
+async function checkJpSynth(page) {
+  const U = SPECS.jp_synth; if (!U) return;
+  for (const c of U.cases) {
+    const tag = '(jp synth) ' + c.label;
+    await page.evaluate(() => { LANG = 'ja'; applyLang(); });
+    await page.evaluate(() => { if (typeof pages !== 'undefined' && pages.length) resetAll(); });
+    await page.evaluate(t => loadFromText(t, 'synth.txt'), c.text);
+    await page.waitForFunction(() => Array.isArray(pages) && pages.length > 0
+        && document.getElementById('docWrap').style.display === 'flex', { timeout: 40000 });
+    await page.evaluate(PAGE_HELPERS);
+    await page.evaluate(p => jpSetPurpose(p), c.purpose);
+    if (c.confirm_mynumber) await page.evaluate(() => window.__setMnConfirm(true));
+    const st = await page.evaluate(() => window.__jpState());
+    rec(tag, 'JP_CLASS', c.expect_doc, 'classified', st.cls ? st.cls.doc + ' sc=' + st.cls.score : 'NOT classified',
+      !!st.cls && st.cls.doc === c.expect_doc && !st.cls.low === !c.expect_low);
+    for (const [f, want] of Object.entries(c.expect_fields || {})) {
+      const bs = await page.evaluate(x => window.__fieldBands(x), f);
+      if (!bs.length) { rec(tag, 'JP_SYNTH', f, JSON.stringify(want), 'MISSING', false); continue; }
+      const got = { level: bs[0].level, kind: bs[0].kind, banded: bs.every(b => b.mode !== 'ok' && b.inMask), legal: bs.every(b => b.legal) };
+      const keys = Object.keys(want);
+      const ok = keys.every(k => got[k] === want[k]);
+      rec(tag, 'JP_SYNTH', f, keys.map(k => `${k}=${want[k]}`).join(' '),
+        keys.map(k => `${k}=${got[k]}`).join(' '), ok);
+    }
+    for (const v of (c.masked || [])) {
+      const m = await page.evaluate(x => window.__isMasked(x), v);
+      rec(tag, 'JP_SYNTH_MASK', v, 'masked', m ? 'masked' : 'NOT masked', m);
+    }
+    for (const v of (c.not_masked || [])) {
+      const m = await page.evaluate(x => window.__isMasked(x), v);
+      rec(tag, 'JP_SYNTH_MASK', v, 'clear', m ? 'MASKED' : 'clear', !m);
+    }
+    await page.evaluate(() => { LANG = 'ko'; applyLang(); });
+  }
+}
+
 /* ── unlabelled square block: offered, never banded by default ──────────────
    The pixel detector for an unlabelled block has no golden coverage (the alpha
    dummies carry no real QR — strategy v2 §4), and it can fire on a face photo,
@@ -845,16 +1020,23 @@ async function checkJpUnlabelled(page) {
       doc: jpState.cls.doc, side: jpState.cls.side || null, low: false, unlabelledCode: true });
     jpApply();
     const inj = entities.find(e => e.jp && e.jp.note === 'unlabelled_code');
+    // `.every()` on an EMPTY array is true, so this companion assertion passed
+    // even if labelled-QR detection had disappeared entirely — which is the one
+    // way the assertion above ("the unlabelled block is not banded") becomes
+    // meaningless (Codex 6b-14). Count first.
+    const lab = window.__fieldBands('qr').filter(b => b.note !== 'unlabelled_code');
     return { present: !!inj, level: inj && inj.jp.level, mode: inj && inj.mode, kind: inj && inj.kind,
       covered: window.__coverage({ pi: 0, x: 40, y: 40, w: 120, h: 120 }),
-      labelledBanded: window.__fieldBands('qr').filter(b => b.note !== 'unlabelled_code').every(b => b.mode !== 'ok' && b.inMask) };
+      labelledCount: lab.length,
+      labelledBanded: lab.length > 0 && lab.every(b => b.mode !== 'ok' && b.inMask) };
   });
   rec(tag, 'JP_UNLABELLED', 'level', 'optional', res.present ? res.level : 'MISSING', res.level === 'optional');
   rec(tag, 'JP_UNLABELLED', 'default mode', 'ok', res.present ? res.mode : 'MISSING', res.mode === 'ok');
   rec(tag, 'JP_UNLABELLED', 'not in default output', '0% covered', `${(res.covered * 100).toFixed(0)}%`, res.covered <= 0.10);
   // …and the LABELLED code on the same page is still banded, so the assertion
   // above is not passing merely because nothing is banded at all.
-  rec(tag, 'JP_UNLABELLED', 'labelled code still banded', 'banded', res.labelledBanded ? 'banded' : 'CLEAR', res.labelledBanded);
+  rec(tag, 'JP_UNLABELLED', 'labelled code still banded', '>=1 banded',
+    res.labelledCount ? (res.labelledBanded ? `banded ×${res.labelledCount}` : 'CLEAR') : 'NO LABELLED CODE FOUND', res.labelledBanded);
   await page.evaluate(() => { LANG = 'ko'; applyLang(); });
 }
 
@@ -877,6 +1059,24 @@ async function checkJpWarn(page) {
     rec('(jp warn)', 'JP_WARN_CLASS', c.label + ' class', c.expect_doc || 'null',
       st.cls ? st.cls.doc + (st.cls.low ? '(low)' : '') : 'null',
       (st.cls ? st.cls.doc : null) === (c.expect_doc || null) && (!c.expect_doc || !!st.cls.low === !!c.expect_low));
+    /* The banner's TEXT, against the ja string the case names. The two states
+       make opposite claims about the output, so visibility alone is not the
+       assertion: the old single string said "no automatic redaction was
+       applied" while low-confidence candidate bands were in the output
+       (Codex 6b-1). `expect_text_has` is a distinguishing fragment, so a
+       reworded sentence does not fail but a swapped MEANING does. */
+    if (c.expect_text_has)
+      rec('(jp warn)', 'JP_WARN_TEXT', c.label + ' banner text', c.expect_text_has,
+        st.warnText.includes(c.expect_text_has) ? 'matches' : `"${st.warnText.slice(0, 24)}…"`,
+        st.warnText.includes(c.expect_text_has));
+    // …and what the output actually contains, measured. `lowconf` claims bands
+    // were applied; `unclassified` claims none were.
+    if (c.expect_mask_rects === 'some')
+      rec('(jp warn)', 'JP_WARN_BANDS', c.label + ' bands in output', '>=1',
+        String(st.maskRectCount), st.maskRectCount >= 1);
+    if (c.expect_mask_rects === 'none')
+      rec('(jp warn)', 'JP_WARN_BANDS', c.label + ' bands in output', '0',
+        String(st.maskRectCount), st.maskRectCount === 0);
     // A low-confidence class may not produce an automatic band.
     if (c.expect_low) {
       const af = await page.evaluate(() => window.__autoFields());
@@ -946,6 +1146,7 @@ function printTable() {
   if (!onlyArg || onlyArg === 'jp/2page') { process.stderr.write('… jp multipage\n'); await checkJpMultiPage(page, port); }
   if (!onlyArg || onlyArg === '(jp units)') { process.stderr.write('… jp units\n'); await checkJpUnits(page); }
   if (!onlyArg || onlyArg === '(jp synth)') { process.stderr.write('… jp my_number\n'); await checkJpMyNumber(page); }
+  if (!onlyArg || onlyArg === '(jp synth)') { process.stderr.write('… jp merged rows\n'); await checkJpSynth(page); }
   if (!onlyArg || onlyArg === '(jp unlabelled)') { process.stderr.write('… jp unlabelled block\n'); await checkJpUnlabelled(page); }
   if (!onlyArg || onlyArg === '(jp warn)') { process.stderr.write('… jp classification warning\n'); await checkJpWarn(page); }
   if (!onlyArg || onlyArg === '7_resume_dark.pdf') { process.stderr.write('… ai_inject\n'); await checkAiInject(page); }
