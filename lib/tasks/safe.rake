@@ -91,6 +91,8 @@ namespace :safe do
     lines << "- P10 (입찰 랜딩이 유료 문의를 만드는가): `from=nyusatsu` 의 cta_click 과"
     lines << "  `/admin/jp_pilot_requests` 의 신청 수를 함께 본다 — 이 표만으로는 알 수 없다."
     lines << "- P11 (個人番号手続 선택률): `purpose × purpose` 표에서 `my_number_procedure` 비율."
+    lines << "  ⚠️ **`purpose × source` 표를 함께 읽을 것** — `source=init` 행은 랜딩의 `?purpose=`"
+    lines << "  프리셀렉트이고 사람의 선택이 아니다. 선택률은 `source=user` 로만 세야 한다."
     lines << ""
 
     File.write(path, lines.join("\n") + "\n")

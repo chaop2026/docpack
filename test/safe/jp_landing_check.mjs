@@ -47,9 +47,16 @@ const PAGES = [
       '枝番や二次元コードを見落とすと、発注者側で差し戻しになる',
       '※ 提出先の指示が優先です。指示と異なる場合は「残す項目」を個別に切り替えられます。',
       '月額 2,980円（税込）／年額 29,800円',
+      // The Team plan list is a roadmap: the file input takes one file. Without
+      // this line the list reads as shipped, which is advertising a feature
+      // that does not exist.
+      '※ 以下の機能はパイロット期間中に順次提供します（現在は1ファイルずつ処理）',
       '先行導入パイロット募集',
       '健康保険法等の改正による告知要求制限（2020年10月1日施行）。'
-    ]
+    ],
+    // Phrases that were REMOVED and must not come back. The step list used to
+    // say 「— 複数まとめて可」, which is not true of the tool today.
+    absent: ['複数まとめて可']
   },
   {
     slug: 'honnin-kakunin',
@@ -159,6 +166,9 @@ for (const p of PAGES) {
   for (const phrase of p.copy) {
     ok(`${p.slug}: copy "${phrase.slice(0, 22)}…"`, body.includes(phrase));
   }
+  for (const phrase of (p.absent || [])) {
+    ok(`${p.slug}: removed "${phrase}" stays removed`, !body.includes(phrase));
+  }
   ok(`${p.slug}: carries 提出先の指示を必ず確認`, body.includes('提出先の指示を必ず確認'));
   for (const bad of FORBIDDEN) {
     ok(`${p.slug}: no forbidden "${bad}"`, !body.includes(bad));
@@ -195,6 +205,11 @@ for (const p of PAGES) {
   ok(`${p.slug}: server accepted every counter`,
      beacons.statuses.length > 0 && beacons.statuses.every((s) => s === 204),
      beacons.statuses.join(','));
+  // Snapshot the count so the CTA's own status can be checked separately. This
+  // assertion runs BEFORE the click, so without the snapshot the cta_click
+  // request's status is never looked at — the harness claimed "every counter"
+  // while only ever covering landing_view.
+  const statusesBeforeClick = beacons.statuses.length;
 
   // Click the CTA, but cancel the NAVIGATION only — the counter must still run.
   // preventDefault in the capture phase stops the link from being followed
@@ -213,6 +228,13 @@ for (const p of PAGES) {
   ok(`${p.slug}: cta_click carries the purpose`,
      clicks.length >= 1 && clicks[0].props.purpose === p.purpose,
      JSON.stringify(clicks[0] && clicks[0].props));
+  // The CTA's OWN response, not the page load's. A cta_click whose props the
+  // whitelist refuses would 422 here while the payload assertion above stayed
+  // green, because the payload only proves what the page meant to send.
+  const ctaStatuses = beacons.statuses.slice(statusesBeforeClick);
+  ok(`${p.slug}: server accepted the cta_click too`,
+     ctaStatuses.length > 0 && ctaStatuses.every((s) => s === 204),
+     ctaStatuses.length ? ctaStatuses.join(',') : 'no /api/safe_events response after the click');
 
   // Google Fonts is the one cross-origin host /safe/ already loads; an ad or
   // analytics host appearing here would break the page's own privacy claim.

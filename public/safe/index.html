@@ -2186,7 +2186,13 @@ const JP_TYPE = { address_loose:'address', tel:'phone', my_number:'rrn', jumin_c
   back_all:'other', biko_change:'address', organ_donor:'health', setaiin:'name', honseki:'address',
   hittosha:'name', sex:'other', name:'name', birth:'birth', address:'address', expiry:'other', issue:'other' };
 
-function jpSetPurpose(p){
+/* `source` separates "a landing page preselected this via ?purpose=" from
+   "the visitor picked it in the dropdown". Both write a `purpose` row, and
+   without the distinction every preselection counts as a choice — the init
+   row even carries doc_class:"none" because no document is loaded yet, so the
+   two are not even distinguishable after the fact. Two fixed categories only
+   (SafeEvent::VALUES["source"]). */
+function jpSetPurpose(p, source){
   if (!JP_PURPOSES.includes(p)) return;
   jpState.purpose = p;
   // Switching purpose always re-asks for the 個人番号 confirmation. A checkbox
@@ -2194,7 +2200,7 @@ function jpSetPurpose(p){
   jpState.mnConfirmed = false;
   const sel = $('jpPurpose'); if (sel) sel.value = p;
   jpApply();
-  sfEvent('purpose', { purpose: p, doc_class: sfDocClass() });
+  sfEvent('purpose', { purpose: p, doc_class: sfDocClass(), source: source === 'init' ? 'init' : 'user' });
 }
 function jpSetMnConfirmed(v){ jpState.mnConfirmed = !!v; jpApply(); }
 function jpRenderBar(){
@@ -2798,7 +2804,7 @@ function finalizeSel(){
   toast(T().tManualAdded);
 }
 $('btnSelect').addEventListener('click',()=>setSelectMode(!selectMode));
-$('jpPurpose').addEventListener('change',e=>jpSetPurpose(e.target.value));
+$('jpPurpose').addEventListener('change',e=>jpSetPurpose(e.target.value,'user'));
 
 /* ───────── detection list (live value next to toggle) ───────── */
 function catRowHtml(type,items){
@@ -3200,7 +3206,7 @@ renderList();
    jpScan() carries the choice across loads (keepPurpose), so this runs once.
    It changes no detection — only which rule column the detections are read in,
    which is what the dropdown does by hand. */
-if (SF_PARAMS.purpose) jpSetPurpose(SF_PARAMS.purpose);
+if (SF_PARAMS.purpose) jpSetPurpose(SF_PARAMS.purpose, 'init');
 </script>
 </body>
 </html>

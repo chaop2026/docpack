@@ -32,7 +32,13 @@ class SafeEvent < ApplicationRecord
     "locale"    => %w[ko en ja es],
     "from"      => %w[nyusatsu honnin aimae direct],
     "ext"       => %w[pdf jpg png docx other],
-    "pages"     => %w[1 2 3-5 6+]
+    "pages"     => %w[1 2 3-5 6+],
+    # Only on `purpose`. A landing page may arrive with ?purpose=…, which the
+    # tool applies during init — so one `purpose` event is written before the
+    # visitor has touched anything. Without this key that row is identical to
+    # "the visitor changed the dropdown", and every purpose statistic silently
+    # counts preselections as choices. Two fixed categories, no free text.
+    "source"    => %w[init user]
   }.freeze
 
   # Which keys each event may carry. A key that is valid for one event is not
@@ -41,7 +47,7 @@ class SafeEvent < ApplicationRecord
   KEYS = {
     "upload"       => %w[ext pages locale from],
     "doc_class"    => %w[doc_class locale from],
-    "purpose"      => %w[purpose doc_class locale from],
+    "purpose"      => %w[purpose doc_class locale from source],
     "download"     => %w[format doc_class purpose locale from],
     "landing_view" => %w[from locale],
     "cta_click"    => %w[from purpose locale]

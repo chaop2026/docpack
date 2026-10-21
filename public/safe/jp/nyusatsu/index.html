@@ -72,7 +72,7 @@
     {
       "@type": "Question",
       "name": "法律上の根拠は",
-      "acceptedAnswer": { "@type": "Answer", "text": "健康保険法等の改正による告知要求制限（2020年10月1日施行）。医療保険事務以外の目的で記号・番号の告知を求めることは原則制限されています。" }
+      "acceptedAnswer": { "@type": "Answer", "text": "健康保険法等の改正による告知要求制限（2020年10月1日施行）。医療保険事務以外の目的で記号・番号の告知を求めることは制限される場合があります。" }
     }
   ]
 }
@@ -146,7 +146,7 @@
   <section class="blk">
     <h2>仕組み（3ステップ）</h2>
     <ol class="plain">
-      <li>PDF・写真をドラッグ — 複数まとめて可</li>
+      <li>PDF・写真をドラッグ</li>
       <li>「提出目的：入札添付」を選ぶ — 書類ごとに黒塗り箇所が自動で決まる</li>
       <li>ダウンロード — 画像に平坦化され、黒塗りの下に原文は残りません。EXIF・注釈も削除</li>
     </ol>
@@ -165,6 +165,10 @@
     <h2>チームプラン（事業者向け）</h2>
     <div class="card">
       <p class="price">月額 2,980円（税込）／年額 29,800円</p>
+      <!-- The list below is the Team plan ROADMAP, not what the tool does
+           today: the file input takes one file and handleFile() processes
+           pages[0..]. A feature list with no such line reads as shipped. -->
+      <p class="note">※ 以下の機能はパイロット期間中に順次提供します（現在は1ファイルずつ処理）</p>
       <ul class="plain">
         <li>提出先別プリセット（自治体・発注者ごとに保存）</li>
         <li>複数PDFの一括処理・一括ダウンロード</li>
@@ -227,7 +231,7 @@
       <dt>マイナ保険証しかありません</dt>
       <dd>資格確認書または資格情報のお知らせの写しが対象です。マイナンバーカードの裏面は提出しないでください。</dd>
       <dt>法律上の根拠は</dt>
-      <dd>健康保険法等の改正による告知要求制限（2020年10月1日施行）。医療保険事務以外の目的で記号・番号の告知を求めることは原則制限されています。</dd>
+      <dd>健康保険法等の改正による告知要求制限（2020年10月1日施行）。医療保険事務以外の目的で記号・番号の告知を求めることは制限される場合があります。</dd>
     </dl>
     <p class="note">提出先の指示を必ず確認してください。</p>
   </section>
@@ -237,7 +241,7 @@
     <div class="en-body">
       <p><strong>Redact only the numbers on insurance certificates for public tender attachments — and stop resubmissions.</strong></p>
       <p>Japanese public-works tenders require masking of the insured symbol/number and insurer number on health-insurance certificate copies. SafeFile detects the document type and blacks out exactly those fields, keeping name, date of birth and employer visible for review. Files never leave your browser.</p>
-      <p><strong>Team plan</strong>: ¥2,980/month — per-recipient presets, batch PDF processing, processing log CSV, SlimFile compression, Japanese email support. Pilot: first 10 companies, 3 months free.</p>
+      <p><strong>Team plan</strong>: ¥2,980/month — per-recipient presets, batch PDF processing, processing log CSV, SlimFile compression, Japanese email support. These arrive progressively during the pilot; today the tool processes one file at a time. Pilot: first 10 companies, 3 months free.</p>
     </div>
   </details>
 

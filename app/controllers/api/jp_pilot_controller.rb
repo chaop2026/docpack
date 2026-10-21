@@ -70,11 +70,10 @@ module Api
       Rails.logger.error("[jp_pilot] notification enqueue failed for ##{req.id}: #{e.class}: #{e.message}")
     end
 
+    # Atomic — see Api::BaseController#over_limit? for why the previous
+    # read-then-write was not a cap at all under concurrency.
     def throttled?
-      key   = "jp_pilot:#{request.remote_ip}:#{Time.current.to_i / RATE_WINDOW.to_i}"
-      count = Rails.cache.read(key).to_i + 1
-      Rails.cache.write(key, count, expires_in: RATE_WINDOW * 2)
-      count > RATE_LIMIT
+      over_limit?("jp_pilot:#{request.remote_ip}", limit: RATE_LIMIT, window: RATE_WINDOW)
     end
   end
 end

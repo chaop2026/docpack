@@ -76,6 +76,33 @@ class Api::SafeEventsControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
+  # `source` separates a landing page's ?purpose= preselect from a real choice
+  # in the dropdown. Both write a `purpose` row; without the key, every
+  # preselection is counted as a decision and the two cannot be told apart
+  # afterwards.
+  test "a purpose event records whether it came from a preselect or the dropdown" do
+    %w[init user].each do |source|
+      assert_difference "SafeEvent.count", 1 do
+        post_event(name: "purpose", props: { purpose: "bid_attachment", doc_class: "none", source: source })
+      end
+      assert_response :no_content
+      assert_equal source, SafeEvent.last.props["source"]
+    end
+  end
+
+  test "source is a fixed category and belongs only to purpose" do
+    assert_no_difference "SafeEvent.count" do
+      post_event(name: "purpose", props: { purpose: "bid_attachment", source: "preselect" })
+    end
+    assert_response :unprocessable_entity
+
+    # A download is never a preselect; the key has no meaning there.
+    assert_no_difference "SafeEvent.count" do
+      post_event(name: "download", props: { format: "pdf", source: "init" })
+    end
+    assert_response :unprocessable_entity
+  end
+
   test "an event with no props at all is stored" do
     assert_difference "SafeEvent.count", 1 do
       post_event(name: "upload")
@@ -99,10 +126,18 @@ class Api::SafeEventsControllerTest < ActionDispatch::IntegrationTest
   # writes that cookie whenever params[:locale] is present, and params includes
   # the query string — correct for a page, wrong for a counter that promises it
   # identifies nobody. Api::BaseController skips the filter for every /api/ route.
+  #
+  # All THREE endpoints are called, not two. They share the base class, so the
+  # current code is safe either way — but the test's name claims every /api/
+  # route, and a test that asserts less than its name is how the next endpoint
+  # gets added without one. safe_scan is called with an empty body: it answers
+  # 400 "empty" before reaching Anthropic, and the filters have already run by
+  # then, so no token is spent to prove this.
   test "no /api/ endpoint can plant a cookie" do
     [
       [ "/api/safe_events?locale=ja", { name: "landing_view", props: { from: "direct" } } ],
-      [ "/api/jp_pilot?locale=ja", { company: "x", industry: "other", monthly_count: "1-2", email: "a@b.co.jp" } ]
+      [ "/api/jp_pilot?locale=ja", { company: "x", industry: "other", monthly_count: "1-2", email: "a@b.co.jp" } ],
+      [ "/api/safe_scan?locale=ja", {} ]
     ].each do |path, payload|
       post path, params: payload.to_json, headers: { "CONTENT_TYPE" => "application/json" }
       assert_empty response.headers.to_h.slice("Set-Cookie", "set-cookie"),

@@ -68,14 +68,11 @@ module Api
       raw.each_pair.to_h { |k, v| [ k.to_s, v ] }
     end
 
-    # Window-bucketed counter in Rails.cache, same shape as safe_scan's. No
-    # request attribute is part of the key.
+    # Window-bucketed counter in Rails.cache. No request attribute is part of
+    # the key — that is the point of this endpoint, not an oversight. Atomic:
+    # see Api::BaseController#over_limit?.
     def throttled?
-      bucket = (Time.current.to_i / THROTTLE_WINDOW.to_i)
-      key    = "safe_events:all:#{bucket}"
-      count  = Rails.cache.read(key).to_i + 1
-      Rails.cache.write(key, count, expires_in: THROTTLE_WINDOW * 2)
-      count > THROTTLE_LIMIT
+      over_limit?("safe_events:all", limit: THROTTLE_LIMIT, window: THROTTLE_WINDOW)
     end
   end
 end

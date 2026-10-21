@@ -20,19 +20,22 @@
     },
     {
       "name": "x_thread.md",
-      "bytes": 1040
+      "bytes": 1096
     },
     {
       "name": "carousel_1.png",
-      "bytes": 101497
+      "bytes": 101497,
+      "pixels": "1080x1350"
     },
     {
       "name": "carousel_2.png",
-      "bytes": 121179
+      "bytes": 121179,
+      "pixels": "1080x1350"
     },
     {
       "name": "carousel_3.png",
-      "bytes": 109116
+      "bytes": 109116,
+      "pixels": "1080x1350"
     }
   ],
   "demo": "failed: no dummy document exists for doc=\"契約書\" (only shikaku_kakuninsho, unten_menkyo, mynumber_card, juminhyo have fixtures)",

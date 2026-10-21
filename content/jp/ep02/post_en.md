@@ -29,7 +29,7 @@ A 2-D code gives no hint on paper about what it encodes. When a document carries
 2. Look at the same authority's guidelines for earlier contracts — the wording is usually reused
 3. If it is still unclear, ask the desk, and keep a record of the answer for next time
 
-**Always check the recipient's own instructions.** The law constrains the party that may not *ask* for the number; it does not decide, in one line, what a submitter should cover.
+**Always check the recipient's own instructions.** The party that asks for the number may be restricted by law; it does not decide, in one line, what a submitter should cover.
 
 SafeFile detects the document type and shows, per submission purpose, which fields it covers automatically and which it keeps visible. Where the authority's instruction differs, each field can be switched individually.
 

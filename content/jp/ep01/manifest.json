@@ -12,38 +12,41 @@
   "files": [
     {
       "name": "post_ja.md",
-      "bytes": 3802
+      "bytes": 3754
     },
     {
       "name": "post_en.md",
-      "bytes": 3073
+      "bytes": 3033
     },
     {
       "name": "x_thread.md",
-      "bytes": 1093
+      "bytes": 1149
     },
     {
       "name": "carousel_1.png",
-      "bytes": 110833
+      "bytes": 110833,
+      "pixels": "1080x1350"
     },
     {
       "name": "carousel_2.png",
-      "bytes": 118822
+      "bytes": 118822,
+      "pixels": "1080x1350"
     },
     {
       "name": "carousel_3.png",
-      "bytes": 106315
+      "bytes": 106315,
+      "pixels": "1080x1350"
     },
     {
       "name": "demo.gif",
-      "bytes": 400129
+      "bytes": 405893
     },
     {
       "name": "demo.mp4",
-      "bytes": 223914
+      "bytes": 224290
     }
   ],
-  "demo": "ok: 40 frames, demo.gif 391KB, demo.mp4 219KB",
+  "demo": "ok: 40 frames, demo.gif 396KB, demo.mp4 219KB",
   "warnings": [],
   "posted": {
     "x": false,

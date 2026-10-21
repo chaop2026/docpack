@@ -34,7 +34,7 @@
 ※ 提出先の指示が優先です。指示と異なる場合は「残す項目」を個別に切り替えられます。
 
 ### 仕組み（3ステップ）
-1. PDF・写真をドラッグ — 複数まとめて可
+1. PDF・写真をドラッグ
 2. 「提出目的：入札添付」を選ぶ — 書類ごとに黒塗り箇所が自動で決まる
 3. ダウンロード — 画像に平坦化され、黒塗りの下に原文は残りません。EXIF・注釈も削除
 
@@ -45,6 +45,7 @@
 
 ### チームプラン（事業者向け）
 月額 2,980円（税込）／年額 29,800円
+※ 以下の機能はパイロット期間中に順次提供します（現在は1ファイルずつ処理）
 - 提出先別プリセット（自治体・発注者ごとに保存）
 - 複数PDFの一括処理・一括ダウンロード
 - 処理記録（いつ・どの書類・どの目的）をCSVで
@@ -57,12 +58,12 @@
 ### よくある質問
 - **マスキングしていない写しを出したらどうなりますか** — 多くの発注者は受付後に発注者側でマスキングしますが、再提出や差し戻しを求める自治体もあります。提出前の処理が確実です。
 - **マイナ保険証しかありません** — 資格確認書または資格情報のお知らせの写しが対象です。マイナンバーカードの裏面は提出しないでください。
-- **法律上の根拠は** — 健康保険法等の改正による告知要求制限（2020年10月1日施行）。医療保険事務以外の目的で記号・番号の告知を求めることは原則制限されています。
+- **法律上の根拠は** — 健康保険法等の改正による告知要求制限（2020年10月1日施行）。医療保険事務以外の目的で記号・番号の告知を求めることは制限される場合があります。
 
 ### EN (parallel)
 **H1**: Redact only the numbers on insurance certificates for public tender attachments — and stop resubmissions.
 **Lead**: Japanese public-works tenders require masking of the insured symbol/number and insurer number on health-insurance certificate copies. SafeFile detects the document type and blacks out exactly those fields, keeping name, date of birth and employer visible for review. Files never leave your browser.
-**Team plan**: ¥2,980/month — per-recipient presets, batch PDF processing, processing log CSV, SlimFile compression, Japanese email support. Pilot: first 10 companies, 3 months free.
+**Team plan**: ¥2,980/month — per-recipient presets, batch PDF processing, processing log CSV, SlimFile compression, Japanese email support. These arrive progressively during the pilot; today the tool processes one file at a time. Pilot: first 10 companies, 3 months free.
 
 ---
 

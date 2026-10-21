@@ -16,23 +16,26 @@
     },
     {
       "name": "post_en.md",
-      "bytes": 2920
+      "bytes": 2917
     },
     {
       "name": "x_thread.md",
-      "bytes": 1060
+      "bytes": 1116
     },
     {
       "name": "carousel_1.png",
-      "bytes": 100989
+      "bytes": 100989,
+      "pixels": "1080x1350"
     },
     {
       "name": "carousel_2.png",
-      "bytes": 120257
+      "bytes": 120257,
+      "pixels": "1080x1350"
     },
     {
       "name": "carousel_3.png",
-      "bytes": 114725
+      "bytes": 114725,
+      "pixels": "1080x1350"
     }
   ],
   "demo": "skipped: track B has no tool demo",
