@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { margin: 0; padding: 0; background-color: #F8F7F4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .container { max-width: 560px; margin: 32px auto; background: #ffffff; border: 1px solid #E5E3DC; border-radius: 20px; overflow: hidden; }
+    .header { background: #0A6E8A; padding: 28px 32px; }
+    .header h1 { margin: 0; color: #ffffff; font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+    .body { padding: 28px 32px; }
+    table.kv { width: 100%; border-collapse: collapse; font-size: 13px; color: #1A1918; }
+    table.kv th { text-align: left; width: 38%; padding: 9px 0; color: #6B6963; font-weight: 400; vertical-align: top; }
+    table.kv td { padding: 9px 0; font-weight: 600; vertical-align: top; }
+    .next { background: #F8F7F4; border-radius: 14px; padding: 14px 18px; margin-top: 20px; font-size: 13px; color: #6B6963; line-height: 1.6; }
+    .btn { display: inline-block; background: #0A6E8A; color: #ffffff; text-decoration: none; padding: 8px 18px; border-radius: 12px; font-size: 13px; font-weight: 600; margin-top: 14px; }
+    .footer { padding: 20px 32px; text-align: center; font-size: 12px; color: #6B6963; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>SafeFile JP — パイロット申込 #<%= @req.id %></h1>
+    </div>
+
+    <div class="body">
+      <table class="kv">
+        <tr><th>会社名</th><td><%= @req.company %></td></tr>
+        <tr><th>業種</th><td><%= @req.industry %></td></tr>
+        <tr><th>月間提出件数</th><td><%= @req.monthly_count %></td></tr>
+        <tr><th>よく使う発注者</th><td><%= @req.authority.presence || "(未記入)" %></td></tr>
+        <tr><th>連絡先</th><td><%= @req.email %></td></tr>
+        <tr><th>流入元</th><td><%= @req.from %></td></tr>
+        <tr><th>受付</th><td><%= @req.created_at&.strftime("%Y-%m-%d %H:%M") %> UTC</td></tr>
+      </table>
+
+      <div class="next">
+        다음 할 일: 발주처명을 받았으면 그 발주처 지시에 맞춘 프리셋을 준비해 회신한다.
+        접촉 이력은 <code>docs/jp/outreach_log.md</code> 에 한 행 추가.
+        누적 신청 <strong><%= @total %>건</strong>.
+      </div>
+
+      <a href="https://slimfile.net/admin/jp_pilot_requests" class="btn">관리 목록 보기 →</a>
+    </div>
+
+    <div class="footer">SafeFile · SlimFile</div>
+  </div>
+</body>
+</html>

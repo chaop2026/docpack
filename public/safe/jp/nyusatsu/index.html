@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ja" data-from="nyusatsu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F7F5EF">
+<title>入札添付の資格確認書・保険証コピー、番号だけ自動で黒塗り | SafeFile</title>
+<meta name="description" content="公共工事の入札で求められる被保険者記号・番号・保険者番号のマスキングを、ブラウザだけで自動処理。複数PDFを一括、ファイルはサーバーに送信しません。再提出をなくします。">
+<meta name="robots" content="index,follow">
+<!-- Canonical / hreflang.
+     Self-referencing canonical with the trailing slash, because the slash-less
+     spelling and /index.html both 301 here (lib/canonical_path_redirect.rb) and
+     a page that does not name its own address is how /safe/ got filed as a
+     "duplicate without user-selected canonical" in Search Console.
+
+     NO hreflang at all — on purpose, and for the same reason /about carries
+     none. This is a single Japanese document; the English block at the bottom
+     is a summary inside this same URL, not a translation living at another one.
+     Declaring an `en` alternate would point at a URL that does not exist, and
+     an x-default self-reference would claim the page targets no particular
+     language, which is false. /safe/ is the opposite case (one URL, four full
+     UI languages switched client-side) and that is why it does carry x-default. -->
+<link rel="canonical" href="https://slimfile.net/safe/jp/nyusatsu/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="SafeFile">
+<meta property="og:url" content="https://slimfile.net/safe/jp/nyusatsu/">
+<meta property="og:title" content="入札添付の資格確認書・保険証コピー、番号だけ自動で黒塗り | SafeFile">
+<meta property="og:description" content="公共工事の入札で求められる被保険者記号・番号・保険者番号のマスキングを、ブラウザだけで自動処理。複数PDFを一括、ファイルはサーバーに送信しません。再提出をなくします。">
+<meta property="og:image" content="https://slimfile.net/safe/icon-512.png">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="入札添付の資格確認書・保険証コピー、番号だけ自動で黒塗り | SafeFile">
+<meta name="twitter:description" content="公共工事の入札で求められる被保険者記号・番号・保険者番号のマスキングを、ブラウザだけで自動処理。複数PDFを一括、ファイルはサーバーに送信しません。再提出をなくします。">
+<meta name="twitter:image" content="https://slimfile.net/safe/icon-512.png">
+<link rel="icon" type="image/svg+xml" href="/safe/icon.svg">
+<link rel="apple-touch-icon" href="/safe/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/safe/jp/jp.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "SafeFile",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web",
+  "url": "https://slimfile.net/safe/jp/nyusatsu/",
+  "description": "公共工事の入札で求められる被保険者記号・番号・保険者番号のマスキングを、ブラウザだけで自動処理します。",
+  "inLanguage": "ja",
+  "offers": [
+    { "@type": "Offer", "name": "無料", "price": "0", "priceCurrency": "JPY" },
+    { "@type": "Offer", "name": "チームプラン", "price": "2980", "priceCurrency": "JPY" }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "inLanguage": "ja",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "マスキングしていない写しを出したらどうなりますか",
+      "acceptedAnswer": { "@type": "Answer", "text": "多くの発注者は受付後に発注者側でマスキングしますが、再提出や差し戻しを求める自治体もあります。提出前の処理が確実です。" }
+    },
+    {
+      "@type": "Question",
+      "name": "マイナ保険証しかありません",
+      "acceptedAnswer": { "@type": "Answer", "text": "資格確認書または資格情報のお知らせの写しが対象です。マイナンバーカードの裏面は提出しないでください。" }
+    },
+    {
+      "@type": "Question",
+      "name": "法律上の根拠は",
+      "acceptedAnswer": { "@type": "Answer", "text": "健康保険法等の改正による告知要求制限（2020年10月1日施行）。医療保険事務以外の目的で記号・番号の告知を求めることは原則制限されています。" }
+    }
+  ]
+}
+</script>
+</head>
+<body>
+
+<header>
+  <div class="nav">
+    <div class="logo">
+      <a class="logo-brand" href="/safe/"><span class="bar" aria-hidden="true"></span>SafeFile</a>
+      <span class="brand-sep" aria-hidden="true"></span>
+      <a class="logo-slim" href="https://slimfile.net">SlimFile</a>
+    </div>
+    <div class="links">
+      <span class="badge-free">無料 · 登録不要</span>
+      <a href="/safe/">ツールを開く</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="hero">
+    <h1>入札添付の資格確認書、番号だけを自動で黒塗り。再提出をなくす。</h1>
+    <p class="lead">公共工事の入札では、健康保険の資格確認書や被保険者証の写しに「被保険者等記号・番号」「保険者番号」のマスキングが求められます（告知要求制限）。SafeFile は書類の種類を判定し、提出先ルールどおりの箇所だけを黒塗りします。氏名・生年月日・事業所名など、審査に必要な項目はそのまま残ります。</p>
+    <div class="cta-row">
+      <a class="btn" data-cta data-purpose="bid_attachment" href="/safe/?lang=ja&amp;purpose=bid_attachment&amp;from=nyusatsu">今すぐ試す（無料・登録不要）</a>
+      <a class="btn ghost" href="#team">チームプランの資料を見る</a>
+    </div>
+  </section>
+
+  <section class="blk">
+    <h2>なぜ手作業だと再提出になるのか（3点）</h2>
+    <ul class="plain">
+      <li>付箋や修正テープで隠した写しは、スキャン時に番号が透けることがある</li>
+      <li>画像編集アプリの黒塗りは「上に重ねただけ」で、PDF上で元の文字が残る場合がある</li>
+      <li>枝番や二次元コードを見落とすと、発注者側で差し戻しになる</li>
+    </ul>
+  </section>
+
+  <section class="blk">
+    <h2>SafeFile が行うこと</h2>
+    <div class="tbl">
+      <table>
+        <thead>
+          <tr><th>書類</th><th>自動で黒塗り</th><th>残す</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>資格確認書（被用者保険・国保・後期高齢）</td>
+            <td>保険者番号・記号・番号・枝番・二次元コード</td>
+            <td>氏名・生年月日・住所・有効期限・事業所名称</td>
+          </tr>
+          <tr>
+            <td>標準報酬決定通知書</td>
+            <td>被保険者整理番号</td>
+            <td>氏名・事業所名・対象月</td>
+          </tr>
+          <tr>
+            <td>住民票の写し</td>
+            <td>個人番号・住民票コード（提出先が求めない場合）</td>
+            <td>氏名・住所・発行者</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">※ 提出先の指示が優先です。指示と異なる場合は「残す項目」を個別に切り替えられます。</p>
+  </section>
+
+  <section class="blk">
+    <h2>仕組み（3ステップ）</h2>
+    <ol class="plain">
+      <li>PDF・写真をドラッグ — 複数まとめて可</li>
+      <li>「提出目的：入札添付」を選ぶ — 書類ごとに黒塗り箇所が自動で決まる</li>
+      <li>ダウンロード — 画像に平坦化され、黒塗りの下に原文は残りません。EXIF・注釈も削除</li>
+    </ol>
+  </section>
+
+  <section class="blk">
+    <h2>安全性</h2>
+    <ul class="plain">
+      <li>ファイルはお使いのブラウザ内で処理され、サーバーには送信されません</li>
+      <li>出力はラスター化（画像化）。テキスト層・メタデータは含まれません</li>
+      <li>処理記録はブラウザ内のみ</li>
+    </ul>
+  </section>
+
+  <section class="blk" id="team">
+    <h2>チームプラン（事業者向け）</h2>
+    <div class="card">
+      <p class="price">月額 2,980円（税込）／年額 29,800円</p>
+      <ul class="plain">
+        <li>提出先別プリセット（自治体・発注者ごとに保存）</li>
+        <li>複数PDFの一括処理・一括ダウンロード</li>
+        <li>処理記録（いつ・どの書類・どの目的）をCSVで</li>
+        <li>SlimFile による容量圧縮を同時に（電子入札の容量制限対応）</li>
+        <li>メールサポート（日本語）</li>
+      </ul>
+    </div>
+
+    <div class="pilot" id="pilot">
+      <p><strong>先行導入パイロット募集</strong>：入札書類を月に複数件提出する建設業者・電子入札代行・行政書士の方、先着10社に3か月無料でご提供します。反映したい提出先ルールをお送りください。</p>
+
+      <form class="pf" id="pilotForm" novalidate>
+        <div>
+          <label class="req" for="pf-company">会社名</label>
+          <input type="text" id="pf-company" name="company" maxlength="120" autocomplete="organization" required>
+        </div>
+        <div>
+          <label class="req" for="pf-industry">業種</label>
+          <select id="pf-industry" name="industry" required>
+            <option value="construction">建設業</option>
+            <option value="ebid_agent">電子入札代行</option>
+            <option value="gyoseishoshi">行政書士</option>
+            <option value="other">その他</option>
+          </select>
+        </div>
+        <div>
+          <label class="req" for="pf-count">月間提出件数</label>
+          <select id="pf-count" name="monthly_count" required>
+            <option value="1-2">月1〜2件</option>
+            <option value="3-5">月3〜5件</option>
+            <option value="6-10">月6〜10件</option>
+            <option value="11+">月11件以上</option>
+          </select>
+        </div>
+        <div>
+          <label for="pf-authority">よく使う発注者</label>
+          <input type="text" id="pf-authority" name="authority" maxlength="200" placeholder="例：○○県 ○○市">
+        </div>
+        <div>
+          <label class="req" for="pf-email">連絡先メール</label>
+          <input type="email" id="pf-email" name="email" maxlength="200" autocomplete="email" required>
+        </div>
+        <div class="hp" aria-hidden="true">
+          <label for="pf-website">Website</label>
+          <input type="text" id="pf-website" name="website" tabindex="-1" autocomplete="off">
+        </div>
+        <p class="consent">ご連絡のためにのみ使用します。</p>
+        <div><button class="btn" type="submit" id="pilotSubmit">パイロットに申し込む</button></div>
+        <div class="pf-msg" id="pilotMsg" role="status" aria-live="polite"></div>
+      </form>
+    </div>
+  </section>
+
+  <section class="blk">
+    <h2>よくある質問</h2>
+    <dl class="faq">
+      <dt>マスキングしていない写しを出したらどうなりますか</dt>
+      <dd>多くの発注者は受付後に発注者側でマスキングしますが、再提出や差し戻しを求める自治体もあります。提出前の処理が確実です。</dd>
+      <dt>マイナ保険証しかありません</dt>
+      <dd>資格確認書または資格情報のお知らせの写しが対象です。マイナンバーカードの裏面は提出しないでください。</dd>
+      <dt>法律上の根拠は</dt>
+      <dd>健康保険法等の改正による告知要求制限（2020年10月1日施行）。医療保険事務以外の目的で記号・番号の告知を求めることは原則制限されています。</dd>
+    </dl>
+    <p class="note">提出先の指示を必ず確認してください。</p>
+  </section>
+
+  <details class="en">
+    <summary>English</summary>
+    <div class="en-body">
+      <p><strong>Redact only the numbers on insurance certificates for public tender attachments — and stop resubmissions.</strong></p>
+      <p>Japanese public-works tenders require masking of the insured symbol/number and insurer number on health-insurance certificate copies. SafeFile detects the document type and blacks out exactly those fields, keeping name, date of birth and employer visible for review. Files never leave your browser.</p>
+      <p><strong>Team plan</strong>: ¥2,980/month — per-recipient presets, batch PDF processing, processing log CSV, SlimFile compression, Japanese email support. Pilot: first 10 companies, 3 months free.</p>
+    </div>
+  </details>
+
+  <footer>
+    <div class="fl">
+      <a href="/safe/">SafeFile</a>
+      <a href="/safe/jp/honnin-kakunin/">本人確認書類</a>
+      <a href="/safe/jp/ai-mae/">AIに貼る前に</a>
+      <a href="https://slimfile.net/privacy/">プライバシー</a>
+    </div>
+    <p>SafeFile · SlimFile — ファイルはブラウザ内で処理され、サーバーには送信されません。</p>
+  </footer>
+
+</main>
+
+<script src="/safe/jp/jp.js" defer></script>
+</body>
+</html>

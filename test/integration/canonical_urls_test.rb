@@ -236,4 +236,44 @@ class CanonicalUrlsTest < ActionDispatch::IntegrationTest
     assert_nil robots(response.body)
     assert_equal %w[ko en ja es x-default], hreflangs(response.body)
   end
+
+  # ── SafeFile JP landing pages (2026-10-22) ──────────────────────────────
+
+  JP_LANDINGS = %w[nyusatsu honnin-kakunin ai-mae].freeze
+
+  test "the sitemap lists each JP landing page once, with the trailing slash" do
+    get "/sitemap.xml"
+    locs = response.body.scan(%r{<loc>([^<]+)</loc>}).flatten
+
+    JP_LANDINGS.each do |slug|
+      canonical = "#{BASE}/safe/jp/#{slug}/"
+      assert_includes locs, canonical
+      assert_equal 1, locs.count(canonical), "#{canonical} is listed more than once"
+      # The slash-less spelling 301s, and a sitemap of redirects teaches Google
+      # that our canonical declarations are unreliable.
+      assert_not_includes locs, "#{BASE}/safe/jp/#{slug}"
+    end
+  end
+
+  test "the sitemap claims no hreflang for the JP landing pages" do
+    # Same call as /about: one Japanese document per URL, with the English text
+    # inside that same URL. There is no second URL for an `en` alternate to
+    # point at, and x-default would claim the page targets no language.
+    get "/sitemap.xml"
+    JP_LANDINGS.each do |slug|
+      entry = response.body[%r{<url>\s*<loc>#{Regexp.escape("#{BASE}/safe/jp/#{slug}/")}</loc>.*?</url>}m]
+      assert_not_nil entry, "no sitemap entry for /safe/jp/#{slug}/"
+      assert_not_includes entry, "hreflang", "/safe/jp/#{slug}/ must not advertise an alternate"
+    end
+  end
+
+  test "each JP landing page serves itself and declares its own address" do
+    JP_LANDINGS.each do |slug|
+      get "/safe/jp/#{slug}/"
+      assert_response :success
+      assert_equal "https://slimfile.net/safe/jp/#{slug}/", canonical(response.body)
+      assert_not_includes robots(response.body).to_s, "noindex"
+      assert_empty hreflangs(response.body), "/safe/jp/#{slug}/"
+    end
+  end
 end

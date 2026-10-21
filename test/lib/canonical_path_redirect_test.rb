@@ -208,6 +208,63 @@ class CanonicalPathRedirectTest < ActiveSupport::TestCase
     assert_equal 301, call("/about/").first
   end
 
+  # ── SafeFile JP landing pages (2026-10-22) ──────────────────────────────
+
+  test "DIRS names every directory under public with an index.html" do
+    # The list is hand-maintained, and a page added without updating it serves
+    # identical bytes at two addresses with nothing to notice — the duplicate
+    # that put /safe/ into Search Console. Derive the truth from the filesystem
+    # instead of restating the list.
+    on_disk = Dir.glob(Rails.root.join("public", "**", "index.html"))
+                 .reject { |f| f.include?("/public/assets/") }
+                 .map { |f| File.dirname(f).sub(Rails.root.join("public").to_s, "") }
+                 .sort
+
+    assert_equal on_disk, CanonicalPathRedirect::DIRS.sort,
+                 "CanonicalPathRedirect::DIRS is out of step with public/**/index.html"
+  end
+
+  test "each JP landing page has exactly one spelling" do
+    %w[/safe/jp/nyusatsu /safe/jp/honnin-kakunin /safe/jp/ai-mae].each do |dir|
+      assert_equal 200, call("#{dir}/").first, "#{dir}/ must be served"
+
+      {
+        dir => "#{dir}/",
+        "#{dir}/index.html" => "#{dir}/",
+        "#{dir}//" => "#{dir}/",
+        "#{dir}///" => "#{dir}/",
+        "#{dir}//index.html" => "#{dir}/",
+        "#{dir}/index.html/" => "#{dir}/",
+        "/safe/jp//#{File.basename(dir)}/" => "#{dir}/"
+      }.each do |path, target|
+        status, headers, = call(path)
+        assert_equal 301, status, path
+        assert_equal target, headers["location"], path
+      end
+    end
+  end
+
+  test "the JP landing pages do not shadow /safe/ itself" do
+    # /safe is a prefix of all three, and the directory rule is an equality
+    # test rather than a prefix test precisely so that stays true.
+    _, headers, = call("/safe")
+    assert_equal "/safe/", headers["location"]
+    assert_equal 200, call("/safe/").first
+    # And the shared assets under the landing directory are untouched.
+    assert_equal 200, call("/safe/jp/jp.css").first
+    assert_equal 200, call("/safe/jp/jp.js").first
+  end
+
+  test "/safe/jp itself is not a page" do
+    # public/safe/jp/ holds no index.html, so it must NOT be in DIRS: making it
+    # one would invent a fourth address for whichever page got served there.
+    # The honest result is the routed rule — slash stripped, then a 404 from the
+    # layer behind this one.
+    _, headers, = call("/safe/jp/")
+    assert_equal "/safe/jp", headers["location"]
+    assert_not_includes CanonicalPathRedirect::DIRS, "/safe/jp"
+  end
+
   test "assets underneath a static directory are never rewritten" do
     %w[/safe/sw.js /safe/icon.svg /safe/manifest.ko.webmanifest /privacy/style.css].each do |path|
       assert_equal 200, call(path).first, path

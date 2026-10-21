@@ -163,9 +163,21 @@ ko:
         blank: "을(를) 입력해 주세요"
         taken: "은(는) 이미 사용 중입니다"
         inclusion: "에 허용되지 않는 값이 들어왔습니다"
+        # Added 2026-10-22 with jp_pilot_requests. Format and length validators
+        # had no ko message, so a rejected sign-up reported
+        # "EmailTranslation missing. Options considered were: …" — measured, not
+        # hypothetical. The applicant never sees these strings (the JP form
+        # renders its own Japanese text from the returned field names), but the
+        # server log and rails console do, and a log line that reports its own
+        # lookup trace instead of the reason is a log line that does not work.
+        invalid: "의 형식이 올바르지 않습니다"
+        too_long: "이(가) 너무 깁니다 (최대 %{count}자)"
+        too_short: "이(가) 너무 짧습니다 (최소 %{count}자)"
+        not_a_number: "은(는) 숫자여야 합니다"
     models:
       post: "블로그 글"
       banner: "배너"
+      jp_pilot_request: "SafeFile JP 파일럿 신청"
     attributes:
       post:
         title_ko: "제목(한국어)"
@@ -184,3 +196,10 @@ ko:
         position: "위치"
         page: "페이지"
         banner_type: "배너 종류"
+      jp_pilot_request:
+        company: "회사명"
+        industry: "업종"
+        monthly_count: "월간 제출 건수"
+        authority: "자주 쓰는 발주처"
+        email: "연락처 메일"
+        from: "유입 경로"

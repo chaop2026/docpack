@@ -30,9 +30,25 @@ require "cgi/escape"
 class CanonicalPathRedirect
   # Directory-backed static HTML entrypoints, spelled without the trailing
   # slash. Each is served from `public/<dir>/index.html` and is canonical WITH
-  # the slash. These are the only two directories under public/ (verified), and
-  # both are declared that way in the sitemap.
-  DIRS = %w[/safe /privacy].freeze
+  # the slash, and each is declared that way in the sitemap.
+  #
+  # This list must name EVERY directory under public/ that holds an index.html.
+  # Miss one and ActionDispatch::FileHandler answers both spellings with
+  # identical bytes again — the exact duplicate that put /safe/ in Search
+  # Console as "duplicate without user-selected canonical". The three
+  # /safe/jp/* landing pages (2026-10-22) are here for that reason; `jp` itself
+  # is NOT, because public/safe/jp/ has no index.html and must stay a 404
+  # rather than become a fourth address for one of the pages below.
+  #
+  # Verify after adding a page:
+  #   find public -name index.html -not -path 'public/assets/*'
+  DIRS = %w[
+    /safe
+    /privacy
+    /safe/jp/nyusatsu
+    /safe/jp/honnin-kakunin
+    /safe/jp/ai-mae
+  ].freeze
 
   # Only GET/HEAD are redirected. A POST must never be turned into a 301 — the
   # method and body would be silently dropped by the client.

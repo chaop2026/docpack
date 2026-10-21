@@ -747,7 +747,28 @@ es:{
 }
 };
 const LANGS = ['ko','en','ja','es'];
+
+/* ───────── entry parameters (set by the JP landing pages) ─────────
+   /safe/?lang=ja&purpose=bid_attachment&from=nyusatsu
+   Three read-only hints, nothing more. `lang` and `purpose` only preselect UI
+   the user can still change; `from` is used for the anonymous counters and for
+   nothing else. None of them touch detection. */
+const SF_PARAMS = (() => {
+  let q; try { q = new URLSearchParams(location.search); } catch(e){ q = null; }
+  const get = k => (q ? (q.get(k) || '') : '');
+  const from = get('from');
+  return {
+    lang:    LANGS.includes(get('lang')) ? get('lang') : null,
+    purpose: get('purpose'),                        // validated by jpSetPurpose
+    from:    ['nyusatsu','honnin','aimae'].includes(from) ? from : 'direct'
+  };
+})();
+
 function detectLang(){
+  // An explicit ?lang= wins over the remembered choice: it is the most recent
+  // explicit signal, and the landing pages are Japanese-only, so a visitor
+  // arriving from one should not land in a language they set months ago.
+  if (SF_PARAMS.lang) return SF_PARAMS.lang;
   try { const s = localStorage.getItem('safefile_lang'); if (s && LANGS.includes(s)) return s; } catch(e){}
   const n = (navigator.language||'ko').toLowerCase();
   for (const l of LANGS) if (n.startsWith(l)) return l;
@@ -756,6 +777,40 @@ function detectLang(){
 let LANG = detectLang();
 const T = () => I18N[LANG];
 const INK = '#17140F', PAPER = '#F7F5EF';
+
+/* ───────── anonymous counters ─────────
+   Fire-and-forget category counts to our OWN endpoint. This is the only
+   network call this page makes besides the opt-in AI deep scan, and unlike
+   that one it carries NO document content: every value is one of a short fixed
+   list, enforced again server-side (app/models/safe_event.rb).
+
+   What is never sent: file name, file size, page text, entity values, box
+   coordinates, counts of anything found, any identifier. No cookie is set and
+   no response is read. A failure is swallowed — a counter must never change
+   what the user sees, and must never be able to block a download. */
+let SF_LAST_EXT = null;          // bucketed extension of the loaded file
+function sfPagesBucket(n){
+  if (n <= 1) return '1';
+  if (n === 2) return '2';
+  return n <= 5 ? '3-5' : '6+';
+}
+function sfExtBucket(ext){
+  const e = (ext||'').toLowerCase();
+  if (e === 'jpeg') return 'jpg';
+  return ['pdf','jpg','png','docx'].includes(e) ? e : 'other';
+}
+function sfDocClass(){
+  if (!pages.length) return 'none';
+  return jpState.cls ? jpState.cls.doc : 'unclassified';
+}
+function sfEvent(name, props){
+  try{
+    const body = JSON.stringify({ name, props: Object.assign({ locale: LANG, from: SF_PARAMS.from }, props||{}) });
+    const blob = new Blob([body], { type: 'application/json' });
+    if (navigator.sendBeacon && navigator.sendBeacon('/api/safe_events', blob)) return;
+    fetch('/api/safe_events', { method:'POST', headers:{'content-type':'application/json'}, body, keepalive:true }).catch(()=>{});
+  }catch(e){}
+}
 
 /* ───────── constants ───────── */
 const MAX_BYTES = 20*1024*1024;
@@ -2002,7 +2057,13 @@ function jpExtract(pi, cls){
 
 /* ── state + application ── */
 const JP_PURPOSES = ['identity_submit','my_number_procedure','bid_attachment','consult_share'];
-const JP_STATE0 = () => ({ cls: null, pageCls: [], purpose: 'identity_submit', findings: [], warn: null, mnConfirmed: false });
+// The starting purpose is 'identity_submit' unless a landing page asked for
+// another one (/safe/?purpose=bid_attachment). resetAll() rebuilds this state
+// from scratch, so without reading the parameter here the preselect would be
+// lost the moment the user pressed "another document" — the one place a tender
+// clerk is most likely to press.
+const JP_PURPOSE0 = JP_PURPOSES.includes(SF_PARAMS.purpose) ? SF_PARAMS.purpose : 'identity_submit';
+const JP_STATE0 = () => ({ cls: null, pageCls: [], purpose: JP_PURPOSE0, findings: [], warn: null, mnConfirmed: false });
 let jpState = JP_STATE0();
 function jpScan(){
   const keepPurpose = jpState.purpose;
@@ -2133,6 +2194,7 @@ function jpSetPurpose(p){
   jpState.mnConfirmed = false;
   const sel = $('jpPurpose'); if (sel) sel.value = p;
   jpApply();
+  sfEvent('purpose', { purpose: p, doc_class: sfDocClass() });
 }
 function jpSetMnConfirmed(v){ jpState.mnConfirmed = !!v; jpApply(); }
 function jpRenderBar(){
@@ -2342,6 +2404,7 @@ async function handleFile(f){
   resetResult(); clearDzAlert();
   if(f.size>MAX_BYTES){ toast(T().tTooBig); return; }
   const ext=(f.name.split('.').pop()||'').toLowerCase();
+  SF_LAST_EXT = sfExtBucket(ext);   // bucketed only — the file name is never sent
   const isImg = f.type.startsWith('image/') || ['heic','heif','webp','jpg','jpeg','png','gif','bmp','tif','tiff'].includes(ext);
   try{
     setProg(0.02);
@@ -2362,6 +2425,7 @@ async function handleFile(f){
 
 async function loadFromText(text,name){
   resetResult();
+  SF_LAST_EXT = 'other';   // pasted text / sample: no file, no extension
   try{ setProg(0.05); await renderTextPages(text,name); docTitle=name||'doc'; afterLoad(false); }
   catch(err){ console.error(err); toast(T().tReadFail); setProg(0); }
 }
@@ -2494,6 +2558,12 @@ function afterLoad(keepEntities){
     // "found personal info" — they are what the recipient needs — so they do not count.
     if(!keepEntities) setStatus(T().scanDone(entities.filter(e=>e.kind!=='keep'&&e.kind!=='manual').length));
   } else { jpRenderBar(); renderAll(); }
+  // Counters go LAST, after the UI is already built, and only on a first load
+  // (keepEntities=true is the AI re-scan of a document already counted).
+  if(!keepEntities){
+    sfEvent('upload', { ext: SF_LAST_EXT || 'other', pages: sfPagesBucket(pages.length) });
+    sfEvent('doc_class', { doc_class: sfDocClass() });
+  }
 }
 function resetResult(){ $('result').style.display='none'; lastOut=null; }
 function resetAll(){
@@ -3019,6 +3089,13 @@ document.addEventListener('keydown',e=>{
 });
 $('btnDownload').addEventListener('click',()=>{
   if(!lastOut) return;
+  // `purpose` is only meaningful on a classified Japanese document — jpState
+  // carries a default even when no JP preset ran, and sending that would
+  // inflate the purpose counts with documents that never had one.
+  const dc = sfDocClass();
+  sfEvent('download', jpState.cls
+    ? { format: lastOut.fmt, doc_class: dc, purpose: jpState.purpose }
+    : { format: lastOut.fmt, doc_class: dc });
   if(lastOut.fmt==='pdf'){ lastOut.pdf.save(lastOut.name); toast(T().tSaved(lastOut.name)); return; }
   // image: if multipage, download each page
   if(lastOut.dataUrls.length===1){ triggerDL(lastOut.dataUrls[0], lastOut.name); }
@@ -3117,6 +3194,13 @@ let _rz; window.addEventListener('resize',()=>{ clearTimeout(_rz); _rz=setTimeou
 /* ───────── init ───────── */
 applyLang();
 renderList();
+/* A ?purpose= from a landing page preselects the submission purpose so the
+   first document loaded is already governed by the right rule set. jpSetPurpose
+   validates the value against JP_PURPOSES and ignores anything else, and
+   jpScan() carries the choice across loads (keepPurpose), so this runs once.
+   It changes no detection — only which rule column the detections are read in,
+   which is what the dropdown does by hand. */
+if (SF_PARAMS.purpose) jpSetPurpose(SF_PARAMS.purpose);
 </script>
 </body>
 </html>

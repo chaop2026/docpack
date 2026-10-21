@@ -66,6 +66,16 @@ Rails.application.routes.draw do
   # Rack 미들웨어(lib/canonical_path_redirect.rb)로 옮겼다.
   post "/api/safe_scan", to: "api/safe_scan#create"
 
+  # SafeFile JP (2026-10-22). Both are POST-only, like safe_scan, and both are
+  # under the /api/ prefix that robots.txt already disallows — Googlebot
+  # harvests fetch() URL literals out of the rendered page, which is how
+  # /api/safe_scan ended up reported as a 404 in Search Console.
+  #
+  #   jp_pilot    — the pilot sign-up form on /safe/jp/nyusatsu/ (personal data)
+  #   safe_events — anonymous category counters from /safe/ and the landings
+  post "/api/jp_pilot",    to: "api/jp_pilot#create"
+  post "/api/safe_events", to: "api/safe_events#create"
+
   namespace :admin do
     get  "login",  to: "sessions#new",     as: :login
     post "login",  to: "sessions#create"
@@ -95,6 +105,9 @@ Rails.application.routes.draw do
         post :toggle
       end
     end
+
+    # Read-only; see Admin::JpPilotRequestsController.
+    resources :jp_pilot_requests, only: [ :index ]
 
     root to: "banners#index"
   end

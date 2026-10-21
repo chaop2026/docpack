@@ -1,0 +1,37 @@
+<% content_for(:admin_title, "SafeFile JP Pilot Requests") %>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+  <p style="color:#6b7280;margin:0;"><%= @requests.size %> request(s)</p>
+  <span class="admin-badge admin-badge-gray">読み取り専用 — 후속 이력은 docs/jp/outreach_log.md</span>
+</div>
+
+<% if @requests.any? %>
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>受付</th>
+        <th>会社名</th>
+        <th>業種</th>
+        <th>月間件数</th>
+        <th>よく使う発注者</th>
+        <th>連絡先</th>
+        <th>流入元</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @requests.each do |req| %>
+        <tr>
+          <td style="white-space:nowrap;"><%= req.created_at&.strftime("%Y-%m-%d %H:%M") %></td>
+          <td><strong><%= req.company %></strong></td>
+          <td><span class="admin-badge admin-badge-gray"><%= req.industry %></span></td>
+          <td><%= req.monthly_count %></td>
+          <td><%= req.authority.presence || "—" %></td>
+          <td><%= mail_to req.email %></td>
+          <td><span class="admin-badge admin-badge-gray"><%= req.from %></span></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <p style="color:#6b7280;">まだ申込はありません。</p>
+<% end %>

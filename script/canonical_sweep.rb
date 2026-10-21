@@ -85,7 +85,18 @@ SLUGS = begin
   sm.scan(%r{<loc>([^<]+)</loc>}).flatten.map { |u| URI.parse(u).path }
 end
 
-STATIC_DIRS = %w[/safe /privacy]
+# Must mirror CanonicalPathRedirect::DIRS. Every directory under public/ with an
+# index.html belongs here, or its slash-less spelling serves the same bytes at a
+# second address and nothing notices — the duplicate that put /safe/ into Search
+# Console as "duplicate without user-selected canonical".
+#
+#   find public -name index.html -not -path 'public/assets/*'
+#
+# /safe/jp itself is deliberately absent: public/safe/jp/ has no index.html, so
+# /safe/jp is a 404 and /safe/jp/ 301s onto that 404. That is the honest answer
+# for an address with nothing at it, but it would trip the "a 301 must land
+# somewhere real" rule below, which exists to catch stranded *indexed* URLs.
+STATIC_DIRS = %w[/safe /privacy /safe/jp/nyusatsu /safe/jp/honnin-kakunin /safe/jp/ai-mae]
 ROUTED = %w[/ /about /faq /compress /pdf /social /blog /sitemap.xml /robots.txt
             /en/about /en/faq /en/blog /ja/blog /es/blog]
 
@@ -98,7 +109,9 @@ variants = []
 STATIC_DIRS.each do |d|
   variants += [ "#{d}/", d, "#{d}//", "#{d}///", "#{d}/index.html", "#{d}//index.html", "#{d}/index.html/" ]
 end
-variants += %w[/safe/sw.js /safe/sw.js/ /safe//sw.js]
+variants += %w[/safe/sw.js /safe/sw.js/ /safe//sw.js
+               /safe/jp/jp.css /safe/jp/jp.css/ /safe/jp//jp.css
+               /safe/jp/jp.js /safe/jp/jp.js/ /safe/jp//jp.js]
 ROUTED.each do |p|
   variants << p
   next if p == "/"
@@ -134,7 +147,7 @@ variants.each do |v|
   end
 end
 # The canonical spellings themselves are legitimately 200.
-allowed_200 = (STATIC_DIRS.map { |d| "#{d}/" } + ROUTED + SLUGS + %w[/safe/sw.js]).uniq
+allowed_200 = (STATIC_DIRS.map { |d| "#{d}/" } + ROUTED + SLUGS + %w[/safe/sw.js /safe/jp/jp.css /safe/jp/jp.js]).uniq
 (dupes - allowed_200).each { |v| fail!("duplicate-200", "#{v} serves content at a non-canonical spelling") }
 puts "  variants probed: #{variants.size} | 200s: #{dupes.size} (allowed #{(dupes & allowed_200).size})" \
      " | hop histogram: #{hop_hist.sort.to_h.inspect}"

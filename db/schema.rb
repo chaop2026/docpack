@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_09_17_170741) do
+ActiveRecord::Schema[8.0].define(version: 2026_10_22_000200) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -93,6 +93,18 @@ ActiveRecord::Schema[8.0].define(version: 2026_09_17_170741) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "jp_pilot_requests", force: :cascade do |t|
+    t.string "company", null: false
+    t.string "industry", null: false
+    t.string "monthly_count", null: false
+    t.string "authority"
+    t.string "email", null: false
+    t.string "from", default: "direct", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "index_jp_pilot_requests_on_created_at"
+  end
+
   create_table "posts", force: :cascade do |t|
     t.string "title_ko"
     t.string "title_en"
@@ -117,6 +129,13 @@ ActiveRecord::Schema[8.0].define(version: 2026_09_17_170741) do
     t.string "subtitle_ko"
     t.text "publish_error"
     t.index ["slug"], name: "index_posts_on_slug", unique: true
+  end
+
+  create_table "safe_events", force: :cascade do |t|
+    t.string "name", null: false
+    t.jsonb "props", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.index ["created_at", "name"], name: "index_safe_events_on_created_at_and_name"
   end
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
