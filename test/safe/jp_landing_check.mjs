@@ -56,7 +56,14 @@ const PAGES = [
     ],
     // Phrases that were REMOVED and must not come back. The step list used to
     // say 「— 複数まとめて可」, which is not true of the tool today.
-    absent: ['複数まとめて可']
+    absent: ['複数まとめて可'],
+    // The search snippet said 「複数PDFを一括、」 too (B-10, approved 2026-10-22).
+    // Asserted as EXACT equality across all three tags, not as an absent
+    // phrase: `absent` is checked against body text, which never contains
+    // <head>, so the snippet claim was invisible to this harness while the
+    // page copy was already corrected. Equality also catches the phrase coming
+    // back, in any of the three places it was written.
+    description: '公共工事の入札で求められる被保険者記号・番号・保険者番号のマスキングを、ブラウザだけで自動処理。ファイルはサーバーに送信しません。再提出をなくします。'
   },
   {
     slug: 'honnin-kakunin',
@@ -170,6 +177,16 @@ for (const p of PAGES) {
     ok(`${p.slug}: removed "${phrase}" stays removed`, !body.includes(phrase));
   }
   ok(`${p.slug}: carries 提出先の指示を必ず確認`, body.includes('提出先の指示を必ず確認'));
+
+  // The three description tags are written out separately in the HTML, so one
+  // of them drifting is the normal failure. Only pages whose snippet copy is
+  // pinned by a human decision declare `description`.
+  if (p.description) {
+    for (const sel of ['meta[name=description]', 'meta[property="og:description"]', 'meta[name="twitter:description"]']) {
+      const got = await page.getAttribute(sel, 'content');
+      ok(`${p.slug}: ${sel} matches canonical copy`, got === p.description, got);
+    }
+  }
   for (const bad of FORBIDDEN) {
     ok(`${p.slug}: no forbidden "${bad}"`, !body.includes(bad));
   }
