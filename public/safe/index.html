@@ -1249,20 +1249,57 @@ function jpClassify(pi){
   }
   return best;
 }
-/* Anchors that appear ONLY on the back face of each card. A card scanned into
-   two pages leaves the back face unclassifiable on its own — 個人番号 is worth 2
-   of the 4 points the card needs and the card's NAME is printed on the front —
-   so without something the back page can be recognised BY, the only way to
-   govern it was to inherit page 1's class. That inheritance also governed a
-   bank-book copy or any other unrelated attachment bound into the same PDF, and
-   it governed it with CARD rules: the error direction is destroying required
-   evidence, not leaking (Codex 6b-3). These anchors are what a promotion to
-   「the back of the card on the previous page」 has to prove.
-   臓器提供 is deliberately absent from the card list — on マイナンバーカード it is
-   a FRONT field, so it is not evidence of a back face there. */
-const JP_BACK_ANCHORS = {
-  mynumber_card: /個人番号|マイナンバー|二次元コード/,
-  unten_menkyo: /備考欄|臓器提供|提供意思|意思表示欄/,
+/* What a promotion to 「the back of the card on the previous page」 has to PROVE.
+   A card scanned into two pages leaves the back face unclassifiable on its own —
+   個人番号 is worth 2 of the 4 points the card needs and the card's NAME is
+   printed on the front — so without something the back page can be recognised
+   BY, the only way to govern it was to inherit page 1's class. That inheritance
+   also governed a bank-book copy or any other unrelated attachment bound into
+   the same PDF, and it governed it with CARD rules: the error direction is
+   destroying required evidence, not leaking (Codex 6b-3).
+
+   The first version of this exception proved it with a WORD:
+     /個人番号|マイナンバー|二次元コード/
+   and a word is not evidence of a face. 二次元コード is neither card-specific
+   nor back-specific — any leaflet, any 資格確認書, any delivery slip prints it —
+   and マイナンバー appears in every piece of guidance ever written about the
+   card. Either one, bound after a card front, promoted the page to 裏面 and then
+   banded its WHOLE face (Codex s3c AMBER). A guidance page masked edge to edge
+   is the same failure as the inherited class, one step smaller.
+
+   So each card now requires a LABEL *and* the value shape that only its back
+   face carries, and the shape is checked with the SAME detector the golden
+   exercises rather than a second parallel parser that could drift from it:
+     マイナンバーカード裏面 — a 個人番号/マイナンバー label at a segment head whose
+       value is a 12-digit number. NFKC has already folded full-width digits and
+       jpDigitSpan tolerates the 4-4-4 grouping the card prints.
+     運転免許証裏面 — a 備考欄/臓器提供意思表示欄 label WITH the drawn 欄 frame
+       under it. A leaflet can print the word 備考欄; it cannot print the
+       150px-contiguous ruled box the licence back is built out of.
+   臓器提供 is deliberately absent from the card entry — on マイナンバーカード it is
+   a FRONT field, so it is not evidence of a back face there.
+   資格確認書 and 住民票 have no entry on purpose: they are not two-sided cards,
+   jpClassify never assigns them a side, and a page that cannot name itself as
+   one of them is governed by nothing. */
+function jpBackProofMyNumber(pi){
+  const labels = jpKnownLabels('mynumber_card');
+  for (const seg of jpSegments(pi)){
+    const L = jpFindLabel(seg, ['個人番号','マイナンバー'], true);
+    if (!L) continue;
+    if (jpDigitSpan(seg, L.end, 12, jpTailEnd(seg, L.end, labels))) return true;
+  }
+  return false;
+}
+function jpBackProofFrame(pi){
+  const labels = [];
+  for (const rr of (JP_REGION_LABELS.unten_menkyo || [])) labels.push(...rr.labels);
+  for (const seg of jpSegments(pi))
+    if (jpFindLabel(seg, labels, false) && jpFrameBelow(pages[pi], { y: seg.y, h: seg.h })) return true;
+  return false;
+}
+const JP_BACK_PROOF = {
+  mynumber_card: jpBackProofMyNumber,
+  unten_menkyo: jpBackProofFrame,
 };
 
 /* ── 個人番号 check digit ──
@@ -1976,9 +2013,10 @@ function jpScan(){
   // NO Japanese rule runs on it. The single exception is a card's back face,
   // which carries no document name and therefore cannot classify itself: it is
   // promoted only when the PREVIOUS page is that card's front AND this page
-  // carries a back-only anchor for that same card (JP_BACK_ANCHORS). Anything
-  // else bound into the PDF — a bank book, a tax slip, a blank separator — is
-  // governed by nothing, which is the honest answer for a page we cannot read.
+  // PROVES it is that card's back — a back-only label together with that face's
+  // own value shape (JP_BACK_PROOF), never a single word. Anything else bound
+  // into the PDF — a bank book, a tax slip, a QR leaflet, a blank separator —
+  // is governed by nothing, which is the honest answer for a page we cannot read.
   const cls0 = jpClassify(0);
   const pageCls = [];
   for (let pi = 0; pi < pages.length; pi++){
@@ -1986,8 +2024,8 @@ function jpScan(){
     let c = jpClassify(pi);
     if (!c){
       const prev = pageCls[pi - 1];
-      const re = prev && prev.side === 'front' && JP_BACK_ANCHORS[prev.doc];
-      if (re && re.test(jpPageText(pi)))
+      const proof = prev && prev.side === 'front' && JP_BACK_PROOF[prev.doc];
+      if (proof && proof(pi))
         c = { doc: prev.doc, side: 'back', score: prev.score, hits: prev.hits, low: !!prev.low, viaBackAnchor: true };
     }
     pageCls.push(c);

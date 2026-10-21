@@ -231,6 +231,10 @@ const PAGE_HELPERS = () => {
     window.__catSnapshot = null; renderAll(); return true;
   };
   window.__setMnConfirm = function (v) { jpSetMnConfirmed(v); };
+  // The page's OWN normalised view of a page's text. The back-face promotion
+  // negatives need it: "page 2 was not promoted" is a vacuous pass if the words
+  // that used to promote it never reached the page in the first place.
+  window.__pageText = function (pi) { return jpPageText(pi); };
   window.__isCandidateExact = function (v) { const n = norm(v); return entities.some(e => e.kind === 'candidate' && norm(e.value) === n); };
   window.__isCandidateContains = function (v) { const n = norm(v); return entities.some(e => e.kind === 'candidate' && norm(e.value).includes(n)); };
   // default mode of the candidate whose value contains v (null if not a candidate)
@@ -782,10 +786,12 @@ function checkMatrix() {
    repo gains no new card binaries. */
 /* Page sources: a URL string (whole image), {url, crop:[x0,y0,x1,y1]} (a
    sub-rectangle of a committed fixture — used to take the card's own TITLE away
-   so the page can no longer classify itself), or {pdf, page} (a page of a
+   so the page can no longer classify itself), {pdf, page} (a page of a
    committed testdoc, rendered through pdf.js — an attachment that is genuinely
-   not one of the four documents). No new binaries enter the repo: everything is
-   composed at run time from files already committed. */
+   not one of the four documents), or {text} (Japanese prose painted onto a
+   white canvas — a leaflet bound in after a card, which is the counterexample
+   the single-word back anchor failed on). No new binaries enter the repo:
+   everything is composed at run time from files already committed. */
 async function buildPdfFromImages(page, srcs, outPath) {
   const b64 = await page.evaluate(async (list) => {
     const { jsPDF } = await ensureJsPDF();
@@ -806,6 +812,18 @@ async function buildPdfFromImages(page, srcs, outPath) {
         const cx = cv.getContext('2d');
         cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height);
         await pg.render({ canvasContext: cx, viewport: vp }).promise;
+        addCanvas(cv); continue;
+      }
+      if (s && typeof s === 'object' && s.text) {
+        const cv = document.createElement('canvas');
+        cv.width = 1100; cv.height = 700;
+        const cx = cv.getContext('2d');
+        cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, cv.width, cv.height);
+        cx.fillStyle = '#111111';
+        cx.font = '42px "Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif';
+        cx.textBaseline = 'top';
+        let ty = 70;
+        for (const line of s.text.split('\n')) { cx.fillText(line, 60, ty); ty += 78; }
         addCanvas(cv); continue;
       }
       const url = typeof s === 'string' ? s : s.url;
@@ -903,6 +921,94 @@ async function checkJpMultiPage(page, port) {
     } catch (e) { rec(tag, 'LOAD', c.file, 'loads', 'ERR:' + e.message.split('\n')[0], false); }
     await page.evaluate(() => { LANG = 'ko'; applyLang(); });
   }
+}
+
+/* ── back-face promotion: the NEGATIVES ─────────────────────────────────────
+   The promotion exception used to prove 「this is the back of the card on the
+   previous page」 with a single word out of /個人番号|マイナンバー|二次元コード/.
+   二次元コード is neither card-specific nor back-specific and マイナンバー appears
+   in every leaflet written about the card, so a guidance page bound in after a
+   card front was promoted to 裏面 and then banded edge to edge (Codex s3c AMBER).
+   The positive case above — the card's own back with its title cropped off —
+   cannot catch that: it passes under both the old anchor and the new proof.
+   What catches it is a page that carries the old anchor word and is NOT a back
+   face, and there are two shapes of that, one per half of the new conjunction:
+     ① the value shape with no label  (二次元コード leaflet + a 12-digit reference)
+     ② the label with no value shape  (マイナンバー leaflet, no 12-digit number)
+   Neither page may classify itself, or it never reaches the promotion path at
+   all: that is why the leaflets avoid 「マイナンバーカード」/「個人番号カード」,
+   which score 4 on their own and would make the page a card by itself. (That
+   over-triggering of classification on prose is a separate gap — s3d_report §3.)
+   Both run twice: once through the app's own text renderer, where the page text
+   is exactly what the case says, and once as a painted leaflet read by OCR,
+   which is the path a user's scan actually takes. */
+const JP_OLD_BACK_ANCHOR = /個人番号|マイナンバー|二次元コード/;
+const JP_MN_FRONT_TEXT = 'マイナンバーカード 表面（架空・見本）\n氏名 架空 太郎\n生年月日 平成3年4月5日';
+const JP_BACKPROOF_NEG = [
+  { label: '二次元コード案内（値のみ・ラベルなし）',
+    page2: '二次元コードのご案内\n二次元コードは読み取り用の印刷物です。\nお問い合わせ受付番号 999988887777' },
+  { label: 'マイナンバー案内（ラベルのみ・12桁なし）',
+    page2: 'マイナンバーのご案内\nマイナンバー制度のお問い合わせは窓口へ。\n提出先の案内をご確認ください。' },
+];
+/* Shared by both paths: page 1 is still the card front WITH its own fields
+   (otherwise "page 2 has none" could be true because the whole preset
+   collapsed), page 2 is governed by nothing, and no pixel of page 2 is painted. */
+async function assertNotPromoted(page, tag, label) {
+  const st = await page.evaluate(() => window.__jpState());
+  rec(tag, 'JP_NEG_PAGES', label + ' page count', '2', String(st.pageCls.length), st.pageCls.length === 2);
+  const sides = st.pageCls.map(x => x ? (x.doc + '/' + (x.side || '-')) : 'null');
+  rec(tag, 'JP_PAGECLASS', label + ' per-page doc/side', 'mynumber_card/front + null', sides.join(' + '),
+    sides.length === 2 && sides[0] === 'mynumber_card/front' && sides[1] === 'null');
+  rec(tag, 'JP_BACKANCHOR', label + ' page 2 promoted', 'false',
+    String(!!(st.pageCls[1] && st.pageCls[1].viaBackAnchor)), !(st.pageCls[1] && st.pageCls[1].viaBackAnchor));
+  /* Non-vacuity. "page 2 was not promoted" is a free pass whenever the words
+     that used to promote it never reached the page — a crop, an OCR failure, a
+     renderer change. So assert that the OLD anchor still matches page 2: the
+     case is only evidence about the new rule while that is true. */
+  const t2 = await page.evaluate(() => window.__pageText(1));
+  const vac = JP_OLD_BACK_ANCHOR.test(t2);
+  rec(tag, 'JP_NEG_VACUOUS', label + ' old anchor present on page 2', 'match',
+    vac ? 'match' : 'NOT in page text: ' + t2.slice(0, 40), vac);
+  const onP0 = st.fields.filter(f => f.page === 0).length;
+  const onP1 = st.fields.filter(f => f.page === 1).length;
+  rec(tag, 'JP_ENTITIES', label + ' page 1 jp entities', '>=1', String(onP0), onP0 >= 1);
+  rec(tag, 'JP_ENTITIES', label + ' page 2 jp entities', '0', String(onP1), onP1 === 0);
+  const bs = await page.evaluate(() => window.__fieldBands('back_all'));
+  const bandPages = bs.filter(b => b.mode !== 'ok' && b.inMask).map(b => b.page);
+  rec(tag, 'JP_BACK_ONLY', label + ' back_all pages', '[]', `[${bandPages.join(',')}]`, bandPages.length === 0);
+  const cov = await page.evaluate(() => pages.map((p, pi) => window.__coverage({ pi, x: 0, y: 0, w: p.w, h: p.h })));
+  rec(tag, 'JP_ATTACH_CLEAR', label + ' page 2 coverage', '<=10%', `${(cov[1] * 100).toFixed(0)}%`, cov[1] <= 0.10);
+}
+async function checkJpBackProof(page, port) {
+  for (const c of JP_BACKPROOF_NEG) {
+    const tag = '(jp backproof) ' + c.label;
+    await page.evaluate(() => { LANG = 'ja'; applyLang(); });
+    try {
+      // 60 blank lines force the page break: renderTextPages fits 42 lines, so
+      // the leaflet lands on page 2 and nothing lands on a page 3. The page
+      // count is asserted rather than assumed.
+      const text = JP_MN_FRONT_TEXT + '\n'.repeat(60) + c.page2;
+      await page.evaluate(() => { if (typeof pages !== 'undefined' && pages.length) resetAll(); });
+      await page.evaluate(t => loadFromText(t, 'synth.txt'), text);
+      await page.waitForFunction(() => Array.isArray(pages) && pages.length > 0
+          && document.getElementById('docWrap').style.display === 'flex', { timeout: 40000 });
+      await page.evaluate(PAGE_HELPERS);
+      await page.evaluate(() => jpSetPurpose('identity_submit'));
+      await assertNotPromoted(page, tag, 'text');
+    } catch (e) { rec(tag, 'LOAD', 'synth 2page', 'loads', 'ERR:' + e.message.split('\n')[0], false); }
+    await page.evaluate(() => { LANG = 'ko'; applyLang(); });
+  }
+  const tag = '(jp backproof) 表(画像)+案内(OCR)';
+  await page.evaluate(() => { LANG = 'ja'; applyLang(); });
+  try {
+    await buildPdfFromImages(page,
+      [`http://127.0.0.1:${port}/__fx/jp/mynumber_card/front.png`, { text: JP_BACKPROOF_NEG[0].page2 }],
+      path.join(OUT, 'gen/mn_front_leaflet.pdf'));
+    await loadDoc(page, 'gen/mn_front_leaflet.pdf', true);
+    await page.evaluate(() => jpSetPurpose('identity_submit'));
+    await assertNotPromoted(page, tag, 'ocr');
+  } catch (e) { rec(tag, 'LOAD', 'gen/mn_front_leaflet.pdf', 'loads', 'ERR:' + e.message.split('\n')[0], false); }
+  await page.evaluate(() => { LANG = 'ko'; applyLang(); });
 }
 
 /* ── 個人番号 check digit ───────────────────────────────────────────────────
@@ -1144,6 +1250,7 @@ function printTable() {
   }
   if (!onlyArg) { process.stderr.write('… legal matrix\n'); checkMatrix(); }
   if (!onlyArg || onlyArg === 'jp/2page') { process.stderr.write('… jp multipage\n'); await checkJpMultiPage(page, port); }
+  if (!onlyArg || onlyArg === '(jp backproof)') { process.stderr.write('… jp back-face proof negatives\n'); await checkJpBackProof(page, port); }
   if (!onlyArg || onlyArg === '(jp units)') { process.stderr.write('… jp units\n'); await checkJpUnits(page); }
   if (!onlyArg || onlyArg === '(jp synth)') { process.stderr.write('… jp my_number\n'); await checkJpMyNumber(page); }
   if (!onlyArg || onlyArg === '(jp synth)') { process.stderr.write('… jp merged rows\n'); await checkJpSynth(page); }
