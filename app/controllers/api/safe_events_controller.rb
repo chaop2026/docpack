@@ -20,9 +20,7 @@
 #   * It stores nothing that is not on SafeEvent's whitelist. The model owns
 #     that list; this controller just refuses what the model will not take.
 module Api
-  class SafeEventsController < ApplicationController
-    skip_before_action :verify_authenticity_token
-
+  class SafeEventsController < BaseController
     # A global ceiling, not a per-client one. 600 events/minute is far above
     # what organic use produces and still bounds a flood to something the table
     # can absorb. It cannot single out an abuser — that is the trade we are

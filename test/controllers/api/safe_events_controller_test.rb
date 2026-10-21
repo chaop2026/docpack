@@ -94,6 +94,32 @@ class Api::SafeEventsControllerTest < ActionDispatch::IntegrationTest
     assert_equal %w[created_at id name props], SafeEvent.column_names.sort
   end
 
+  # Measured before the fix: POST /api/safe_events?locale=ja answered 204 AND
+  # Set-Cookie: locale=ja, expiring in a year. ApplicationController#set_locale
+  # writes that cookie whenever params[:locale] is present, and params includes
+  # the query string — correct for a page, wrong for a counter that promises it
+  # identifies nobody. Api::BaseController skips the filter for every /api/ route.
+  test "no /api/ endpoint can plant a cookie" do
+    [
+      [ "/api/safe_events?locale=ja", { name: "landing_view", props: { from: "direct" } } ],
+      [ "/api/jp_pilot?locale=ja", { company: "x", industry: "other", monthly_count: "1-2", email: "a@b.co.jp" } ]
+    ].each do |path, payload|
+      post path, params: payload.to_json, headers: { "CONTENT_TYPE" => "application/json" }
+      assert_empty response.headers.to_h.slice("Set-Cookie", "set-cookie"),
+                   "#{path} set a cookie: #{response.headers['Set-Cookie'] || response.headers['set-cookie']}"
+      assert_empty cookies.to_hash, "#{path} left cookies: #{cookies.to_hash.inspect}"
+    end
+  end
+
+  # Guards the test above: if a locale-prefixed PAGE stopped setting the cookie
+  # too, the assertion would pass for the wrong reason and nobody would notice
+  # that language switching had broken.
+  test "a locale-prefixed page still does set the cookie" do
+    get "/ja/faq"
+    assert_response :success
+    assert_equal "ja", cookies[:locale]
+  end
+
   test "the whole endpoint is capped and the cap is not per-visitor" do
     with_memory_cache do
       limit = Api::SafeEventsController::THROTTLE_LIMIT

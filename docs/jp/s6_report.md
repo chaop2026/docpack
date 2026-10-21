@@ -5,7 +5,7 @@
 계측 요구 [`jp_forecast_report_2026-10-22.md`](jp_forecast_report_2026-10-22.md) §8 ·
 지시서 [`s6_prompt.md`](s6_prompt.md)
 
-**골든 557/557 유지(0 실패) · SW 하네스 9/9 유지 · `bin/rails test` 159→186 runs / 1218→1404 assertions / 0 failures ·
+**골든 557/557 유지(0 실패) · SW 하네스 9/9 유지 · `bin/rails test` 159→188 runs / 1218→1414 assertions / 0 failures ·
 신규 하네스 `jp_landing_check.mjs` 102/102 · canonical sweep 6/6 · rubocop 신규 위반 0 · brakeman 6건(기존과 동일)**
 
 ---
@@ -116,6 +116,7 @@ Dir.glob("public/**/index.html") - public/assets → DIRS 와 집합 동등
   IP 해시도 결국 방문자 식별자다. 대신 **엔드포인트 전체**에 분당 600건 상한을 둔다 —
   누가 하는지 구별할 수 없는 것이 이 교환의 핵심이고, 그래서 상한을 넉넉히 뒀다.
 - 쿠키·세션을 쓰지 않는다. 자유 텍스트·좌표·파일명·페이지 내용을 받지 않는다.
+  ⚠️ **이 성질은 처음에 깨져 있었다 — 교차검증 프롬프트를 쓰다가 찾아 고쳤다.** 아래 §4 참조.
 - 전용 테스트: `filename`·`text`·`box`·`ip`·`visitor_id`·`pages:"17"` 6종이 전부 422 임을 단언하고,
   **테이블 컬럼이 `id, name, props, created_at` 넷뿐**임을 단언한다(식별 가능한 열이 생기면
   `/safe/` 와 랜딩 3페이지의 약속이 거짓이 되므로, 스타일이 아니라 약속이다).
@@ -152,6 +153,7 @@ Dir.glob("public/**/index.html") - public/assets → DIRS 와 집합 동등
 public/safe/jp/jp.css · jp.js
 public/safe/jp/nyusatsu/index.html · honnin-kakunin/index.html · ai-mae/index.html
 app/models/safe_event.rb · jp_pilot_request.rb
+app/controllers/api/base_controller.rb
 app/controllers/api/safe_events_controller.rb · jp_pilot_controller.rb
 app/controllers/admin/jp_pilot_requests_controller.rb
 app/views/admin/jp_pilot_requests/index.html.erb
@@ -168,6 +170,7 @@ docs/jp/s6_report.md
 
 **수정**
 ```
+app/controllers/api/safe_scan_controller.rb — Api::BaseController 상속 (set_locale·CSRF skip)
 public/safe/index.html        — SF_PARAMS · detectLang · sfEvent + 호출 6곳 (탐지 무변경)
 lib/canonical_path_redirect.rb — DIRS 에 랜딩 3개
 config/routes.rb              — POST /api/jp_pilot · /api/safe_events · admin 목록
@@ -251,8 +254,8 @@ node jp_landing_check.mjs
 
 | 검증 | 결과 |
 |---|---|
-| `bin/rails test` | **186 runs / 1404 assertions / 0 failures** (직전 159/1218) |
-| 신규 `test/controllers/api/safe_events_controller_test.rb` | 10개 |
+| `bin/rails test` | **188 runs / 1414 assertions / 0 failures** (직전 159/1218) |
+| 신규 `test/controllers/api/safe_events_controller_test.rb` | 12개 |
 | 신규 `test/controllers/api/jp_pilot_controller_test.rb` | 10개 |
 | 확장 `test/lib/canonical_path_redirect_test.rb` | 30개 / 303 단언 (직전 26개) |
 | 확장 `test/integration/canonical_urls_test.rb` | 18개 / 307 단언 (직전 15개) |
@@ -285,7 +288,35 @@ node jp_landing_check.mjs
    취소해 jp.js 의 버블 리스너는 그대로 돌게 했다. 「측정 대상이 사라져서 0」과
    「발화하지 않아서 0」은 밖에서 같아 보인다.
 
-### 라이브 중 잡은 실제 결함 1건 (수정 완료)
+### 🔴 라이브 중 잡은 실제 결함 ② — 계측 엔드포인트가 1년짜리 쿠키를 심을 수 있었다
+
+**실측(수정 전)**:
+
+```
+POST /api/safe_events?locale=ja
+→ HTTP/1.1 204 No Content
+   set-cookie: locale=ja; path=/; expires=Thu, 21 Oct 2027 …; samesite=lax
+```
+
+`ApplicationController#set_locale` 은 `params[:locale]` 이 있으면 쿠키를 쓰고, **`params` 에는
+쿼리스트링이 포함된다.** 우리는 「이 라우트에 `:locale` 세그먼트가 없다」만 확인하고
+쿼리스트링을 보지 않았다 — 그래서 「쿠키를 쓰지 않는다」는 문서의 주장이 **코드에서 거짓**인
+상태로 커밋됐다. 방문자를 식별하지 않겠다는 것이 이 엔드포인트의 존재 이유이므로, 성질이
+아니라 약속이 깨진 것이다.
+
+**수정**: `Api::BaseController`(신규)가 `/api/` 세 엔드포인트(`safe_events`·`jp_pilot`·
+`safe_scan`) 전부에서 `set_locale` 과 CSRF 검증을 skip 한다. `/api/` 밑에서 로케일에 의존해
+렌더하는 응답은 하나도 없다 — `safe_scan` 의 프롬프트는 하드코딩이고, `jp_pilot` 은 필드
+이름만 돌려주며, `safe_events` 는 본문이 없다. 그러므로 이 필터가 여기서 하는 일은 **부작용뿐**
+이었다. 다음 API 컨트롤러가 같은 함정을 상속하지 않도록 공통 base 로 올렸다.
+
+**회귀 테스트 2개**:
+- `/api/safe_events?locale=ja` · `/api/jp_pilot?locale=ja` 가 `Set-Cookie` 를 내지 않는다
+- **`/ja/faq` 는 여전히 쿠키를 심는다** — 이 두 번째가 없으면, 언어 전환이 통째로 망가져도
+  첫 번째 테스트가 잘못된 이유로 녹색이 된다
+- 변이 확인: `skip_before_action :set_locale` 을 빼면 **1건 실패**(쿠키 문자열까지 출력)
+
+### 라이브 중 잡은 실제 결함 ① (수정 완료)
 
 **메일 형식 검증 실패 메시지가 신청자에게 영어 섞인 조회 흔적으로 나갔다.** 실측:
 

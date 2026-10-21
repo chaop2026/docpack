@@ -1868,7 +1868,7 @@ OCR 변수를 뺐고, 빈 줄 60개로 페이지를 끊되 **2페이지인지 �
 보고 [`docs/jp/s6_report.md`](docs/jp/s6_report.md) · 문안 정본 [`docs/jp/jp_landing_copy_2026-10-22.md`](docs/jp/jp_landing_copy_2026-10-22.md)
 지시서 [`docs/jp/s6_prompt.md`](docs/jp/s6_prompt.md)
 
-**골든 557/557 유지 · SW 9/9 유지 · `bin/rails test` 159→186 runs / 1218→1404 assertions / 0 failures
+**골든 557/557 유지 · SW 9/9 유지 · `bin/rails test` 159→188 runs / 1218→1414 assertions / 0 failures
 · 신규 라이브 하네스 `test/safe/jp_landing_check.mjs` 102/102 · canonical sweep 6/6
 · rubocop 86건(베이스라인과 동일, 신규 0) · brakeman 6건(동일).**
 
@@ -1904,7 +1904,20 @@ OCR 변수를 뺐고, 빈 줄 60개로 페이지를 끊되 **2페이지인지 �
 「관리 목록이 안 늘어난다」뿐이다 — 전용 테스트를 뒀다. IP 당 10분 3회 상한은 **캐시 키에만**
 IP 를 쓰고 DB 에는 어떤 형태로도 쓰지 않는다.
 
-### ⚠ 라이브 중 잡은 실제 결함 — 검증 실패 메시지가 조회 흔적을 신청자에게 보냈다
+### 🔴 라이브 중 잡은 실제 결함 ② — 계측 엔드포인트가 1년짜리 쿠키를 심을 수 있었다
+**교차검증 프롬프트를 쓰다가 찾았다.** 실측(수정 전): `POST /api/safe_events?locale=ja`
+→ `204` **+ `Set-Cookie: locale=ja`, 만료 1년**. `ApplicationController#set_locale` 은
+`params[:locale]` 이 있으면 쿠키를 쓰는데 **`params` 에는 쿼리스트링이 포함된다.** 우리는
+「이 라우트에 `:locale` 세그먼트가 없다」만 확인하고 쿼리스트링을 보지 않았다 — 「쿠키를
+쓰지 않는다」는 문서의 주장이 코드에서 **거짓**인 채로 커밋됐다. 방문자를 식별하지 않겠다는
+것이 이 엔드포인트의 존재 이유이므로, 성질이 아니라 약속이 깨진 것이다.
+→ `Api::BaseController`(신규)가 `/api/` 세 엔드포인트 전부에서 `set_locale` 과 CSRF 를 skip.
+`/api/` 밑에 로케일 의존 출력은 하나도 없다(safe_scan 프롬프트는 하드코딩, jp_pilot 은 필드
+이름만, safe_events 는 본문 없음) — 이 필터가 여기서 하는 일은 **부작용뿐**이었다.
+회귀 테스트 2개: 쿠키 0 **+ `/ja/faq` 는 여전히 쿠키를 심는다**(두 번째가 없으면 언어 전환이
+통째로 망가져도 첫 번째가 잘못된 이유로 녹색이 된다). 변이로 확인 — skip 을 빼면 1건 실패.
+
+### ⚠ 라이브 중 잡은 실제 결함 ① — 검증 실패 메시지가 조회 흔적을 신청자에게 보냈다
 실측: `{"ok":false,"errors":["EmailTranslation missing. Options considered were: …"]}`.
 `ko.yml` 의 `activerecord.errors.messages` 에 `invalid`·`too_long` 이 없었다(2026-09-18 에
 presence·uniqueness·inclusion 만 넣었다). 두 겹으로 고쳤다: ① 컨트롤러가 **필드 이름만**

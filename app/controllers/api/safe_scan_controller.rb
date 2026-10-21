@@ -12,9 +12,7 @@
 require "net/http"
 
 module Api
-  class SafeScanController < ApplicationController
-    skip_before_action :verify_authenticity_token
-
+  class SafeScanController < BaseController
     ANTHROPIC_URL = "https://api.anthropic.com/v1/messages".freeze
     # 비용 최적화: 개인정보 추출은 소형 모델로 충분하다.
     MODEL         = "claude-haiku-4-5-20251001".freeze

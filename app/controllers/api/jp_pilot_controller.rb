@@ -19,9 +19,7 @@
 # happen. The IP is used for the cache key only — it is never written to the
 # database, in any form.
 module Api
-  class JpPilotController < ApplicationController
-    skip_before_action :verify_authenticity_token
-
+  class JpPilotController < BaseController
     RATE_LIMIT  = 3
     RATE_WINDOW = 10.minutes
 
