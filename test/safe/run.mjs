@@ -16,6 +16,7 @@
  * Usage: node run.mjs [--only 7_resume_dark.pdf]  (exit 0 = all pass)
  */
 import { chromium } from 'playwright';
+import { spawnSync } from 'node:child_process';
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -39,8 +40,12 @@ function startServer() {
     const srv = http.createServer((req, res) => {
       let p = decodeURIComponent(req.url.split('?')[0]);
       if (p === '/') p = '/index.html';
-      const fp = path.join(PUBLIC, p);
-      if (!fp.startsWith(PUBLIC) || !fs.existsSync(fp) || fs.statSync(fp).isDirectory()) { res.writeHead(404); res.end('nf'); return; }
+      // `/__fx/...` serves the fixture tree, so the page can read fixture images
+      // back as <img> (used to compose the multi-page PDF fixture at run time).
+      const root = p.startsWith('/__fx/') ? FIXTURES : PUBLIC;
+      if (p.startsWith('/__fx/')) p = p.slice(5);
+      const fp = path.join(root, p);
+      if (!fp.startsWith(root) || !fs.existsSync(fp) || fs.statSync(fp).isDirectory()) { res.writeHead(404); res.end('nf'); return; }
       res.writeHead(200, { 'content-type': MIME[path.extname(fp)] || 'application/octet-stream' });
       fs.createReadStream(fp).pipe(res);
     });
@@ -118,11 +123,102 @@ const PAGE_HELPERS = () => {
     }
     return false;
   };
-  window.__jpState = function () {
-    return { cls: jpState.cls && { doc: jpState.cls.doc, side: jpState.cls.side || null, score: jpState.cls.score },
-      purpose: jpState.purpose, pw: pages.map(p => p.w),
-      fields: entities.filter(e => e.jp).map(e => ({ field: e.jp.field, level: e.jp.level, note: e.jp.note, kind: e.kind, mode: e.mode })) };
+  /* ── ink coverage (replaces the 60% area gate on number fields) ──
+     A 60% area figure says HOW MUCH of a box was painted, never WHERE: the
+     kouki fixture measured 96% with its leading digit fully outside the band
+     (Codex 5-3, and we had already recorded it). So for a field whose value is
+     a number, the question is per-GLYPH: take the ink inside the expected box,
+     label its connected components, and require every component to be covered.
+     Threshold 60 (not the detector's 40) deliberately excludes the fixtures'
+     見本 watermark — composited it sits ~48 off the background, and a band is
+     not required to cover a watermark. */
+  window.__inkCover = function (rect) {
+    const p = pages[rect.pi]; if (!p) return null;
+    const CW = p.canvas.width, CH = p.canvas.height;
+    const x0 = Math.max(0, Math.floor(rect.x)), y0 = Math.max(0, Math.floor(rect.y));
+    const x1 = Math.min(CW, Math.ceil(rect.x + rect.w)), y1 = Math.min(CH, Math.ceil(rect.y + rect.h));
+    const W = x1 - x0, H = y1 - y0;
+    if (W <= 0 || H <= 0) return { components: 0, inkPx: 0, uncovered: 0, worst: 1 };
+    const ctx = p.canvas.getContext('2d', { willReadFrequently: true });
+    const d = ctx.getImageData(x0, y0, W, H).data, bg = jpPageBg(p);
+    const ink = new Uint8Array(W * H);
+    let inkPx = 0;
+    for (let i = 0; i < W * H; i++) {
+      if (Math.abs(d[i * 4] - bg[0]) > 60 || Math.abs(d[i * 4 + 1] - bg[1]) > 60 || Math.abs(d[i * 4 + 2] - bg[2]) > 60) { ink[i] = 1; inkPx++; }
+    }
+    const mr = window.__maskRects().filter(r => r.pi === rect.pi);
+    const covered = (px, py) => mr.some(r => px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h);
+    const seen = new Uint8Array(W * H);
+    let components = 0, uncovered = 0, worst = 1;
+    for (let i = 0; i < W * H; i++) {
+      if (!ink[i] || seen[i]) continue;
+      const st = [i]; seen[i] = 1; let n = 0, cov = 0;
+      while (st.length) {
+        const k = st.pop(), kx = k % W, ky = (k - kx) / W;
+        n++; if (covered(x0 + kx + 0.5, y0 + ky + 0.5)) cov++;
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+          const nx = kx + dx, ny = ky + dy;
+          if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+          const nk = ny * W + nx;
+          if (ink[nk] && !seen[nk]) { seen[nk] = 1; st.push(nk); }
+        }
+      }
+      // Specks (anti-aliasing debris, watermark bleed) are not glyphs.
+      if (n < 6) continue;
+      components++;
+      const f = cov / n;
+      if (f < worst) worst = f;
+      if (f < 0.99) uncovered++;
+    }
+    return { components, inkPx, uncovered, worst };
   };
+  /* Every entity carrying `field`, with the facts require_banded is actually
+     about: is it located, is its category ON, is it not 'ok', and do the rects
+     it would paint ACTUALLY appear in the active mask-rect list? The old
+     assertion read `mode !== 'ok'` alone, which stays true for an entity whose
+     category is off or whose boxes are empty (Codex 5-5). */
+  window.__fieldBands = function (field) {
+    const mr = window.__maskRects();
+    const same = (a, b) => Math.abs(a.x - b.x) < 0.01 && Math.abs(a.y - b.y) < 0.01 && Math.abs(a.w - b.w) < 0.01 && Math.abs(a.h - b.h) < 0.01;
+    return entities.filter(e => e.jp && e.jp.field === field).map(e => {
+      const rects = [];
+      for (let pi = 0; pi < pages.length; pi++) for (const l of mergeLineBoxes(e.boxes || [], pi)) { const r = bandRect(l); rects.push({ pi, ...r }); }
+      return { level: e.jp.level, note: e.jp.note, page: e.jp.page, doc: e.jp.doc, side: e.jp.side,
+        kind: e.kind, mode: e.mode, legal: !!e.legal, located: !!(e.boxes && e.boxes.length), on: isOn(e),
+        rects: rects.length, inMask: rects.length > 0 && rects.every(r => mr.some(m => m.pi === r.pi && same(m, r))) };
+    });
+  };
+  window.__jpState = function () {
+    return { cls: jpState.cls && { doc: jpState.cls.doc, side: jpState.cls.side || null, score: jpState.cls.score, low: !!jpState.cls.low },
+      purpose: jpState.purpose, warn: jpState.warn, mnConfirmed: jpState.mnConfirmed,
+      pageCls: jpState.pageCls.map(c => c && { doc: c.doc, side: c.side || null, low: !!c.low }),
+      warnShown: (() => { const el = document.getElementById('jpWarn'); return !!el && el.style.display !== 'none' && !!el.textContent.trim(); })(),
+      mnBoxShown: (() => { const el = document.getElementById('jpMnWrap'); return !!el && el.style.display !== 'none'; })(),
+      pw: pages.map(p => p.w),
+      fields: entities.filter(e => e.jp).map(e => ({ field: e.jp.field, level: e.jp.level, note: e.jp.note, page: e.jp.page, kind: e.kind, mode: e.mode, legal: !!e.legal, on: isOn(e) })) };
+  };
+  // Field labels of every ACTIVE auto entity — the allowlist assertion's input.
+  window.__autoFields = function () {
+    return entities.filter(e => e.kind === 'auto').map(e => e.jp ? e.jp.field : '(regex:' + e.type + ')');
+  };
+  /* Turn every general category OFF. A legal-preset band must survive this.
+     catEnabled is module-level state that resetAll() and a fresh file load do
+     NOT restore, so this hands back a restore function — the first version of
+     this helper left every category off for the remaining 300 assertions and
+     turned 14 of them red. */
+  window.__catSnapshot = null;
+  window.__allCatsOff = function () {
+    window.__catSnapshot = { ...catEnabled };
+    for (const t of Object.keys(catEnabled)) catEnabled[t] = false;
+    renderAll();
+    return Object.keys(catEnabled).filter(t => catEnabled[t] !== false);
+  };
+  window.__restoreCats = function () {
+    if (!window.__catSnapshot) return false;
+    for (const t of Object.keys(window.__catSnapshot)) catEnabled[t] = window.__catSnapshot[t];
+    window.__catSnapshot = null; renderAll(); return true;
+  };
+  window.__setMnConfirm = function (v) { jpSetMnConfirmed(v); };
   window.__isCandidateExact = function (v) { const n = norm(v); return entities.some(e => e.kind === 'candidate' && norm(e.value) === n); };
   window.__isCandidateContains = function (v) { const n = norm(v); return entities.some(e => e.kind === 'candidate' && norm(e.value).includes(n)); };
   // default mode of the candidate whose value contains v (null if not a candidate)
@@ -149,12 +245,21 @@ const PAGE_HELPERS = () => {
   };
 };
 
-// `jp/...` paths resolve under fixtures/, everything else under testdocs/.
-const docPath = file => file.startsWith('jp/') ? path.join(FIXTURES, file) : path.join(DOCS, file);
+// `jp/...` paths resolve under fixtures/, `gen/...` under out/gen (built at run
+// time from committed fixtures — no new binaries in the repo), everything else
+// under testdocs/.
+const docPath = file => file.startsWith('jp/') ? path.join(FIXTURES, file)
+  : file.startsWith('gen/') ? path.join(OUT, file) : path.join(DOCS, file);
 async function loadDoc(page, file, ocr) {
   await page.evaluate(() => { if (typeof pages !== 'undefined' && pages.length) resetAll(); });
   await page.setInputFiles('#fileInput', docPath(file));
-  await page.waitForFunction(() => Array.isArray(pages) && pages.length > 0, { timeout: ocr ? 240000 : 40000 });
+  // `pages.length > 0` is NOT "loaded": pages are pushed one at a time, so on a
+  // multi-page OCR document it goes true while page 2 is still in Tesseract —
+  // and everything measured after it describes half a document. afterLoad()
+  // reveals #docWrap as its last step, so that is the completion signal.
+  await page.waitForFunction(() => Array.isArray(pages) && pages.length > 0
+      && document.getElementById('docWrap').style.display === 'flex',
+    { timeout: ocr ? 300000 : 40000 });
   await page.waitForTimeout(ocr ? 800 : 400);
   await page.evaluate(PAGE_HELPERS);
 }
@@ -273,8 +378,17 @@ async function checkOutput(page, doc, fmt) {
   const tag = `OUT_${fmt.toUpperCase()}`;
   try {
     await page.evaluate(f => { const r = document.querySelector(`input[name=fmt][value="${f}"]`); if (r) r.checked = true; }, fmt);
-    // force at least one masked, located entity so Make is enabled
-    await page.evaluate(() => { const e = entities.find(x => isOn(x) && x.boxes && x.boxes.length); if (e) e.mode = 'no'; renderAll(); });
+    // Force at least one masked, located entity so Make is enabled — preferring
+    // an AUTO one. Taking the first ON entity happened to pick a `keep` field on
+    // some JP fixtures, so the file we then inspected for leaks was one where we
+    // had covered a value the recipient needs (Codex 5-5 / instruction 11).
+    await page.evaluate(() => {
+      const ok = x => isOn(x) && x.boxes && x.boxes.length;
+      const e = entities.find(x => ok(x) && x.kind === 'auto')
+             || entities.find(x => ok(x) && x.kind !== 'keep')
+             || entities.find(ok);
+      if (e) e.mode = 'no'; renderAll();
+    });
     await page.click('#btnMake');
     await page.waitForSelector('#result', { state: 'visible', timeout: 60000 });
     const dl = await Promise.all([
@@ -401,10 +515,16 @@ async function checkCandidateDedup(page) {
    both the automatic and the recommended strength, and those are different
    promises. specs.json carries the key→level mapping (jp_auto_fields) so the
    harness derives it independently of the app it is testing. */
-const JP_COVER_MIN = 0.6;      // a band must cover this much of a value/box
+const JP_COVER_MIN = 0.6;      // a band must cover this much of a non-numeric box
 const JP_KEEP_MAX = 0.10;      // a keep field may not be grazed by more than this
 function jpFieldOf(key) { return key.replace(/^m\d+_/, ''); }
+/* Number fields get the per-glyph ink test instead of the area fraction. These
+   are the fields whose whole value is a digit string, so a single surviving
+   character is a leak — and the area gate cannot see that (Codex 5-3). */
+const JP_NUMERIC = new Set(['hokensha_bango', 'kigo', 'bango', 'edaban', 'hihokensha_bango',
+  'my_number', 'jumin_code', 'license_no']);
 async function jpCheckBox(page, doc, cat, key, rect, kind) {
+  const field = jpFieldOf(key);
   const items = await page.evaluate(r => window.__itemsIn(r), rect);
   let frac, what;
   if (items.length) {
@@ -416,12 +536,28 @@ async function jpCheckBox(page, doc, cat, key, rect, kind) {
     frac = await page.evaluate(r => window.__coverage(r), rect); what = `area ${(frac * 100).toFixed(0)}%`;
   }
   if (kind === 'keep') { rec(doc, 'JP_KEEP', key, `<=${JP_KEEP_MAX * 100}%`, what, frac <= JP_KEEP_MAX); return; }
-  const covered = frac >= JP_COVER_MIN;
-  if (kind === 'mask') { rec(doc, 'JP_MASK', key, `>=${JP_COVER_MIN * 100}%`, what, covered); return; }
+  // Covered? For a number box, "covered" means every ink component is covered.
+  let covered = frac >= JP_COVER_MIN, how = what;
+  if (JP_NUMERIC.has(field) && (kind === 'mask' || kind === 'candidate' || kind === 'mask_or_candidate')) {
+    const ic = await page.evaluate(r => window.__inkCover(r), rect);
+    const comps = ic ? ic.components : 0;
+    how = ic ? `${comps} comp, worst ${(ic.worst * 100).toFixed(0)}%` : 'no-canvas';
+    // Zero components would make this assertion vacuous: a number box has ink.
+    covered = comps > 0 && ic.uncovered === 0;
+    if (kind === 'mask') { rec(doc, 'JP_INK', key, 'all glyphs covered', comps ? how : 'NO INK FOUND', covered); return; }
+  }
+  if (kind === 'mask') { rec(doc, 'JP_MASK', key, `>=${JP_COVER_MIN * 100}%`, how, covered); return; }
   const cand = await page.evaluate(r => window.__candidateOver(r), rect);
-  if (kind === 'candidate') { rec(doc, 'JP_CANDIDATE', key, 'surfaced', cand ? (covered ? 'candidate+banded' : 'candidate') : 'MISSING', cand); return; }
+  if (kind === 'candidate') {
+    // A recommend-level candidate is default ON, so it is both surfaced AND
+    // banded; a number field has to pass the ink test in that case.
+    const banded = frac > JP_KEEP_MAX;
+    const ok = cand && (!banded || covered);
+    rec(doc, 'JP_CANDIDATE', key, 'surfaced(+covered if banded)',
+      cand ? (banded ? (covered ? 'candidate+covered' : 'BANDED BUT LEAKING ' + how) : 'candidate') : 'MISSING', ok); return;
+  }
   if (kind === 'mask_or_candidate') {
-    rec(doc, 'JP_MASK_OR_CAND', key, 'banded or candidate', covered ? 'banded' : cand ? 'candidate' : 'NEITHER', covered || cand); return;
+    rec(doc, 'JP_MASK_OR_CAND', key, 'banded(+covered) or candidate', covered ? 'banded ' + how : cand ? 'candidate' : 'NEITHER ' + how, covered || cand); return;
   }
   if (kind === 'optional') {   // detected, offered, and OFF until the user says so
     rec(doc, 'JP_OPTIONAL', key, 'offered+clear', cand ? (frac <= JP_KEEP_MAX ? 'offered+clear' : 'OFFERED BUT BANDED') : 'MISSING', cand && frac <= JP_KEEP_MAX);
@@ -432,10 +568,20 @@ async function checkJpDoc(page, spec) {
   const autoFields = (SPECS.jp_auto_fields || {})[spec.expect_doc] || [];
   const mocFields = SPECS.jp_candidate_or_mask || [];
   for (const c of spec.cases) {
-    const tag = `${spec.doc} [${c.purpose}]`;
+    const tag = `${spec.doc} [${c.purpose}${c.label ? ' ' + c.label : ''}]`;
     await loadDoc(page, spec.doc, true);
     await page.evaluate(p => jpSetPurpose(p), c.purpose);
+    // Releasing a 個人番号 band needs the purpose AND the confirmation. A case
+    // that expects the release has to say so — which is itself the assertion
+    // that the dropdown alone does not open the gate (the `confirm_mynumber:
+    // false` case below proves the other direction).
+    if (c.confirm_mynumber) await page.evaluate(() => window.__setMnConfirm(true));
     const st = await page.evaluate(() => window.__jpState());
+    if (c.expect_warn != null)
+      rec(tag, 'JP_WARN', 'blocking banner', c.expect_warn ? 'shown' : 'absent',
+        st.warnShown ? 'shown(' + st.warn + ')' : 'absent', st.warnShown === !!c.expect_warn);
+    if (c.confirm_mynumber != null)
+      rec(tag, 'JP_MN_BOX', 'confirmation checkbox', 'shown', st.mnBoxShown ? 'shown' : 'ABSENT', st.mnBoxShown);
     rec(tag, 'JP_CLASS', spec.expect_doc + (spec.expect_side ? '/' + spec.expect_side : ''), 'classified',
       st.cls ? st.cls.doc + (st.cls.side ? '/' + st.cls.side : '') + ' sc=' + st.cls.score : 'NOT classified',
       !!st.cls && st.cls.doc === spec.expect_doc && (!spec.expect_side || st.cls.side === spec.expect_side));
@@ -450,17 +596,48 @@ async function checkJpDoc(page, spec) {
     // the 미탐 0 gate is actually about.
     const got = new Set(st.fields.map(f => f.field));
     for (const f of (c.require_fields || [])) rec(tag, 'JP_FIELD', f, 'detected', got.has(f) ? 'detected' : 'MISSING', got.has(f));
+    // A band is only a band if the entity is located, its category is ON, its
+    // mode is not 'ok', AND the rect it paints is in the active mask-rect list.
     for (const f of (c.require_banded || [])) {
-      const on = st.fields.some(x => x.field === f && x.mode !== 'ok');
-      rec(tag, 'JP_BANDED', f, 'banded', on ? 'banded' : (got.has(f) ? 'DETECTED BUT CLEAR' : 'MISSING'), on);
+      const bs = await page.evaluate(x => window.__fieldBands(x), f);
+      const ok = bs.length > 0 && bs.every(b => b.located && b.on && b.mode !== 'ok' && b.inMask);
+      const why = !bs.length ? 'MISSING'
+        : bs.every(b => b.located && b.on && b.mode !== 'ok' && b.inMask) ? `banded ×${bs.length}`
+        : bs.map(b => !b.located ? 'NOT LOCATED' : !b.on ? 'CATEGORY OFF' : b.mode === 'ok' ? 'CLEAR' : 'NOT IN MASKRECTS').join('/');
+      rec(tag, 'JP_BANDED', f, 'located+on+in-maskrects', why, ok);
     }
     // The inverse of require_banded, and the half that makes a purpose-gate test
     // mean something: without it, "banded under 相談用共有" could be true simply
-    // because the field is banded under every purpose.
+    // because the field is banded under every purpose. Also asserts the rect is
+    // absent from the mask list, not merely that the mode string says 'ok'.
     for (const f of (c.require_clear || [])) {
-      const hits = st.fields.filter(x => x.field === f);
-      const clear = hits.length > 0 && hits.every(x => x.mode === 'ok');
-      rec(tag, 'JP_CLEAR', f, 'detected+clear', hits.length ? (clear ? 'detected+clear' : 'BANDED') : 'MISSING', clear);
+      const bs = await page.evaluate(x => window.__fieldBands(x), f);
+      const clear = bs.length > 0 && bs.every(b => b.mode === 'ok' && !b.inMask);
+      rec(tag, 'JP_CLEAR', f, 'detected+clear', !bs.length ? 'MISSING' : (clear ? `detected+clear ×${bs.length}` : 'BANDED'), clear);
+    }
+    // Legal-preset fields are not governed by the category checkboxes. Turn
+    // every category off and require the band to still be there.
+    for (const f of (c.require_legal || [])) {
+      const left = await page.evaluate(() => window.__allCatsOff());
+      const bs = await page.evaluate(x => window.__fieldBands(x), f);
+      const ok = left.length === 0 && bs.length > 0 && bs.every(b => b.legal && b.on && b.mode !== 'ok' && b.inMask);
+      rec(tag, 'JP_LEGAL', f, 'survives all-categories-off',
+        left.length ? 'cats still on: ' + left.join(',') : !bs.length ? 'MISSING'
+          : bs.every(b => b.legal && b.on && b.mode !== 'ok' && b.inMask) ? `banded ×${bs.length}` : 'DROPPED', ok);
+      // put the page back the way the rest of the case expects it
+      const restored = await page.evaluate(() => window.__restoreCats());
+      rec(tag, 'JP_LEGAL', f + ' (categories restored)', 'restored', restored ? 'restored' : 'NOT RESTORED', restored, true);
+      await loadDoc(page, spec.doc, true);
+      await page.evaluate(p => jpSetPurpose(p), c.purpose);
+      if (c.confirm_mynumber) await page.evaluate(() => window.__setMnConfirm(true));
+    }
+    // No auto entity outside the allowlist. A ceiling on the COUNT cannot tell
+    // "the right five" from "two right and three wrong" (Codex 5-6).
+    if (c.auto_allow) {
+      const af = await page.evaluate(() => window.__autoFields());
+      const bad = af.filter(f => !c.auto_allow.includes(f));
+      rec(tag, 'JP_AUTO_SET', 'auto fields ⊆ allowlist', c.auto_allow.join(',') || '(none)',
+        bad.length ? 'UNEXPECTED: ' + [...new Set(bad)].join(',') : (af.length ? [...new Set(af)].join(',') : '(none)'), bad.length === 0);
     }
     if (spec.geometry === false || c.geometry === false) continue;
 
@@ -469,16 +646,17 @@ async function checkJpDoc(page, spec) {
     const scale = st.pw[0] / fx.size[0];
     let checked = 0;
     const box = k => { const b = fx.boxes_png[k]; return b && { pi: 0, x: b[0] * scale, y: b[1] * scale, w: (b[2] - b[0]) * scale, h: (b[3] - b[1]) * scale }; };
-    const seen = new Set(); const skipped = [];
+    const seen = new Set();
     const run = async (keys, kindFor) => {
       for (const k of (keys || [])) {
         if (k === 'ALL' || seen.has(k)) continue;
         const r = box(k);
-        // The fixture's purpose list is shared across variants of the same
-        // document, so a key absent from THIS variant is not a case — but it is
-        // REPORTED, never silently dropped. A harness that quietly checks zero
-        // boxes prints the same green as one that checked forty.
-        if (!r) { skipped.push(k); continue; }
+        // An expectation naming a box this variant does not have is a FAULT in
+        // the expectation table, not a case to skip. It used to be "reported as
+        // skipped", which is a line of text nobody reads next to a green total
+        // (Codex 5-5). The variant tables are pruned at generation time now, so
+        // a missing key means the table and the fixture went out of sync.
+        if (!r) { rec(tag, 'JP_SPEC', k, 'box exists in fixture', 'NO SUCH BOX', false); continue; }
         seen.add(k);
         await jpCheckBox(page, tag, null, k, r, kindFor(k));
         checked++;
@@ -496,8 +674,11 @@ async function checkJpDoc(page, spec) {
                         : autoFields.includes(jpFieldOf(k)) ? 'mask' : 'candidate');
     await run(P.recommend, () => 'candidate');
     await run(P.optional, () => 'optional');
-    await run(P.keep === 'all' ? [] : P.keep, () => 'keep');
-    rec(tag, 'JP_COVERAGE', `boxes checked (skipped: ${skipped.join(',') || 'none'})`, '>0', String(checked), checked > 0);
+    // `keep: "all"` means every box on the page is a keep field. Turning that
+    // into an empty list made the strongest promise in the table the only one
+    // nobody checked (Codex 5-5) — enumerate the box table instead.
+    await run(P.keep === 'all' ? Object.keys(fx.boxes_png) : P.keep, () => 'keep');
+    rec(tag, 'JP_COVERAGE', 'boxes checked', `>=${c.min_boxes || 1}`, String(checked), checked >= (c.min_boxes || 1));
     for (const fmt of (c.out_formats || [])) await checkOutput(page, tag, fmt);
   }
 }
@@ -530,6 +711,180 @@ async function checkJpUnits(page) {
       : !!got && got.v === c.expect.v && got.loose === !!c.expect.loose;
     rec('(jp units)', 'JP_TEL', c.label, c.expect === null ? 'no match' : `${c.expect.v}${c.expect.loose ? ' (candidate)' : ''}`,
       got ? `${got.v}${got.loose ? ' (candidate)' : ''}` : 'none', ok);
+  }
+}
+
+/* ── legal matrix ↔ code (check_matrix.mjs) ────────────────────────────────── */
+function checkMatrix() {
+  const r = spawnSync(process.execPath, [path.join(__dirname, 'check_matrix.mjs')], { encoding: 'utf8' });
+  const out = ((r.stdout || '') + (r.stderr || '')).trim().split('\n').filter(Boolean);
+  rec('(legal matrix)', 'JP_MATRIX', 'JP_RULES == jp_legal_matrix_alpha4.json', 'identical',
+    r.status === 0 ? out[out.length - 1].replace(/^✅ legal matrix ↔ code: /, '') : `${out.length - 1} disagreement(s)`, r.status === 0);
+  if (r.status !== 0) for (const l of out.slice(1, 9)) rec('(legal matrix)', 'JP_MATRIX', l.trim().slice(0, 38), '-', 'mismatch', false, true);
+}
+
+/* ── multi-page: the rule follows the PAGE, not page 1 ──────────────────────
+   A two-sided card scanned into one PDF. The old code read page 1's class and
+   applied it to every page, so the outcome depended on scan order: front-then-
+   back left the 個人番号 page untouched, back-then-front put a full-face band
+   over the front as well (Codex 6-4). Both orders are built here from the
+   committed single-page PNGs — written under out/gen, not committed, so the
+   repo gains no new card binaries. */
+async function buildPdfFromImages(page, srcs, outPath) {
+  const b64 = await page.evaluate(async (urls) => {
+    const { jsPDF } = await ensureJsPDF();
+    let pdf = null;
+    for (const u of urls) {
+      const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = u; });
+      const cv = document.createElement('canvas'); cv.width = im.width; cv.height = im.height;
+      cv.getContext('2d').drawImage(im, 0, 0);
+      const data = cv.toDataURL('image/jpeg', 0.95);
+      if (!pdf) pdf = new jsPDF({ unit: 'pt', format: [im.width, im.height], compress: true });
+      else pdf.addPage([im.width, im.height]);
+      pdf.addImage(data, 'JPEG', 0, 0, im.width, im.height);
+    }
+    return pdf.output('datauristring').split(',')[1];
+  }, srcs);
+  fs.mkdirSync(path.dirname(outPath), { recursive: true });
+  fs.writeFileSync(outPath, Buffer.from(b64, 'base64'));
+}
+async function checkJpMultiPage(page, port) {
+  const B = `http://127.0.0.1:${port}/__fx/jp/mynumber_card`;
+  const cases = [
+    { label: '表→裏', srcs: [`${B}/front.png`, `${B}/back.png`], backPage: 1, frontPage: 0, file: 'gen/mn_front_back.pdf' },
+    { label: '裏→表', srcs: [`${B}/back.png`, `${B}/front.png`], backPage: 0, frontPage: 1, file: 'gen/mn_back_front.pdf' },
+  ];
+  for (const c of cases) {
+    const tag = `jp/2page ${c.label}`;
+    await page.evaluate(() => { LANG = 'ja'; applyLang(); });
+    try {
+      await buildPdfFromImages(page, c.srcs, path.join(OUT, c.file));
+      await loadDoc(page, c.file, true);
+      await page.evaluate(() => jpSetPurpose('identity_submit'));
+      const st = await page.evaluate(() => window.__jpState());
+      const sides = st.pageCls.map(x => x ? (x.doc + '/' + (x.side || '-')) : 'null');
+      const wantSides = []; wantSides[c.backPage] = 'mynumber_card/back'; wantSides[c.frontPage] = 'mynumber_card/front';
+      rec(tag, 'JP_PAGECLASS', 'per-page doc/side', wantSides.join(' + '), sides.join(' + '),
+        sides.length === 2 && sides[c.backPage] === wantSides[c.backPage] && sides[c.frontPage] === wantSides[c.frontPage]);
+      // The whole-face band exists on the BACK page and only there.
+      const bs = await page.evaluate(() => window.__fieldBands('back_all'));
+      const pagesWithBand = bs.filter(b => b.mode !== 'ok' && b.inMask).map(b => b.page);
+      rec(tag, 'JP_BACK_ONLY', 'back_all pages', `[${c.backPage}]`, `[${pagesWithBand.join(',')}]`,
+        pagesWithBand.length === 1 && pagesWithBand[0] === c.backPage);
+      // And geometrically: the back page is covered, the front page is not.
+      const cov = await page.evaluate(() => pages.map((p, pi) => window.__coverage({ pi, x: 0, y: 0, w: p.w, h: p.h })));
+      rec(tag, 'JP_BACK_COVER', `page ${c.backPage} covered`, '>=99%', `${(cov[c.backPage] * 100).toFixed(0)}%`, cov[c.backPage] >= 0.99);
+      rec(tag, 'JP_FRONT_CLEAR', `page ${c.frontPage} not full-face`, '<=60%', `${(cov[c.frontPage] * 100).toFixed(0)}%`, cov[c.frontPage] <= 0.6);
+    } catch (e) { rec(tag, 'LOAD', c.file, 'loads', 'ERR:' + e.message.split('\n')[0], false); }
+    await page.evaluate(() => { LANG = 'ko'; applyLang(); });
+  }
+}
+
+/* ── 個人番号 check digit ───────────────────────────────────────────────────
+   Two layers. The vectors pin the arithmetic of 省令第5条 (including the two
+   remainder cases the 省令 folds to 0). The synthesis then drives a VALID
+   number through the real pipeline — classification, label anchor, digit span,
+   check digit, purpose gate — on a page built by the app's own text renderer.
+   The alpha card dummies all carry invalid numbers on purpose (strategy v2 §4
+   forbids generating a valid one into a card image), so until now nothing
+   exercised the `checkOk: true` branch at all (Codex 5-2): a correct number
+   would have taken a path the golden had never run. The valid numbers live in
+   TEXT only, never in a committed image. */
+async function checkJpMyNumber(page) {
+  const U = SPECS.jp_my_number; if (!U) return;
+  for (const c of (U.vectors || [])) {
+    const got = await page.evaluate(v => myNumberCheckOk(v), c.n);
+    rec('(jp units)', 'JP_MYNUM_CD', `${c.label} ${c.n}`, String(c.ok), String(got), got === c.ok);
+  }
+  for (const c of (U.synth || [])) {
+    const tag = '(jp synth)';
+    await page.evaluate(() => { LANG = 'ja'; applyLang(); });
+    await page.evaluate(() => { if (typeof pages !== 'undefined' && pages.length) resetAll(); });
+    await page.evaluate(t => loadFromText(t, 'synth.txt'), c.text);
+    await page.waitForFunction(() => Array.isArray(pages) && pages.length > 0, { timeout: 40000 });
+    await page.evaluate(PAGE_HELPERS);
+    await page.evaluate(p => jpSetPurpose(p), c.purpose);
+    if (c.confirm_mynumber) await page.evaluate(() => window.__setMnConfirm(true));
+    const st = await page.evaluate(() => window.__jpState());
+    rec(tag, 'JP_CLASS', c.label, c.expect_doc, st.cls ? st.cls.doc : 'NOT classified', !!st.cls && st.cls.doc === c.expect_doc);
+    const bs = await page.evaluate(() => window.__fieldBands('my_number'));
+    const lv = bs.map(b => b.level + (b.note ? '/' + b.note : '')).join(',') || 'MISSING';
+    rec(tag, 'JP_MYNUM_LEVEL', c.label, c.expect_level, lv, bs.length > 0 && bs.every(b => b.level === c.expect_level));
+    // A valid number must NOT carry the check-digit demotion note.
+    rec(tag, 'JP_MYNUM_NOTE', c.label + ' note', c.expect_note || '(none)',
+      bs.length ? (bs[0].note || '(none)') : 'MISSING', bs.length > 0 && (bs[0].note || null) === (c.expect_note || null));
+    const banded = bs.length > 0 && bs.every(b => b.mode !== 'ok' && b.inMask);
+    rec(tag, 'JP_MYNUM_BAND', c.label + ' band', c.expect_banded ? 'banded' : 'clear',
+      banded ? 'banded' : 'clear', banded === !!c.expect_banded);
+    if (c.expect_banded) {
+      const masked = await page.evaluate(v => window.__isMasked(v), c.number);
+      rec(tag, 'JP_MYNUM_GEOM', c.label + ' value covered', 'masked', masked ? 'masked' : 'NOT masked', masked);
+    }
+    await page.evaluate(() => { LANG = 'ko'; applyLang(); });
+  }
+}
+
+/* ── unlabelled square block: offered, never banded by default ──────────────
+   The pixel detector for an unlabelled block has no golden coverage (the alpha
+   dummies carry no real QR — strategy v2 §4), and it can fire on a face photo,
+   a round seal (bbox fill ≈ 0.785) or a black table header. So the POLICY is
+   what gets pinned here: a finding flagged `unlabelledCode` comes out of
+   jpApply as `optional` / mode 'ok' / not in the mask list, even on a document
+   whose labelled 二次元コード is an automatic band. The finding is injected —
+   this tests the decision, not the detector, and says so. */
+async function checkJpUnlabelled(page) {
+  const U = SPECS.jp_unlabelled_block; if (!U) return;
+  const tag = '(jp unlabelled)';
+  await page.evaluate(() => { LANG = 'ja'; applyLang(); });
+  await loadDoc(page, U._doc, true);
+  await page.evaluate(p => jpSetPurpose(p), U.purpose);
+  const res = await page.evaluate(() => {
+    // A square where nothing on the page is a code: top-left corner of the page.
+    const r = { page: 0, x: 40, y: 40, w: 120, h: 120, region: true };
+    jpState.findings.push({ field: 'qr', boxes: [r], value: '二次元コード', pi: 0,
+      doc: jpState.cls.doc, side: jpState.cls.side || null, low: false, unlabelledCode: true });
+    jpApply();
+    const inj = entities.find(e => e.jp && e.jp.note === 'unlabelled_code');
+    return { present: !!inj, level: inj && inj.jp.level, mode: inj && inj.mode, kind: inj && inj.kind,
+      covered: window.__coverage({ pi: 0, x: 40, y: 40, w: 120, h: 120 }),
+      labelledBanded: window.__fieldBands('qr').filter(b => b.note !== 'unlabelled_code').every(b => b.mode !== 'ok' && b.inMask) };
+  });
+  rec(tag, 'JP_UNLABELLED', 'level', 'optional', res.present ? res.level : 'MISSING', res.level === 'optional');
+  rec(tag, 'JP_UNLABELLED', 'default mode', 'ok', res.present ? res.mode : 'MISSING', res.mode === 'ok');
+  rec(tag, 'JP_UNLABELLED', 'not in default output', '0% covered', `${(res.covered * 100).toFixed(0)}%`, res.covered <= 0.10);
+  // …and the LABELLED code on the same page is still banded, so the assertion
+  // above is not passing merely because nothing is banded at all.
+  rec(tag, 'JP_UNLABELLED', 'labelled code still banded', 'banded', res.labelledBanded ? 'banded' : 'CLEAR', res.labelledBanded);
+  await page.evaluate(() => { LANG = 'ko'; applyLang(); });
+}
+
+/* ── classification failure must be visible ─────────────────────────────────
+   A page that says 資格確認書 and nothing else reaches 3 of the 4 points it
+   needs. The old build dropped the entire Japanese preset and fell through to
+   the Latin name/address heuristics without a word (Codex 1-1). */
+async function checkJpWarn(page) {
+  const W = SPECS.jp_warn; if (!W) return;
+  for (const c of W.cases) {
+    await page.evaluate(() => { LANG = 'ja'; applyLang(); });
+    await page.evaluate(() => { if (typeof pages !== 'undefined' && pages.length) resetAll(); });
+    await page.evaluate(t => loadFromText(t, 'warn.txt'), c.text);
+    await page.waitForFunction(() => Array.isArray(pages) && pages.length > 0, { timeout: 40000 });
+    await page.evaluate(PAGE_HELPERS);
+    const st = await page.evaluate(() => window.__jpState());
+    rec('(jp warn)', 'JP_WARN', c.label, c.expect_warn ? `shown/${c.expect_warn}` : 'absent',
+      st.warnShown ? `shown/${st.warn}` : 'absent',
+      st.warnShown === !!c.expect_warn && (!c.expect_warn || st.warn === c.expect_warn));
+    rec('(jp warn)', 'JP_WARN_CLASS', c.label + ' class', c.expect_doc || 'null',
+      st.cls ? st.cls.doc + (st.cls.low ? '(low)' : '') : 'null',
+      (st.cls ? st.cls.doc : null) === (c.expect_doc || null) && (!c.expect_doc || !!st.cls.low === !!c.expect_low));
+    // A low-confidence class may not produce an automatic band.
+    if (c.expect_low) {
+      const af = await page.evaluate(() => window.__autoFields());
+      const jpAuto = af.filter(f => !f.startsWith('(regex:'));
+      rec('(jp warn)', 'JP_WARN_NOAUTO', c.label + ' no jp auto', '(none)',
+        jpAuto.length ? jpAuto.join(',') : '(none)', jpAuto.length === 0);
+    }
+    await page.evaluate(() => { LANG = 'ko'; applyLang(); });
   }
 }
 
@@ -587,7 +942,12 @@ function printTable() {
     catch (e) { rec(spec.doc, 'LOAD', spec.doc, 'loads', 'ERR:' + e.message.split('\n')[0], false); }
     await page.evaluate(() => { LANG = 'ko'; applyLang(); });
   }
+  if (!onlyArg) { process.stderr.write('… legal matrix\n'); checkMatrix(); }
+  if (!onlyArg || onlyArg === 'jp/2page') { process.stderr.write('… jp multipage\n'); await checkJpMultiPage(page, port); }
   if (!onlyArg || onlyArg === '(jp units)') { process.stderr.write('… jp units\n'); await checkJpUnits(page); }
+  if (!onlyArg || onlyArg === '(jp synth)') { process.stderr.write('… jp my_number\n'); await checkJpMyNumber(page); }
+  if (!onlyArg || onlyArg === '(jp unlabelled)') { process.stderr.write('… jp unlabelled block\n'); await checkJpUnlabelled(page); }
+  if (!onlyArg || onlyArg === '(jp warn)') { process.stderr.write('… jp classification warning\n'); await checkJpWarn(page); }
   if (!onlyArg || onlyArg === '7_resume_dark.pdf') { process.stderr.write('… ai_inject\n'); await checkAiInject(page); }
   if (!onlyArg || onlyArg === '7_resume_dark.pdf') { process.stderr.write('… ai_cat_state\n'); await checkAiCatState(page); }
   if (!onlyArg || onlyArg === (SPECS.candidate_dedup && SPECS.candidate_dedup._doc)) { process.stderr.write('… candidate_dedup\n'); await checkCandidateDedup(page); }

@@ -59,17 +59,16 @@
  "purposes": {
   "本人確認提出": {
    "mask": [],
-   "optional": [
-    "license_no"
-   ],
+   "optional": [],
    "keep": [
     "name",
     "birth",
     "address",
     "expiry",
-    "photo"
+    "photo",
+    "license_no"
    ],
-   "legal_basis": "提出先指示優先。番号マスキングは任意（KYCで必須とする提出先あり）"
+   "legal_basis": "提出先指示優先。免許証番号は本人確認提出では must-keep（照合に必要とする提出先が多い）、相談用共有では既定OFFで選択可"
   }
  },
  "note": "jpg는 회전·흐림 적용으로 박스 좌표 불일치 → 탐지는 OCR 좌표로 재계산, png/pdf 좌표만 골든 비교"

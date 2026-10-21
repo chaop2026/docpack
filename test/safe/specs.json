@@ -1,211 +1,1057 @@
 {
   "_readme": "Golden specification for the SafeFile PII pipeline. Each doc lists values that MUST be masked, MUST NOT be masked (geometrically covered), and values that should surface only as review CANDIDATES. Checked headlessly by run.mjs against the live detection in public/safe/index.html. never_candidate = value must not be proposed as a candidate at all. ai_inject = adversarial AI-label cases fed to addEntities (reproduces the real-doc name/country/org false positives without a live API).",
-
   "_band_only": "2026-10-21: masking is band-only — a value is shown ('ok') or covered by an opaque band ('no'). The partial/asterisk mode and its PHONE_FORMAT assertions are gone: a partial overlay re-renders part of the secret, so its safety depends on how much we chose to reveal. MUST_MASK / MUST_NOT_MASK keep their meaning exactly (geometric coverage by an active mask rect) — the types that used to default to partial now default to band, which is strictly more covering. CANDIDATE_MODE now asserts 'ok': a review candidate is a guess and must not delete content before the user confirms it.",
-
   "_max_auto_basis": "max_auto is a per-fixture CEILING on auto-detected entities — the false-positive regression guard. Without it the golden only proved 'we masked what we should' and a detection change shredded résumé body text while 95/95 stayed green. Ceilings measured 2026-07-20 against the fixed pipeline (actual auto counts: 1=9, 2=3, 3=3, 4=5, 5=10, 6=4, 7=2, 8=2). Headroom: deterministic text/table/résumé docs get a TIGHT ceiling (actual + ~2-3) so any new auto-mask of body text (schools, exam/contest names, countries) trips it; OCR docs (2,3) get a LOOSE ceiling (8) because Tesseract counts vary run-to-run and a tight bound would flake. The résumé docs 7/8 (actual 2 = phone+email only; everything else is candidate/excluded) are the primary guard — a ceiling of 4 catches the exact defect class this task fixed.",
-
   "docs": [
     {
-      "doc": "1_text.pdf", "type": "pdf", "ocr": false, "min_auto": 5, "max_auto": 12, "out_formats": ["pdf", "png", "jpg"],
-      "must_mask": ["900315-1234567", "010-2345-6789", "minjun.kim@hanmail.net", "010-9876-5432", "123456-04-789012"],
-      "must_not_mask": ["한빛테크"],
+      "doc": "1_text.pdf",
+      "type": "pdf",
+      "ocr": false,
+      "min_auto": 5,
+      "max_auto": 12,
+      "out_formats": [
+        "pdf",
+        "png",
+        "jpg"
+      ],
+      "must_mask": [
+        "900315-1234567",
+        "010-2345-6789",
+        "minjun.kim@hanmail.net",
+        "010-9876-5432",
+        "123456-04-789012"
+      ],
+      "must_not_mask": [
+        "한빛테크"
+      ],
       "should_candidate": [],
-      "never_candidate": ["한빛테크"]
+      "never_candidate": [
+        "한빛테크"
+      ]
     },
     {
-      "doc": "2_scanned.pdf", "type": "pdf", "ocr": true, "min_auto": 3, "max_auto": 8,
-      "must_mask": [], "must_not_mask": [], "should_candidate": [], "never_candidate": []
+      "doc": "2_scanned.pdf",
+      "type": "pdf",
+      "ocr": true,
+      "min_auto": 3,
+      "max_auto": 8,
+      "must_mask": [],
+      "must_not_mask": [],
+      "should_candidate": [],
+      "never_candidate": []
     },
     {
-      "doc": "3_photo.jpg", "type": "image", "ocr": true, "min_auto": 3, "max_auto": 8, "out_formats": ["png", "jpg"],
-      "must_mask": [], "must_not_mask": [], "should_candidate": [], "never_candidate": []
+      "doc": "3_photo.jpg",
+      "type": "image",
+      "ocr": true,
+      "min_auto": 3,
+      "max_auto": 8,
+      "out_formats": [
+        "png",
+        "jpg"
+      ],
+      "must_mask": [],
+      "must_not_mask": [],
+      "should_candidate": [],
+      "never_candidate": []
     },
     {
-      "doc": "4_table.pdf", "type": "pdf", "ocr": false, "min_auto": 4, "max_auto": 8,
-      "must_mask": ["870915-1234567", "010-3456-7890", "daeho@corp.com", "110-234-567890"],
-      "must_not_mask": [], "should_candidate": [], "never_candidate": []
+      "doc": "4_table.pdf",
+      "type": "pdf",
+      "ocr": false,
+      "min_auto": 4,
+      "max_auto": 8,
+      "must_mask": [
+        "870915-1234567",
+        "010-3456-7890",
+        "daeho@corp.com",
+        "110-234-567890"
+      ],
+      "must_not_mask": [],
+      "should_candidate": [],
+      "never_candidate": []
     },
     {
-      "doc": "5_multipage.pdf", "type": "pdf", "ocr": false, "min_auto": 9, "max_auto": 13,
-      "must_mask": ["900315-1234567", "920820-2345678", "880505-1234567", "minjun@a.com", "seoyeon@b.com", "doyoon@c.com"],
-      "must_not_mask": [], "should_candidate": [], "never_candidate": []
+      "doc": "5_multipage.pdf",
+      "type": "pdf",
+      "ocr": false,
+      "min_auto": 9,
+      "max_auto": 13,
+      "must_mask": [
+        "900315-1234567",
+        "920820-2345678",
+        "880505-1234567",
+        "minjun@a.com",
+        "seoyeon@b.com",
+        "doyoon@c.com"
+      ],
+      "must_not_mask": [],
+      "should_candidate": [],
+      "never_candidate": []
     },
     {
-      "doc": "6_resume_light.pdf", "type": "pdf", "ocr": false, "min_auto": 3, "max_auto": 7,
-      "must_mask": ["+91 9599320477", "aarav.sharma@gmail.com"],
+      "doc": "6_resume_light.pdf",
+      "type": "pdf",
+      "ocr": false,
+      "min_auto": 3,
+      "max_auto": 7,
+      "must_mask": [
+        "+91 9599320477",
+        "aarav.sharma@gmail.com"
+      ],
       "_note_ai_only": "English street addresses (e.g. 'Signature Global Mall, Sector 84') are detected only by the AI deep-scan path, not the deterministic regex path this harness exercises.",
-      "must_not_mask": ["Delhi University", "Maharaja Agrasen College", "Saket", "Imphal"],
-      "should_candidate": ["Aarav Sharma"],
-      "candidate_mode": {"Aarav Sharma": "ok"},
-      "never_candidate": ["Delhi University", "Maharaja Agrasen College"],
+      "must_not_mask": [
+        "Delhi University",
+        "Maharaja Agrasen College",
+        "Saket",
+        "Imphal"
+      ],
+      "should_candidate": [
+        "Aarav Sharma"
+      ],
+      "candidate_mode": {
+        "Aarav Sharma": "ok"
+      },
+      "never_candidate": [
+        "Delhi University",
+        "Maharaja Agrasen College"
+      ],
       "name_bar": "Aarav Sharma"
     },
     {
-      "doc": "7_resume_dark.pdf", "type": "pdf", "ocr": false, "min_auto": 2, "max_auto": 4,
-      "must_mask": ["+91 9599320477", "aarav.sharma@gmail.com"],
-      "must_not_mask": [
-        "Delhi University", "Maharaja Agrasen College", "Vidya Niketan School",
-        "King Sejong Institute", "Concern India Foundation", "Korea",
-        "Koreaz Contest", "Imphal", "Saket", "India"
+      "doc": "7_resume_dark.pdf",
+      "type": "pdf",
+      "ocr": false,
+      "min_auto": 2,
+      "max_auto": 4,
+      "must_mask": [
+        "+91 9599320477",
+        "aarav.sharma@gmail.com"
       ],
-      "should_candidate": ["Aarav Sharma", "Signature Global"],
-      "candidate_mode": {"Aarav Sharma": "ok", "Signature Global": "ok"},
+      "must_not_mask": [
+        "Delhi University",
+        "Maharaja Agrasen College",
+        "Vidya Niketan School",
+        "King Sejong Institute",
+        "Concern India Foundation",
+        "Korea",
+        "Koreaz Contest",
+        "Imphal",
+        "Saket",
+        "India"
+      ],
+      "should_candidate": [
+        "Aarav Sharma",
+        "Signature Global"
+      ],
+      "candidate_mode": {
+        "Aarav Sharma": "ok",
+        "Signature Global": "ok"
+      },
       "never_candidate": [
-        "Korea", "Maharaja Agrasen College", "Vidya Niketan School",
-        "King Sejong Institute", "Concern India Foundation", "Delhi University", "Imphal"
+        "Korea",
+        "Maharaja Agrasen College",
+        "Vidya Niketan School",
+        "King Sejong Institute",
+        "Concern India Foundation",
+        "Delhi University",
+        "Imphal"
       ],
       "name_bar": "Aarav Sharma",
       "dark_bg_value": "aarav.sharma@gmail.com"
     },
     {
-      "doc": "8_resume_2col.pdf", "type": "pdf", "ocr": false, "min_auto": 2, "max_auto": 4,
+      "doc": "8_resume_2col.pdf",
+      "type": "pdf",
+      "ocr": false,
+      "min_auto": 2,
+      "max_auto": 4,
       "_note": "Regression for real-résumé defects: (1) a 3-token name in a 2-column layout whose surname renders slightly smaller must stay whole and be fully maskable (surname included) — activate_name turns the name candidate on, then must_mask asserts every token incl. the surname is covered; (2) a country inside a WRAPPED flowing sentence whose tail line reads 'Republic of Korea (Koreaz Contest)' must not be proposed as an address candidate (the old <=2-word country-anchor cap let the 3-word 'Republic of Korea' slip past); the isolated 'Korea (Koreaz Contest)' line is covered too. Koreaz Contest is a contest name (not PII) and must never be masked.",
       "activate_name": "Ishan Rohit Malhotra",
-      "must_mask": ["Ishan Rohit Malhotra", "Malhotra", "+91 9599320477", "ishan.malhotra@gmail.com"],
-      "must_not_mask": ["Software Engineer", "Delhi University", "Maharaja Agrasen College", "Koreaz Contest", "Republic of Korea (Koreaz Contest)"],
+      "must_mask": [
+        "Ishan Rohit Malhotra",
+        "Malhotra",
+        "+91 9599320477",
+        "ishan.malhotra@gmail.com"
+      ],
+      "must_not_mask": [
+        "Software Engineer",
+        "Delhi University",
+        "Maharaja Agrasen College",
+        "Koreaz Contest",
+        "Republic of Korea (Koreaz Contest)"
+      ],
       "should_candidate": [],
-      "never_candidate": ["Republic of Korea (Koreaz Contest)", "Korea (Koreaz Contest)", "Korea", "Maharaja Agrasen College", "Delhi University"]
+      "never_candidate": [
+        "Republic of Korea (Koreaz Contest)",
+        "Korea (Koreaz Contest)",
+        "Korea",
+        "Maharaja Agrasen College",
+        "Delhi University"
+      ]
     },
     {
-      "doc": "9_resume_2line.pdf", "type": "pdf", "ocr": false, "min_auto": 2, "max_auto": 4,
+      "doc": "9_resume_2line.pdf",
+      "type": "pdf",
+      "ocr": false,
+      "min_auto": 2,
+      "max_auto": 4,
       "_note": "Regression for the real-résumé defect where the header name WRAPS onto two visual lines (given names on line 1, surname on its own line 2, same large font). The old name-line assembly grew only horizontally within the anchor row, so it captured 'MANSI GAZAL' and left the whole second line 'TIWARI' exposed — the name surfaced only as a truncated 'MANSI GAZAL' candidate. Detection must assemble the wrapped name whole: the candidate is 'MANSI GAZAL TIWARI' and activating it covers BOTH lines incl. the surname. The smaller-font subtitle 'Software Developer' must NOT be merged into the name (a merge would either mask the subtitle or fail isLikelyName and drop the name).",
       "activate_name": "MANSI GAZAL TIWARI",
-      "must_mask": ["MANSI GAZAL TIWARI", "TIWARI", "+91 98765 43210", "mansi.tiwari@example.com"],
-      "must_not_mask": ["Software Developer", "Delhi University"],
-      "should_candidate": ["MANSI GAZAL TIWARI"],
-      "never_candidate": ["Software Developer", "Delhi University"]
+      "must_mask": [
+        "MANSI GAZAL TIWARI",
+        "TIWARI",
+        "+91 98765 43210",
+        "mansi.tiwari@example.com"
+      ],
+      "must_not_mask": [
+        "Software Developer",
+        "Delhi University"
+      ],
+      "should_candidate": [
+        "MANSI GAZAL TIWARI"
+      ],
+      "never_candidate": [
+        "Software Developer",
+        "Delhi University"
+      ]
     }
   ],
-
   "_jp_basis": "JP-1 alpha. Fixtures live in fixtures/jp/<doc>/<variant>.{png,jpg,pdf} with a sibling .specs.json carrying a BOX TABLE in PNG pixels plus, per 提出目的, which boxes the purpose hides / recommends / offers / keeps. The harness replays that table against the live pipeline, so the expectations are the fixture's, not the detector's. PNG and PDF differ from the table by one uniform scale (taken at runtime from page.w / fixture width); the JPG variants are rotated and blurred on purpose (phone photo), so their OCR boxes cannot land on those coordinates and those cases assert at FIELD level instead — detected, and banded — which is what the 미탐 0 gate is actually about.",
-
   "jp_auto_fields": {
-    "_why": "The fixture's `mask` list holds every box the purpose hides, at BOTH the automatic and the recommended strength — those are different promises, so the harness has to know which is which independently of the app it is testing. This table is the legal matrix's `level` field (jp_legal_matrix_alpha4.json), keyed by fixture box name with the m<N>_ household prefix stripped. Anything NOT listed here that appears under `mask` is level=recommend and is asserted as a surfaced review candidate.",
-    "shikaku_kakuninsho": ["hokensha_bango", "kigo", "bango", "edaban", "hihokensha_bango", "qr"],
+    "_why": "The fixture's `mask` list holds every box the purpose hides, at BOTH the automatic and the recommended strength — those are different promises, so the harness has to know which is which independently of the app it is testing. This table is the legal matrix's `level` field (jp_legal_matrix_alpha4.json), keyed by fixture box name with the m<N>_ household prefix stripped. Anything NOT listed here that appears under `mask` is level=recommend and is asserted as a surfaced review candidate — which, for a NUMBER field, still has to pass the per-glyph ink test if it is banded. 住民票コード left this list on 2026-10-21b: the matrix marks it verified:false, and check_matrix.mjs forbids an unsourced rule from being automatic. It is still default-ON, so the band is unchanged.",
+    "shikaku_kakuninsho": [
+      "hokensha_bango",
+      "kigo",
+      "bango",
+      "edaban",
+      "hihokensha_bango",
+      "qr"
+    ],
     "unten_menkyo": [],
-    "mynumber_card": ["my_number", "qr"],
-    "juminhyo": ["my_number", "jumin_code"]
+    "mynumber_card": [
+      "my_number",
+      "qr"
+    ],
+    "juminhyo": [
+      "my_number"
+    ]
   },
-  "jp_candidate_or_mask": ["my_number"],
+  "jp_candidate_or_mask": [
+    "my_number"
+  ],
   "_jp_candidate_or_mask_why": "個人番号 is level=auto_with_purpose_gate, but strategy v2 §4 requires every dummy's number to FAIL its check digit (生成 of a valid one is forbidden). A correct implementation must therefore refuse to assert 'this is a 個人番号' and demote the automatic band to a default-ON review candidate. Asserting a hard band here would make the golden reward the wrong behaviour; asserting only a candidate would let a real regression (never detecting it) pass. So: banded OR surfaced, and the demotion reason is checked separately via the entity note.",
-
   "jp_docs": [
-    { "doc": "jp/shikaku_kakuninsho/kenpo.png", "fixture": "fixtures/jp/shikaku_kakuninsho/kenpo.specs.json", "expect_doc": "shikaku_kakuninsho",
-      "cases": [{ "purpose": "identity_submit", "key": "本人確認提出", "min_auto": 4, "max_auto": 8,
-                  "require_fields": ["kigo", "bango", "edaban", "hokensha_bango", "qr", "sex"],
-                  "require_banded": ["kigo", "bango", "edaban", "hokensha_bango", "qr"],
-                  "out_formats": ["png", "jpg"] }] },
-    { "doc": "jp/shikaku_kakuninsho/kokuho.png", "fixture": "fixtures/jp/shikaku_kakuninsho/kokuho.specs.json", "expect_doc": "shikaku_kakuninsho",
-      "cases": [{ "purpose": "identity_submit", "key": "本人確認提出", "min_auto": 4, "max_auto": 8,
-                  "require_banded": ["kigo", "bango", "edaban", "hokensha_bango", "qr"] }] },
-    { "doc": "jp/shikaku_kakuninsho/kouki.png", "fixture": "fixtures/jp/shikaku_kakuninsho/kouki.specs.json", "expect_doc": "shikaku_kakuninsho",
-      "cases": [{ "purpose": "identity_submit", "key": "本人確認提出", "min_auto": 2, "max_auto": 8,
-                  "require_banded": ["hokensha_bango", "qr"] }] },
-
-    { "doc": "jp/unten_menkyo/front.png", "fixture": "fixtures/jp/unten_menkyo/front.specs.json", "expect_doc": "unten_menkyo", "expect_side": "front",
-      "cases": [{ "purpose": "identity_submit", "key": "本人確認提出", "max_auto": 2, "require_fields": ["license_no"] }] },
-    { "doc": "jp/unten_menkyo/back.png", "fixture": "fixtures/jp/unten_menkyo/back.specs.json", "expect_doc": "unten_menkyo", "expect_side": "back",
-      "cases": [{ "purpose": "identity_submit", "key": "本人確認提出", "max_auto": 2,
-                  "require_banded": ["biko_change", "organ_donor"],
-                  "require_clear": ["address_loose"] }] },
-
-    { "doc": "jp/unten_menkyo/back.png", "fixture": "fixtures/jp/unten_menkyo/back.specs.json", "expect_doc": "unten_menkyo", "expect_side": "back", "geometry": false,
+    {
+      "doc": "jp/shikaku_kakuninsho/kenpo.png",
+      "fixture": "fixtures/jp/shikaku_kakuninsho/kenpo.specs.json",
+      "expect_doc": "shikaku_kakuninsho",
+      "cases": [
+        {
+          "purpose": "identity_submit",
+          "key": "本人確認提出",
+          "min_auto": 4,
+          "max_auto": 8,
+          "require_fields": [
+            "kigo",
+            "bango",
+            "edaban",
+            "hokensha_bango",
+            "qr",
+            "sex"
+          ],
+          "require_banded": [
+            "kigo",
+            "bango",
+            "edaban",
+            "hokensha_bango",
+            "qr"
+          ],
+          "out_formats": [
+            "png",
+            "jpg"
+          ],
+          "require_legal": [
+            "qr",
+            "hokensha_bango"
+          ],
+          "auto_allow": [
+            "kigo",
+            "bango",
+            "edaban",
+            "hokensha_bango",
+            "qr"
+          ],
+          "expect_warn": false
+        }
+      ]
+    },
+    {
+      "doc": "jp/shikaku_kakuninsho/kokuho.png",
+      "fixture": "fixtures/jp/shikaku_kakuninsho/kokuho.specs.json",
+      "expect_doc": "shikaku_kakuninsho",
+      "cases": [
+        {
+          "purpose": "identity_submit",
+          "key": "本人確認提出",
+          "min_auto": 4,
+          "max_auto": 8,
+          "require_banded": [
+            "kigo",
+            "bango",
+            "edaban",
+            "hokensha_bango",
+            "qr"
+          ],
+          "require_legal": [
+            "qr",
+            "hokensha_bango"
+          ],
+          "auto_allow": [
+            "kigo",
+            "bango",
+            "edaban",
+            "hokensha_bango",
+            "qr"
+          ],
+          "expect_warn": false
+        }
+      ]
+    },
+    {
+      "doc": "jp/shikaku_kakuninsho/kouki.png",
+      "fixture": "fixtures/jp/shikaku_kakuninsho/kouki.specs.json",
+      "expect_doc": "shikaku_kakuninsho",
+      "cases": [
+        {
+          "purpose": "identity_submit",
+          "key": "本人確認提出",
+          "min_auto": 2,
+          "max_auto": 8,
+          "require_banded": [
+            "hokensha_bango",
+            "qr"
+          ],
+          "require_legal": [
+            "qr",
+            "hokensha_bango"
+          ],
+          "auto_allow": [
+            "hihokensha_bango",
+            "hokensha_bango",
+            "qr"
+          ],
+          "expect_warn": false
+        }
+      ]
+    },
+    {
+      "doc": "jp/unten_menkyo/front.png",
+      "fixture": "fixtures/jp/unten_menkyo/front.specs.json",
+      "expect_doc": "unten_menkyo",
+      "expect_side": "front",
+      "cases": [
+        {
+          "purpose": "identity_submit",
+          "key": "本人確認提出",
+          "max_auto": 2,
+          "require_fields": [
+            "license_no"
+          ],
+          "require_clear": [
+            "license_no"
+          ],
+          "auto_allow": []
+        }
+      ]
+    },
+    {
+      "doc": "jp/unten_menkyo/back.png",
+      "fixture": "fixtures/jp/unten_menkyo/back.specs.json",
+      "expect_doc": "unten_menkyo",
+      "expect_side": "back",
+      "cases": [
+        {
+          "purpose": "identity_submit",
+          "key": "本人確認提出",
+          "max_auto": 2,
+          "require_banded": [
+            "biko_change",
+            "organ_donor"
+          ],
+          "require_clear": [
+            "address_loose"
+          ],
+          "auto_allow": []
+        }
+      ]
+    },
+    {
+      "doc": "jp/unten_menkyo/back.png",
+      "fixture": "fixtures/jp/unten_menkyo/back.specs.json",
+      "expect_doc": "unten_menkyo",
+      "expect_side": "back",
+      "geometry": false,
       "_why": "Same document, same field, two 提出目的, opposite outcomes — the purpose gate is the product, so one case has to prove it actually moves. The 備考欄 carries a free-standing 住所変更 line: for 本人確認提出 that address is `optional` (offered, left clear — see the geometry case above), for 相談用共有 it is `recommend` (banded by default). Geometry is off because the fixture's box table only declares the 本人確認提出 purpose.",
-      "cases": [{ "purpose": "consult_share", "key": "本人確認提出", "max_auto": 2,
-                  "require_fields": ["address_loose"], "require_banded": ["address_loose", "biko_change", "organ_donor"] }] },
-
-    { "doc": "jp/mynumber_card/front.png", "fixture": "fixtures/jp/mynumber_card/front.specs.json", "expect_doc": "mynumber_card", "expect_side": "front",
-      "cases": [{ "purpose": "identity_submit", "key": "身元確認", "max_auto": 2,
-                  "require_banded": ["sex", "organ_donor"] }] },
-    { "doc": "jp/mynumber_card/back.png", "fixture": "fixtures/jp/mynumber_card/back.specs.json", "expect_doc": "mynumber_card", "expect_side": "back",
-      "cases": [{ "purpose": "identity_submit", "key": "身元確認", "min_auto": 1, "max_auto": 3,
-                  "require_banded": ["back_all", "my_number"], "out_formats": ["pdf"] },
-                { "purpose": "my_number_procedure", "key": "個人番号手続", "max_auto": 1,
-                  "require_fields": ["my_number"] }] },
-
-    { "doc": "jp/juminhyo/zenin_mynumber.png", "fixture": "fixtures/jp/juminhyo/zenin_mynumber.specs.json", "expect_doc": "juminhyo",
-      "cases": [{ "purpose": "identity_submit", "key": "本人確認提出", "min_auto": 1, "max_auto": 4,
-                  "require_fields": ["my_number", "jumin_code", "honseki", "hittosha", "setaiin"],
-                  "require_banded": ["jumin_code", "setaiin"] },
-                { "purpose": "my_number_procedure", "key": "個人番号手続", "max_auto": 2,
-                  "require_banded": ["honseki"] }] },
-    { "doc": "jp/juminhyo/ichibu_plain.png", "fixture": "fixtures/jp/juminhyo/ichibu_plain.specs.json", "expect_doc": "juminhyo",
-      "cases": [{ "purpose": "identity_submit", "key": "本人確認提出", "max_auto": 2 }] },
-    { "doc": "jp/juminhyo/honseki_on.png", "fixture": "fixtures/jp/juminhyo/honseki_on.specs.json", "expect_doc": "juminhyo",
-      "cases": [{ "purpose": "identity_submit", "key": "本人確認提出", "max_auto": 2, "require_banded": ["honseki", "hittosha"] },
-                { "purpose": "my_number_procedure", "key": "個人番号手続", "max_auto": 2, "require_banded": ["honseki"] }] },
-    { "doc": "jp/juminhyo/gaikokujin.png", "fixture": "fixtures/jp/juminhyo/gaikokujin.specs.json", "expect_doc": "juminhyo",
-      "cases": [{ "purpose": "identity_submit", "key": "本人確認提出", "max_auto": 2 }] },
-
-    { "doc": "jp/shikaku_kakuninsho/kenpo.pdf", "fixture": "fixtures/jp/shikaku_kakuninsho/kenpo.specs.json", "expect_doc": "shikaku_kakuninsho",
-      "cases": [{ "purpose": "identity_submit", "key": "本人確認提出", "min_auto": 4, "max_auto": 8,
-                  "require_banded": ["kigo", "bango", "edaban", "hokensha_bango", "qr"], "out_formats": ["pdf"] }] },
-
-    { "doc": "jp/shikaku_kakuninsho/kenpo.jpg", "fixture": "fixtures/jp/shikaku_kakuninsho/kenpo.specs.json", "expect_doc": "shikaku_kakuninsho", "geometry": false,
-      "cases": [{ "purpose": "identity_submit", "key": "本人確認提出", "min_auto": 4, "max_auto": 8,
-                  "require_banded": ["kigo", "bango", "edaban", "hokensha_bango", "qr"] }] },
-    { "doc": "jp/juminhyo/zenin_mynumber.jpg", "fixture": "fixtures/jp/juminhyo/zenin_mynumber.specs.json", "expect_doc": "juminhyo", "geometry": false,
-      "cases": [{ "purpose": "identity_submit", "key": "本人確認提出", "min_auto": 1, "max_auto": 4,
-                  "require_fields": ["my_number", "jumin_code"], "require_banded": ["jumin_code", "my_number"] }] },
-    { "doc": "jp/mynumber_card/back.jpg", "fixture": "fixtures/jp/mynumber_card/back.specs.json", "expect_doc": "mynumber_card", "expect_side": "back", "geometry": false,
-      "cases": [{ "purpose": "identity_submit", "key": "身元確認", "min_auto": 1, "max_auto": 3,
-                  "require_banded": ["back_all", "my_number"], "out_formats": ["jpg"] }] }
+      "cases": [
+        {
+          "purpose": "consult_share",
+          "key": "本人確認提出",
+          "max_auto": 2,
+          "require_fields": [
+            "address_loose"
+          ],
+          "require_banded": [
+            "address_loose",
+            "biko_change",
+            "organ_donor"
+          ],
+          "auto_allow": []
+        }
+      ]
+    },
+    {
+      "doc": "jp/mynumber_card/front.png",
+      "fixture": "fixtures/jp/mynumber_card/front.specs.json",
+      "expect_doc": "mynumber_card",
+      "expect_side": "front",
+      "cases": [
+        {
+          "purpose": "identity_submit",
+          "key": "身元確認",
+          "max_auto": 2,
+          "require_banded": [
+            "sex",
+            "organ_donor"
+          ],
+          "auto_allow": []
+        }
+      ]
+    },
+    {
+      "doc": "jp/mynumber_card/back.png",
+      "fixture": "fixtures/jp/mynumber_card/back.specs.json",
+      "expect_doc": "mynumber_card",
+      "expect_side": "back",
+      "cases": [
+        {
+          "purpose": "identity_submit",
+          "key": "身元確認",
+          "min_auto": 1,
+          "max_auto": 3,
+          "require_banded": [
+            "back_all",
+            "my_number"
+          ],
+          "out_formats": [
+            "pdf"
+          ],
+          "require_legal": [
+            "back_all"
+          ],
+          "auto_allow": [
+            "back_all"
+          ],
+          "expect_warn": false
+        },
+        {
+          "purpose": "my_number_procedure",
+          "key": "個人番号手続",
+          "max_auto": 1,
+          "require_fields": [
+            "my_number"
+          ],
+          "confirm_mynumber": true,
+          "require_clear": [
+            "my_number"
+          ],
+          "auto_allow": [],
+          "_why_confirm": "個人番号手続 releases a band 番号法 put there. The dropdown alone does not: the release also needs the confirmation that the recipient performs a statutory 個人番号関係事務. This case ticks it; the 'unconfirmed' case below is the other half — same purpose, no tick, band stays."
+        },
+        {
+          "purpose": "my_number_procedure",
+          "key": "身元確認",
+          "label": "未確認",
+          "geometry": false,
+          "confirm_mynumber": false,
+          "require_banded": [
+            "back_all",
+            "my_number"
+          ],
+          "_why": "Purpose switched to 個人番号手続 but the confirmation was NOT given. The band must stay — otherwise a dropdown selection is all it takes to release a 番号法 band."
+        }
+      ]
+    },
+    {
+      "doc": "jp/juminhyo/zenin_mynumber.png",
+      "fixture": "fixtures/jp/juminhyo/zenin_mynumber.specs.json",
+      "expect_doc": "juminhyo",
+      "cases": [
+        {
+          "purpose": "identity_submit",
+          "key": "本人確認提出",
+          "max_auto": 4,
+          "require_fields": [
+            "my_number",
+            "jumin_code",
+            "honseki",
+            "hittosha",
+            "setaiin"
+          ],
+          "require_banded": [
+            "jumin_code",
+            "setaiin"
+          ],
+          "require_legal": [
+            "jumin_code"
+          ],
+          "auto_allow": [],
+          "expect_warn": false,
+          "_why_no_min_auto": "住民票コード moved from auto to recommend (matrix verified:false), and every 個人番号 in the alpha fixtures fails its check digit by design, so this document legitimately produces ZERO `auto` entities. require_banded/JP_INK is what guards the band here, not a count."
+        },
+        {
+          "purpose": "my_number_procedure",
+          "key": "個人番号手続",
+          "max_auto": 2,
+          "require_clear": [
+            "honseki"
+          ],
+          "confirm_mynumber": true,
+          "auto_allow": []
+        }
+      ]
+    },
+    {
+      "doc": "jp/juminhyo/ichibu_plain.png",
+      "fixture": "fixtures/jp/juminhyo/ichibu_plain.specs.json",
+      "expect_doc": "juminhyo",
+      "cases": [
+        {
+          "purpose": "identity_submit",
+          "key": "本人確認提出",
+          "max_auto": 2,
+          "auto_allow": []
+        }
+      ]
+    },
+    {
+      "doc": "jp/juminhyo/honseki_on.png",
+      "fixture": "fixtures/jp/juminhyo/honseki_on.specs.json",
+      "expect_doc": "juminhyo",
+      "cases": [
+        {
+          "purpose": "identity_submit",
+          "key": "本人確認提出",
+          "max_auto": 2,
+          "require_banded": [
+            "honseki",
+            "hittosha"
+          ],
+          "auto_allow": []
+        },
+        {
+          "purpose": "my_number_procedure",
+          "key": "個人番号手続",
+          "max_auto": 2,
+          "require_clear": [
+            "honseki"
+          ],
+          "auto_allow": [],
+          "_why": "This variant carries no 個人番号 box, so there is nothing for the confirmation checkbox to release and it is correctly not shown. 本籍 is `optional` here."
+        }
+      ]
+    },
+    {
+      "doc": "jp/juminhyo/gaikokujin.png",
+      "fixture": "fixtures/jp/juminhyo/gaikokujin.specs.json",
+      "expect_doc": "juminhyo",
+      "cases": [
+        {
+          "purpose": "identity_submit",
+          "key": "本人確認提出",
+          "max_auto": 2,
+          "auto_allow": []
+        }
+      ]
+    },
+    {
+      "doc": "jp/shikaku_kakuninsho/kenpo.pdf",
+      "fixture": "fixtures/jp/shikaku_kakuninsho/kenpo.specs.json",
+      "expect_doc": "shikaku_kakuninsho",
+      "cases": [
+        {
+          "purpose": "identity_submit",
+          "key": "本人確認提出",
+          "min_auto": 4,
+          "max_auto": 8,
+          "require_banded": [
+            "kigo",
+            "bango",
+            "edaban",
+            "hokensha_bango",
+            "qr"
+          ],
+          "out_formats": [
+            "pdf"
+          ],
+          "require_legal": [
+            "qr",
+            "hokensha_bango"
+          ],
+          "auto_allow": [
+            "kigo",
+            "bango",
+            "edaban",
+            "hokensha_bango",
+            "qr"
+          ],
+          "expect_warn": false
+        }
+      ]
+    },
+    {
+      "doc": "jp/shikaku_kakuninsho/kenpo.jpg",
+      "fixture": "fixtures/jp/shikaku_kakuninsho/kenpo.specs.json",
+      "expect_doc": "shikaku_kakuninsho",
+      "geometry": false,
+      "cases": [
+        {
+          "purpose": "identity_submit",
+          "key": "本人確認提出",
+          "min_auto": 4,
+          "max_auto": 8,
+          "require_banded": [
+            "kigo",
+            "bango",
+            "edaban",
+            "hokensha_bango",
+            "qr"
+          ],
+          "require_legal": [
+            "qr",
+            "hokensha_bango"
+          ],
+          "auto_allow": [
+            "kigo",
+            "bango",
+            "edaban",
+            "hokensha_bango",
+            "qr"
+          ],
+          "expect_warn": false
+        }
+      ]
+    },
+    {
+      "doc": "jp/juminhyo/zenin_mynumber.jpg",
+      "fixture": "fixtures/jp/juminhyo/zenin_mynumber.specs.json",
+      "expect_doc": "juminhyo",
+      "geometry": false,
+      "cases": [
+        {
+          "purpose": "identity_submit",
+          "key": "本人確認提出",
+          "max_auto": 4,
+          "require_fields": [
+            "my_number",
+            "jumin_code"
+          ],
+          "require_banded": [
+            "jumin_code",
+            "my_number"
+          ],
+          "auto_allow": []
+        }
+      ]
+    },
+    {
+      "doc": "jp/mynumber_card/back.jpg",
+      "fixture": "fixtures/jp/mynumber_card/back.specs.json",
+      "expect_doc": "mynumber_card",
+      "expect_side": "back",
+      "geometry": false,
+      "cases": [
+        {
+          "purpose": "identity_submit",
+          "key": "身元確認",
+          "min_auto": 1,
+          "max_auto": 3,
+          "require_banded": [
+            "back_all",
+            "my_number"
+          ],
+          "out_formats": [
+            "jpg"
+          ],
+          "require_legal": [
+            "back_all"
+          ],
+          "auto_allow": [
+            "back_all"
+          ],
+          "expect_warn": false
+        }
+      ]
+    }
   ],
   "jp_units": {
     "_why": "The alpha fixtures cannot exercise these two rules: none of the four documents carries a phone number, and on all four the 住所 is a KEEP field, so the address hierarchy never gets to decide anything there. Pinning them at unit level is the honest alternative to shipping untested detection — and it states what it is, instead of looking like fixture coverage. Scores: 郵便番号 +2, 都道府県 +2, 市区郡町村 +1, 丁目番地号 +2, institution word within/near the span −2. Automatic only with 郵便番号 AND 都道府県 together (strong); score >= 3 is a review candidate; below that, nothing.",
     "address": [
-      { "label": "都道府県+市区+丁目番地号", "text": "住所東京都千代田区霞が関1丁目2番3号", "expect": { "span": "東京都千代田区霞が関1丁目2番3号", "score": 5 } },
-      { "label": "郵便番号を伴う → strong (自動)", "text": "〒100-8926東京都千代田区霞が関1-3-2", "expect": { "span": "〒100-8926東京都千代田区霞が関1-3-2", "score": 7, "strong": true } },
-      { "label": "漢数字の丁目番号も拾う", "text": "本籍京都府京都市中京区三条通一丁目二番三号", "expect": { "span": "京都府京都市中京区三条通一丁目二番三号", "score": 5 } },
-      { "label": "架空の県名はアンカーにならない（保険者名）", "text": "保険者名架空県後期高齢者医療広域連合", "expect": null },
-      { "label": "発行者名（見本市長）を住所と読まない", "text": "見本市長架空太郎（公印省略）", "expect": null },
-      { "label": "株式会社名を住所と読まない", "text": "事業所名称架空株式会社", "expect": null },
-      { "label": "機関名は減点 — 部分一致は閾値割れ", "text": "大阪府見本市役所", "expect": null },
-      { "label": "完全な住所は機関名が続いても候補として残る", "text": "東京都新宿区西新宿2丁目8番1号新宿区役所", "expect": { "span": "東京都新宿区西新宿2丁目8番1号", "score": 3 } }
+      {
+        "label": "都道府県+市区+丁目番地号",
+        "text": "住所東京都千代田区霞が関1丁目2番3号",
+        "expect": {
+          "span": "東京都千代田区霞が関1丁目2番3号",
+          "score": 5
+        }
+      },
+      {
+        "label": "郵便番号を伴う → strong (自動)",
+        "text": "〒100-8926東京都千代田区霞が関1-3-2",
+        "expect": {
+          "span": "〒100-8926東京都千代田区霞が関1-3-2",
+          "score": 7,
+          "strong": true
+        }
+      },
+      {
+        "label": "漢数字の丁目番号も拾う",
+        "text": "本籍京都府京都市中京区三条通一丁目二番三号",
+        "expect": {
+          "span": "京都府京都市中京区三条通一丁目二番三号",
+          "score": 5
+        }
+      },
+      {
+        "label": "架空の県名はアンカーにならない（保険者名）",
+        "text": "保険者名架空県後期高齢者医療広域連合",
+        "expect": null
+      },
+      {
+        "label": "発行者名（見本市長）を住所と読まない",
+        "text": "見本市長架空太郎（公印省略）",
+        "expect": null
+      },
+      {
+        "label": "株式会社名を住所と読まない",
+        "text": "事業所名称架空株式会社",
+        "expect": null
+      },
+      {
+        "label": "機関名は減点 — 部分一致は閾値割れ",
+        "text": "大阪府見本市役所",
+        "expect": null
+      },
+      {
+        "label": "完全な住所は機関名が続いても候補として残る",
+        "text": "東京都新宿区西新宿2丁目8番1号新宿区役所",
+        "expect": {
+          "span": "東京都新宿区西新宿2丁目8番1号",
+          "score": 3
+        }
+      }
     ],
     "tel": [
-      { "label": "市外局番2桁", "text": "電話03-1234-5678", "expect": { "v": "03-1234-5678" } },
-      { "label": "携帯", "text": "携帯090-1234-5678", "expect": { "v": "090-1234-5678" } },
-      { "label": "フリーダイヤル 0120", "text": "TEL0120-123-456", "expect": { "v": "0120-123-456" } },
-      { "label": "フリーダイヤル 0800", "text": "FAX0800-123-4567", "expect": { "v": "0800-123-4567" } },
-      { "label": "ハイフンなしは候補どまり", "text": "電話番号09012345678", "expect": { "v": "09012345678", "loose": true } },
-      { "label": "11桁を超える数字列は電話ではない", "text": "個人番号720463027637", "expect": null }
+      {
+        "label": "市外局番2桁",
+        "text": "電話03-1234-5678",
+        "expect": {
+          "v": "03-1234-5678"
+        }
+      },
+      {
+        "label": "携帯",
+        "text": "携帯090-1234-5678",
+        "expect": {
+          "v": "090-1234-5678"
+        }
+      },
+      {
+        "label": "フリーダイヤル 0120",
+        "text": "TEL0120-123-456",
+        "expect": {
+          "v": "0120-123-456"
+        }
+      },
+      {
+        "label": "フリーダイヤル 0800",
+        "text": "FAX0800-123-4567",
+        "expect": {
+          "v": "0800-123-4567"
+        }
+      },
+      {
+        "label": "ハイフンなしは候補どまり",
+        "text": "電話番号09012345678",
+        "expect": {
+          "v": "09012345678",
+          "loose": true
+        }
+      },
+      {
+        "label": "11桁を超える数字列は電話ではない",
+        "text": "個人番号720463027637",
+        "expect": null
+      }
     ]
   },
   "ai_inject": {
     "_doc": "7_resume_dark.pdf",
     "cases": [
-      {"label": "college labelled as person name", "entity": {"type": "name", "value": "Maharaja Agrasen College"}, "expect": "not_masked"},
-      {"label": "foundation labelled as person name", "entity": {"type": "name", "value": "Concern India Foundation"}, "expect": "not_masked"},
-      {"label": "institute labelled as name", "entity": {"type": "name", "value": "King Sejong Institute"}, "expect": "not_masked"},
-      {"label": "lone country labelled as address", "entity": {"type": "address", "value": "Korea"}, "expect": "dropped"},
-      {"label": "lone country labelled as name", "entity": {"type": "name", "value": "India"}, "expect": "dropped"},
-      {"label": "country adjective labelled as name", "entity": {"type": "name", "value": "Indian"}, "expect": "dropped"},
-      {"label": "country+parenthetical labelled as address", "entity": {"type": "address", "value": "Korea (Koreaz Contest)"}, "expect": "dropped"},
-      {"label": "exam name labelled 'other' stays visible", "entity": {"type": "other", "value": "TOPIK"}, "expect": "not_masked"},
-      {"label": "exam name with UNKNOWN type → 'other', visible", "entity": {"type": "certificate", "value": "TOPIK"}, "expect": "not_masked"},
-      {"label": "contest name labelled 'other' stays visible", "entity": {"type": "other", "value": "Koreaz Contest"}, "expect": "not_masked"},
-      {"label": "genuine body name (positive control)", "entity": {"type": "name", "value": "Rohan Mehta"}, "expect": "masked"}
+      {
+        "label": "college labelled as person name",
+        "entity": {
+          "type": "name",
+          "value": "Maharaja Agrasen College"
+        },
+        "expect": "not_masked"
+      },
+      {
+        "label": "foundation labelled as person name",
+        "entity": {
+          "type": "name",
+          "value": "Concern India Foundation"
+        },
+        "expect": "not_masked"
+      },
+      {
+        "label": "institute labelled as name",
+        "entity": {
+          "type": "name",
+          "value": "King Sejong Institute"
+        },
+        "expect": "not_masked"
+      },
+      {
+        "label": "lone country labelled as address",
+        "entity": {
+          "type": "address",
+          "value": "Korea"
+        },
+        "expect": "dropped"
+      },
+      {
+        "label": "lone country labelled as name",
+        "entity": {
+          "type": "name",
+          "value": "India"
+        },
+        "expect": "dropped"
+      },
+      {
+        "label": "country adjective labelled as name",
+        "entity": {
+          "type": "name",
+          "value": "Indian"
+        },
+        "expect": "dropped"
+      },
+      {
+        "label": "country+parenthetical labelled as address",
+        "entity": {
+          "type": "address",
+          "value": "Korea (Koreaz Contest)"
+        },
+        "expect": "dropped"
+      },
+      {
+        "label": "exam name labelled 'other' stays visible",
+        "entity": {
+          "type": "other",
+          "value": "TOPIK"
+        },
+        "expect": "not_masked"
+      },
+      {
+        "label": "exam name with UNKNOWN type → 'other', visible",
+        "entity": {
+          "type": "certificate",
+          "value": "TOPIK"
+        },
+        "expect": "not_masked"
+      },
+      {
+        "label": "contest name labelled 'other' stays visible",
+        "entity": {
+          "type": "other",
+          "value": "Koreaz Contest"
+        },
+        "expect": "not_masked"
+      },
+      {
+        "label": "genuine body name (positive control)",
+        "entity": {
+          "type": "name",
+          "value": "Rohan Mehta"
+        },
+        "expect": "masked"
+      }
     ]
   },
-
   "ai_cat_state": {
     "_doc": "7_resume_dark.pdf",
     "_note": "After an AI deep-scan injects name/company labels, the category ACTIVE state (checkbox) must stay ON — a disabled name category would silently leave names unmasked when the user trusts the AI and just builds. Asserts catEnabled stays true and the rendered checkbox stays checked.",
     "labels": [
-      {"type": "name", "value": "Rohan Mehta"},
-      {"type": "company", "value": "Globex Solutions Pvt Ltd"}
+      {
+        "type": "name",
+        "value": "Rohan Mehta"
+      },
+      {
+        "type": "company",
+        "value": "Globex Solutions Pvt Ltd"
+      }
     ],
-    "assert_enabled": ["name", "company"]
+    "assert_enabled": [
+      "name",
+      "company"
+    ]
   },
-
   "candidate_dedup": {
     "_doc": "6_resume_light.pdf",
     "_note": "A CONFIRMED entity whose value wholly contains a review candidate (as whole space-separated tokens) makes that candidate redundant — the confirmed mask already covers it — so the candidate must be removed. Reproduces confirmed 'MANSI GAZAL TIWARI' hiding candidate 'MANSI GAZAL'. Directional: only the shorter, fully-contained candidate is dropped; a candidate that ADDS a token beyond the confirmed value must be kept (removing it would lose coverage). The base doc surfaces 'Aarav Sharma' as a name candidate; each case injects a confirmed name and asserts the candidate is dropped/kept accordingly. Old code (no dedupe) leaves the candidate in place, so the 'removed' case fails on it.",
     "cases": [
-      {"label": "candidate contained in confirmed name is removed", "candidate": "Aarav Sharma", "confirm": {"type": "name", "value": "Aarav Sharma Verma"}, "expect": "removed"},
-      {"label": "candidate adding a token beyond confirmed is kept", "candidate": "Aarav Sharma", "confirm": {"type": "name", "value": "Aarav"}, "expect": "kept"}
+      {
+        "label": "candidate contained in confirmed name is removed",
+        "candidate": "Aarav Sharma",
+        "confirm": {
+          "type": "name",
+          "value": "Aarav Sharma Verma"
+        },
+        "expect": "removed"
+      },
+      {
+        "label": "candidate adding a token beyond confirmed is kept",
+        "candidate": "Aarav Sharma",
+        "confirm": {
+          "type": "name",
+          "value": "Aarav"
+        },
+        "expect": "kept"
+      }
+    ]
+  },
+  "jp_my_number": {
+    "_why": "Two layers. `vectors` pin the arithmetic of 省令第5条 — including the two remainder cases (0 and 1) the 省令 folds to a check digit of 0, which is where an independent reimplementation usually differs. `synth` drives a VALID number through the whole live pipeline (classification → label anchor → digit span → check digit → purpose gate) on a page built by the app's own text renderer. Until 2026-10-21b nothing exercised the checkOk:true branch: every card dummy carries an invalid number by design (strategy v2 §4 forbids generating a valid one), so a CORRECT 個人番号 took a path the golden had never run (Codex 5-2). The valid numbers live in TEXT only — never in a committed image.",
+    "vectors": [
+      {
+        "label": "valid",
+        "n": "123456789018",
+        "ok": true
+      },
+      {
+        "label": "valid (sum mod 11 == 0 → check 0)",
+        "n": "301661318600",
+        "ok": true
+      },
+      {
+        "label": "valid (sum mod 11 == 1 → check 0)",
+        "n": "913909960300",
+        "ok": true
+      },
+      {
+        "label": "valid (all nines body)",
+        "n": "999999999996",
+        "ok": true
+      },
+      {
+        "label": "invalid: check digit +1",
+        "n": "123456789019",
+        "ok": false
+      },
+      {
+        "label": "invalid: 11 digits",
+        "n": "12345678901",
+        "ok": false
+      },
+      {
+        "label": "invalid: 13 digits",
+        "n": "1234567890180",
+        "ok": false
+      },
+      {
+        "label": "invalid: non-digit",
+        "n": "12345678901X",
+        "ok": false
+      }
+    ],
+    "synth": [
+      {
+        "label": "valid 個人番号 · 本人確認提出 → gate, banded",
+        "text": "住民票の写し\n世帯主 架空 太郎\n続柄 本人\n氏名 架空 太郎\n個人番号 123456789018\n",
+        "purpose": "identity_submit",
+        "expect_doc": "juminhyo",
+        "number": "123456789018",
+        "expect_level": "gate",
+        "expect_note": null,
+        "expect_banded": true
+      },
+      {
+        "label": "valid 個人番号 · 個人番号手続 + 확인 → keep, clear",
+        "text": "住民票の写し\n世帯主 架空 太郎\n続柄 本人\n氏名 架空 太郎\n個人番号 123456789018\n",
+        "purpose": "my_number_procedure",
+        "confirm_mynumber": true,
+        "expect_doc": "juminhyo",
+        "number": "123456789018",
+        "expect_level": "keep",
+        "expect_note": null,
+        "expect_banded": false
+      },
+      {
+        "label": "valid 個人番号 · 個人番号手続 · 확인 없음 → gate, banded",
+        "text": "住民票の写し\n世帯主 架空 太郎\n続柄 本人\n氏名 架空 太郎\n個人番号 123456789018\n",
+        "purpose": "my_number_procedure",
+        "expect_doc": "juminhyo",
+        "number": "123456789018",
+        "expect_level": "gate",
+        "expect_note": "mn_unconfirmed",
+        "expect_banded": true
+      },
+      {
+        "label": "invalid check digit → recommend/checkdigit, still banded",
+        "text": "住民票の写し\n世帯主 架空 太郎\n続柄 本人\n氏名 架空 太郎\n個人番号 123456789019\n",
+        "purpose": "identity_submit",
+        "expect_doc": "juminhyo",
+        "number": "123456789019",
+        "expect_level": "recommend",
+        "expect_note": "checkdigit",
+        "expect_banded": true
+      }
+    ]
+  },
+  "jp_unlabelled_block": {
+    "_why": "An unlabelled near-square ink block is what a printed QR looks like — and also what a face photo, a filled round seal (bbox fill ≈ 0.785) or a black table header looks like. The alpha dummies carry no real QR (strategy v2 §4), so the pixel detector has no golden coverage; the code used to emit it at `recommend`, whose default mode is 'no', so an untested guess was removing content from the DEFAULT output (Codex 2-2, 6-1). It is now `optional` / mode 'ok'. The finding is INJECTED here: this pins the policy in jpApply, not the detector, and the companion assertion checks the LABELLED code on the same page is still banded so the test cannot pass by nothing being banded at all.",
+    "_doc": "jp/shikaku_kakuninsho/kenpo.png",
+    "purpose": "identity_submit"
+  },
+  "jp_warn": {
+    "_why": "資格確認書 scores 3 on its title alone and needs 4. One garbled label used to drop the ENTIRE Japanese preset and fall through to the Latin name/address heuristics with nothing said (Codex 1-1). Now: a title-only page classifies at LOW confidence (candidate scan only — no automatic band) and a page that merely looks Japanese-official raises the blocking banner. Both are driven through the paste path so the page text is exactly what the case says it is.",
+    "cases": [
+      {
+        "label": "資格確認書 제목 단독 (3점) → low confidence, candidate scan only",
+        "text": "資格確認書\n氏名 架空 太郎\n住所 東京都架空区架空町99丁目98番97号\n",
+        "expect_warn": "lowconf",
+        "expect_doc": "shikaku_kakuninsho",
+        "expect_low": true
+      },
+      {
+        "label": "和暦のみ・分類不能 → 차단성 경고",
+        "text": "令和7年4月1日 発行\n架空町内会 会費のお知らせ\n氏名 架空 太郎\n",
+        "expect_warn": "unclassified",
+        "expect_doc": null
+      },
+      {
+        "label": "日本語の特徴なし → 경고 없음",
+        "text": "Invoice 2026-04-01\nName Aarav Sharma\nTotal 1200 USD\n",
+        "expect_warn": false,
+        "expect_doc": null
+      },
+      {
+        "label": "완전한 資格確認書 (4점 이상) → 경고 없음",
+        "text": "資格確認書\n保険者番号 99221010\n記号 90001234\n番号 901\n枝番 02\n氏名 架空 太郎\n",
+        "expect_warn": false,
+        "expect_doc": "shikaku_kakuninsho",
+        "expect_low": false
+      }
     ]
   }
 }

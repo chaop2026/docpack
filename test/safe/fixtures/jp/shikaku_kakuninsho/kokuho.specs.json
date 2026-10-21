@@ -87,7 +87,6 @@
     "kigo",
     "bango",
     "edaban",
-    "hihokensha_bango",
     "qr"
    ],
    "recommend": [
@@ -97,8 +96,7 @@
     "name",
     "birth",
     "address",
-    "expiry",
-    "jigyosho"
+    "expiry"
    ],
    "legal_basis": "健康保険法 告知要求制限 (2020-10-01). QRは番号判読可能なため同一扱い",
    "source": "https://www.mhlw.go.jp/stf/newpage_13989.html"

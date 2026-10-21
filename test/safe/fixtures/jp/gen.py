@@ -75,6 +75,23 @@ def finalize(img, path_base, boxes, meta):
     sh = Image.new("RGB", photo.size, (0,0,0)); photo = Image.blend(photo, sh, 0.06)
     photo.save(path_base + ".jpg", quality=82)                        # 촬영풍 (회전·흐림·어두움)
     c = canvas.Canvas(path_base + ".pdf", pagesize=(W*0.5, H*0.5)); c.drawImage(path_base + ".png", 0, 0, W*0.5, H*0.5); c.save()
+    # The purpose tables below are written once per DOCUMENT but each variant has
+    # its own fields (kouki has 被保険者番号 and no 記号/番号/枝番; only kenpo has
+    # 事業所名称). An expectation naming a box this variant does not have used to be
+    # reported as "skipped" by the harness — i.e. not checked, while still printing
+    # green. The harness now FAILS on a missing key, so the table has to be pruned
+    # to this variant here (Codex 5-5).
+    meta = dict(meta)
+    if "purposes" in meta:
+        pruned = {}
+        for pk, P in meta["purposes"].items():
+            Q = dict(P)
+            for kind in ("mask", "recommend", "optional", "keep"):
+                v = Q.get(kind)
+                if isinstance(v, list):
+                    Q[kind] = [k for k in v if k == "ALL" or k in boxes]
+            pruned[pk] = Q
+        meta["purposes"] = pruned
     spec = {"file": os.path.basename(path_base), "size": [W, H], "boxes_png": boxes, **meta,
             "note": "jpg는 회전·흐림 적용으로 박스 좌표 불일치 → 탐지는 OCR 좌표로 재계산, png/pdf 좌표만 골든 비교"}
     json.dump(spec, open(path_base + ".specs.json", "w"), ensure_ascii=False, indent=1)
@@ -129,7 +146,9 @@ def license_card(side):
         label_val(d, 40, y, "番号", "第 " + license_no() + " 号", 120, 26, boxes, "license_no"); y += 50
         label_val(d, 40, y, "種類", "普通 / 原付", 120, 22, boxes, "types")
         d.text((40, H-80), "（公安委員会名・公印・IC表示は意図的に省略）", font=F(16), fill=(120,120,120))
-        purposes = {"本人確認提出": {"mask": [], "optional": ["license_no"], "keep": ["name","birth","address","expiry","photo"], "legal_basis": "提出先指示優先。番号マスキングは任意（KYCで必須とする提出先あり）"}}
+        # 免許証番号 is must-keep for 本人確認提出 per the legal matrix (照合に必要と
+        # する提出先が多い); it is `optional` only under 相談用共有.
+        purposes = {"本人確認提出": {"mask": [], "optional": [], "keep": ["name","birth","address","expiry","photo","license_no"], "legal_basis": "提出先指示優先。免許証番号は本人確認提出では must-keep（照合に必要とする提出先が多い）、相談用共有では既定OFFで選択可"}}
     else:
         d.text((40, 40), "運転免許証 裏面（架空・図式）", font=F(30, True), fill=(30,30,30))
         d.text((40, 110), "備考欄（住所・氏名等の変更記載）", font=F(22), fill=(90,90,90))
@@ -204,7 +223,9 @@ def juminhyo(variant):
     purposes = {
         "本人確認提出": {"mask": [k for k in boxes if k.endswith("my_number") or k=="jumin_code"], "recommend": [k for k in boxes if "honseki" in k or "hittosha" in k or k.startswith("m2_") or k.startswith("m3_")],
                      "keep": ["address","m1_name","m1_birth"], "legal_basis": "個人番号は番号法で収集制限／本籍・他世帯員は提出先指示で不要が多い", "source": "https://www.pref.osaka.lg.jp/documents/135080/6tempujichui.pdf"},
-        "個人番号手続": {"mask": [k for k in boxes if "honseki" in k], "keep": [k for k in boxes if k.endswith("my_number")], "legal_basis": "個人番号記載が目的の提出"}}
+        # 本籍 under a My Number filing is `optional` (default OFF): the legal matrix
+        # has no source for "unnecessary in a 個人番号関係事務", so it is offered, not banded.
+        "個人番号手続": {"mask": [], "optional": [k for k in boxes if "honseki" in k], "keep": [k for k in boxes if k.endswith("my_number")], "legal_basis": "個人番号記載が目的の提出。本籍は不要という出典がないため既定OFF（選択可）"}}
     finalize(img, f"{OUT}/juminhyo/{variant}", boxes, {"doc":"住民票の写し","variant":variant,"purposes":purposes})
 
 if __name__ == "__main__":

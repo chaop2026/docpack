@@ -84,11 +84,12 @@
    "source": "https://www.pref.osaka.lg.jp/documents/135080/6tempujichui.pdf"
   },
   "個人番号手続": {
-   "mask": [
-    "m1_honseki"
-   ],
+   "mask": [],
    "keep": [],
-   "legal_basis": "個人番号記載が目的の提出"
+   "legal_basis": "個人番号記載が目的の提出。本籍は不要という出典がないため既定OFF（選択可）",
+   "optional": [
+    "m1_honseki"
+   ]
   }
  },
  "note": "jpg는 회전·흐림 적용으로 박스 좌표 불일치 → 탐지는 OCR 좌표로 재계산, png/pdf 좌표만 골든 비교"
