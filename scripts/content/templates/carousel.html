@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>SafeFile JP carousel slide</title>
+<!--
+  Instagram / X carousel slide, 1080×1350.
+
+  Rendered by scripts/content/make_episode.mjs: Playwright opens this file,
+  calls window.SF_RENDER(slide, data), waits for window.SF_READY, and
+  screenshots #card. Nothing here runs in production.
+
+  Tokens are /safe/'s (public/safe/index.html :root) so a slide and the tool
+  look like the same product. Fonts: IBM Plex Sans KR for the Latin/Hangul
+  shapes the brand uses, Noto Sans JP for the Japanese body — loaded from
+  Google Fonts and allowed to FAIL: the renderer waits for document.fonts.ready
+  with a timeout and falls back to Hiragino, because an offline build that
+  silently produced a blank slide would be worse than one with a system font.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F7F5EF; --card:#FFFFFF; --ink:#17140F; --sub:#6B655A;
+  --line:#E6E1D4; --marker:#FFE066; --marker-soft:#FFF3BF;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:#DDD8CC}
+body{display:flex;align-items:flex-start;justify-content:flex-start}
+#card{
+  width:1080px;height:1350px;background:var(--paper);color:var(--ink);
+  font-family:'Noto Sans JP','IBM Plex Sans KR','Hiragino Kaku Gothic ProN',sans-serif;
+  display:flex;flex-direction:column;padding:88px 88px 76px;position:relative;overflow:hidden;
+}
+/* Brand lockup — same bar-and-wordmark as the site header. */
+.brand{display:flex;align-items:center;gap:16px;font-family:'IBM Plex Sans KR',sans-serif;font-weight:700;font-size:38px;letter-spacing:-.02em}
+.brand .bar{width:52px;height:26px;background:var(--ink);border-radius:7px}
+.brand .sep{width:2px;height:34px;background:var(--line)}
+.brand .slim{color:var(--sub);font-weight:500}
+
+.ep{margin-top:14px;font-family:'IBM Plex Sans KR',sans-serif;font-size:26px;font-weight:500;color:var(--sub);letter-spacing:.04em;text-transform:uppercase}
+
+#fit{flex:1;display:flex;flex-direction:column;justify-content:center;min-height:0;padding:36px 0}
+
+h1{font-size:76px;font-weight:700;line-height:1.3;letter-spacing:-.02em}
+.hook{margin-top:40px;font-size:40px;line-height:1.65;color:var(--ink)}
+.hook .hl{background:linear-gradient(transparent 58%, var(--marker) 58%);padding:0 4px}
+
+ol.bul{list-style:none;display:flex;flex-direction:column;gap:40px}
+ol.bul li{display:flex;gap:28px;align-items:flex-start;font-size:42px;line-height:1.55}
+ol.bul .n{flex:0 0 auto;width:62px;height:62px;border-radius:16px;background:var(--ink);color:#fff;
+  font-family:'IBM Plex Sans KR',sans-serif;font-weight:700;font-size:34px;
+  display:flex;align-items:center;justify-content:center}
+
+.cta-h{font-size:66px;font-weight:700;line-height:1.35;letter-spacing:-.02em}
+.cta-body{margin-top:34px;font-size:38px;line-height:1.6;color:var(--sub)}
+.url{margin-top:52px;background:var(--card);border:2px solid var(--line);border-radius:22px;
+  padding:34px 38px;font-family:'IBM Plex Sans KR',sans-serif;font-size:32px;word-break:break-all;line-height:1.5}
+.url .lbl{display:block;font-size:24px;color:var(--sub);margin-bottom:12px;letter-spacing:.04em;text-transform:uppercase}
+
+/* The compliance line is not decoration — every how-to must carry it, so it
+   is part of the slide chrome rather than something the body text can drop. */
+.foot{border-top:2px solid var(--line);padding-top:30px;font-size:28px;line-height:1.55;color:var(--sub)}
+.foot .must{color:var(--ink);font-weight:500}
+.page{position:absolute;right:88px;bottom:76px;font-family:'IBM Plex Sans KR',sans-serif;font-size:28px;color:var(--sub)}
+</style>
+</head>
+<body>
+<div id="card">
+  <div class="brand">
+    <span class="bar"></span>SafeFile<span class="sep"></span><span class="slim">SlimFile</span>
+  </div>
+  <div class="ep" id="epLabel"></div>
+  <div id="fit"></div>
+  <div class="foot">
+    <span class="must" id="mustLine">提出先の指示を必ず確認してください。</span>
+    <span id="footNote"></span>
+  </div>
+  <div class="page" id="pageNo"></div>
+</div>
+<script>
+window.SF_READY = false;
+
+/* Shrink to fit rather than clip.
+ *
+ * A slide is a fixed 1080×1350 and the copy is written by a human, so overflow
+ * is not an edge case — it is the normal state for a long Japanese title. The
+ * alternative (overflow:hidden) loses the end of a sentence while still
+ * looking like a finished image, which is the failure mode that ships.
+ *
+ * Steps down in 2% increments to a floor of 52%; below that the text would be
+ * unreadable on a phone and the right fix is shorter copy, so it reports.
+ */
+function fitToBox(el, min = 0.52) {
+  const base = 1;
+  let scale = base;
+  el.style.setProperty('--fit', '1');
+  const fits = () => el.scrollHeight <= el.clientHeight + 1;
+  while (!fits() && scale > min) {
+    scale = Math.round((scale - 0.02) * 100) / 100;
+    el.querySelectorAll('h1,.hook,ol.bul li,.cta-h,.cta-body,.url').forEach((n) => {
+      if (!n.dataset.basePx) n.dataset.basePx = String(parseFloat(getComputedStyle(n).fontSize));
+      n.style.fontSize = (parseFloat(n.dataset.basePx) * scale) + 'px';
+    });
+  }
+  return { scale, overflowed: !fits() };
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+window.SF_RENDER = function (slide, d) {
+  document.getElementById('epLabel').textContent = `EP${String(d.ep).padStart(2, '0')} · ${d.track === 'A' ? 'HOW-TO' : 'EXPLAINER'}`;
+  document.getElementById('pageNo').textContent = `${slide} / 3`;
+  const fit = document.getElementById('fit');
+
+  if (slide === 1) {
+    fit.innerHTML = `<h1>${esc(d.title)}</h1><p class="hook"><span class="hl">${esc(d.hook)}</span></p>`;
+    document.getElementById('footNote').textContent = '';
+  } else if (slide === 2) {
+    fit.innerHTML = '<ol class="bul">' + (d.bullets || []).map((b, i) =>
+      `<li><span class="n">${i + 1}</span><span>${esc(b)}</span></li>`).join('') + '</ol>';
+    document.getElementById('footNote').textContent = '';
+  } else {
+    fit.innerHTML = `<p class="cta-h">${esc(d.cta)}</p>`
+      + `<p class="cta-body">ブラウザ内で処理され、ファイルはサーバーに送信されません。登録不要・無料。</p>`
+      + `<div class="url"><span class="lbl">試す</span>${esc(d.url)}</div>`;
+    document.getElementById('footNote').textContent = '';
+  }
+
+  const r = fitToBox(fit);
+  window.SF_FIT = r;
+  window.SF_READY = true;
+  return r;
+};
+</script>
+</body>
+</html>

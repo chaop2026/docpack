@@ -1,0 +1,54 @@
+{
+  "ep": 1,
+  "week": 1,
+  "track": "A",
+  "title_ja": "資格確認書の番号を隠して提出する手順【提出先の指示を確認】",
+  "title_en": "How to redact the numbers on a qualification certificate before you submit it",
+  "doc": "shikaku_kakuninsho",
+  "purpose": "bid_attachment",
+  "landing": "/safe/jp/nyusatsu/",
+  "utm_url": "https://slimfile.net/safe/jp/nyusatsu/?utm_source=x&utm_campaign=ep01",
+  "generated_by": "scripts/content/make_episode.mjs",
+  "files": [
+    {
+      "name": "post_ja.md",
+      "bytes": 3802
+    },
+    {
+      "name": "post_en.md",
+      "bytes": 3073
+    },
+    {
+      "name": "x_thread.md",
+      "bytes": 1093
+    },
+    {
+      "name": "carousel_1.png",
+      "bytes": 110833
+    },
+    {
+      "name": "carousel_2.png",
+      "bytes": 118822
+    },
+    {
+      "name": "carousel_3.png",
+      "bytes": 106315
+    },
+    {
+      "name": "demo.gif",
+      "bytes": 400129
+    },
+    {
+      "name": "demo.mp4",
+      "bytes": 223914
+    }
+  ],
+  "demo": "ok: 40 frames, demo.gif 391KB, demo.mp4 219KB",
+  "warnings": [],
+  "posted": {
+    "x": false,
+    "youtube_shorts": false,
+    "instagram": false,
+    "blog": false
+  }
+}

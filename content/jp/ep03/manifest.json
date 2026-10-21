@@ -1,0 +1,46 @@
+{
+  "ep": 3,
+  "week": 3,
+  "track": "A",
+  "title_ja": "ChatGPTに契約書を貼る前に、個人情報だけ黒塗りする",
+  "title_en": "Redact the personal data before you paste a contract into ChatGPT",
+  "doc": "契約書",
+  "purpose": "consult_share",
+  "landing": "/safe/jp/ai-mae/",
+  "utm_url": "https://slimfile.net/safe/jp/ai-mae/?utm_source=x&utm_campaign=ep03",
+  "generated_by": "scripts/content/make_episode.mjs",
+  "files": [
+    {
+      "name": "post_ja.md",
+      "bytes": 3441
+    },
+    {
+      "name": "post_en.md",
+      "bytes": 2895
+    },
+    {
+      "name": "x_thread.md",
+      "bytes": 1040
+    },
+    {
+      "name": "carousel_1.png",
+      "bytes": 101497
+    },
+    {
+      "name": "carousel_2.png",
+      "bytes": 121179
+    },
+    {
+      "name": "carousel_3.png",
+      "bytes": 109116
+    }
+  ],
+  "demo": "failed: no dummy document exists for doc=\"契約書\" (only shikaku_kakuninsho, unten_menkyo, mynumber_card, juminhyo have fixtures)",
+  "warnings": [],
+  "posted": {
+    "x": false,
+    "youtube_shorts": false,
+    "instagram": false,
+    "blog": false
+  }
+}

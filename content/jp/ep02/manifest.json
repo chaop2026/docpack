@@ -1,0 +1,46 @@
+{
+  "ep": 2,
+  "week": 2,
+  "track": "B",
+  "title_ja": "入札添付の資格確認書、マスキング指示の読み方",
+  "title_en": "Reading a tender's masking instructions for insurance certificate copies",
+  "doc": "shikaku_kakuninsho",
+  "purpose": "bid_attachment",
+  "landing": "/safe/jp/nyusatsu/",
+  "utm_url": "https://slimfile.net/safe/jp/nyusatsu/?utm_source=x&utm_campaign=ep02",
+  "generated_by": "scripts/content/make_episode.mjs",
+  "files": [
+    {
+      "name": "post_ja.md",
+      "bytes": 3331
+    },
+    {
+      "name": "post_en.md",
+      "bytes": 2920
+    },
+    {
+      "name": "x_thread.md",
+      "bytes": 1060
+    },
+    {
+      "name": "carousel_1.png",
+      "bytes": 100989
+    },
+    {
+      "name": "carousel_2.png",
+      "bytes": 120257
+    },
+    {
+      "name": "carousel_3.png",
+      "bytes": 114725
+    }
+  ],
+  "demo": "skipped: track B has no tool demo",
+  "warnings": [],
+  "posted": {
+    "x": false,
+    "youtube_shorts": false,
+    "instagram": false,
+    "blog": false
+  }
+}

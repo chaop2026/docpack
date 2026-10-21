@@ -1,0 +1,277 @@
+{
+  "_readme": [
+    "SafeFile JP content plan — 33 episodes, one per week.",
+    "",
+    "Derived from jp_safefile_strategy_v2_2026-10-21.md §6 (30 episodes) with the",
+    "changes jp_market_decision_v2_2026-10-22.md §4 requires:",
+    "  * §6 numbers 1, 14 and 20 were incident-led and first-person. Rewritten as",
+    "    教育型 pieces about the 最小化原則 — the principle survives, the anecdote",
+    "    does not. `src` records where each episode came from so the rewrite is",
+    "    auditable; `rewritten: true` marks the three.",
+    "  * three new episodes added (ep03, ep05, ep06), all of which lean on",
+    "    SlimFile compression or an existing landing page rather than new code.",
+    "",
+    "`ep` IS the publishing order and equals `week` — the folder is content/jp/epNN",
+    "and scripts/content/make_episode.mjs takes that number. `src` is the strategy",
+    "document's own numbering, which is NOT the order any more.",
+    "",
+    "Ordering rules applied (from s7_prompt §A):",
+    "  * tier-1 (business, 資格確認書 / 入札) first — ep01, ep02",
+    "  * the two AI-anonymisation pieces inside the first four weeks — ep03, ep04",
+    "  * the three new SlimFile-combined business pieces next — ep05, ep06 (ep03 is",
+    "    AI, so the third new one is ep06)",
+    "",
+    "`doc` is the APP'S document key (shikaku_kakuninsho | unten_menkyo |",
+    "mynumber_card | juminhyo) when a golden fixture exists for it, because that is",
+    "what make_episode.mjs needs to record a demo. Anything else is a plain",
+    "Japanese label and means 'no dummy document exists' — the pipeline then writes",
+    "demo: \"failed: …\" into the manifest instead of pretending. null = no single",
+    "document (a general or explanatory piece).",
+    "",
+    "`purpose` is one of the four the app offers; `landing` is the CTA target.",
+    "`status`: draft (no body yet) → ready (body written, assets built) → posted."
+  ],
+  "_forbidden": [
+    "No incident names (タイムズカー etc.). No first-person victim account.",
+    "Never 絶対 / 防ぐ / 唯一 / 必ず安全.",
+    "Every how-to carries 「提出先の指示を必ず確認してください」 on its own line.",
+    "Dummy card images only as reduced illustrations (long edge <= 800px).",
+    "Legal effects stated at most as 「制限される場合があります」.",
+    "Unshipped features must not be advertised (see ep32)."
+  ],
+  "episodes": [
+    {
+      "ep": 1, "week": 1, "track": "A", "src": 2,
+      "title_ja": "資格確認書の番号を隠して提出する手順【提出先の指示を確認】",
+      "title_en": "How to redact the numbers on a qualification certificate before you submit it",
+      "doc": "shikaku_kakuninsho", "purpose": "bid_attachment", "landing": "nyusatsu",
+      "status": "draft"
+    },
+    {
+      "ep": 2, "week": 2, "track": "B", "src": 8,
+      "title_ja": "入札添付の資格確認書、マスキング指示の読み方",
+      "title_en": "Reading a tender's masking instructions for insurance certificate copies",
+      "doc": "shikaku_kakuninsho", "purpose": "bid_attachment", "landing": "nyusatsu",
+      "status": "draft"
+    },
+    {
+      "ep": 3, "week": 3, "track": "A", "src": "new",
+      "title_ja": "ChatGPTに契約書を貼る前に、個人情報だけ黒塗りする",
+      "title_en": "Redact the personal data before you paste a contract into ChatGPT",
+      "doc": "契約書", "purpose": "consult_share", "landing": "aimae",
+      "status": "draft"
+    },
+    {
+      "ep": 4, "week": 4, "track": "A", "src": 17,
+      "title_ja": "賃貸借契約書を専門家に相談する前の匿名化",
+      "title_en": "Anonymising a lease before you ask a professional about it",
+      "doc": "契約書", "purpose": "consult_share", "landing": "aimae",
+      "status": "draft"
+    },
+    {
+      "ep": 5, "week": 5, "track": "A", "src": "new",
+      "title_ja": "電子入札のPDF容量と黒塗りを一度に片づける",
+      "title_en": "Handling e-tender PDF size limits and redaction in one pass",
+      "doc": "shikaku_kakuninsho", "purpose": "bid_attachment", "landing": "nyusatsu",
+      "status": "draft"
+    },
+    {
+      "ep": 6, "week": 6, "track": "A", "src": "new",
+      "title_ja": "補助金精算の添付書類、どこまで隠すか",
+      "title_en": "Subsidy settlement attachments: how much to redact",
+      "doc": "shikaku_kakuninsho", "purpose": "bid_attachment", "landing": "nyusatsu",
+      "status": "draft"
+    },
+    {
+      "ep": 7, "week": 7, "track": "A", "src": 11,
+      "title_ja": "源泉徴収票に個人番号があるとき、ないとき",
+      "title_en": "Withholding slips: when a My Number is printed on them, and when it is not",
+      "doc": "源泉徴収票", "purpose": "identity_submit", "landing": "nyusatsu",
+      "status": "draft"
+    },
+    {
+      "ep": 8, "week": 8, "track": "B", "src": 28,
+      "title_ja": "家族の書類を代理で出すときに確認すること",
+      "title_en": "Submitting a family member's documents on their behalf",
+      "doc": "shikaku_kakuninsho", "purpose": "identity_submit", "landing": "honnin",
+      "status": "draft"
+    },
+    {
+      "ep": 9, "week": 9, "track": "A", "src": 5,
+      "title_ja": "マイナンバーカード：身元確認なら表面だけ。裏面が必要な手続きとは",
+      "title_en": "My Number card: the front is enough for identity. When is the back actually required?",
+      "doc": "mynumber_card", "purpose": "identity_submit", "landing": "honnin",
+      "status": "draft"
+    },
+    {
+      "ep": 10, "week": 10, "track": "A", "src": 3,
+      "title_ja": "運転免許証を送る前に確認する3つのこと",
+      "title_en": "Three things to check before you send a copy of your driving licence",
+      "doc": "unten_menkyo", "purpose": "identity_submit", "landing": "honnin",
+      "status": "draft"
+    },
+    {
+      "ep": 11, "week": 11, "track": "A", "src": 7,
+      "title_ja": "住民票の写し：用途別に残す項目・隠す項目",
+      "title_en": "Residence records: what to keep and what to cover, by purpose",
+      "doc": "juminhyo", "purpose": "identity_submit", "landing": "honnin",
+      "status": "draft"
+    },
+    {
+      "ep": 12, "week": 12, "track": "B", "src": 4,
+      "title_ja": "「黒塗りしたつもり」が読めてしまう仕組みと、読めなくする方法",
+      "title_en": "Why a redaction you thought you made is still readable — and what makes it not",
+      "doc": null, "purpose": "identity_submit", "landing": "honnin",
+      "status": "draft"
+    },
+    {
+      "ep": 13, "week": 13, "track": "B", "src": 10,
+      "title_ja": "付箋・マスキングテープで隠して撮影する方法の限界",
+      "title_en": "The limits of covering a document with tape before photographing it",
+      "doc": null, "purpose": "identity_submit", "landing": "honnin",
+      "status": "draft"
+    },
+    {
+      "ep": 14, "week": 14, "track": "B", "src": 18,
+      "title_ja": "「マスキングしてください」と書く提出先、書かない提出先",
+      "title_en": "Recipients who ask for masking, and recipients who do not",
+      "doc": null, "purpose": "bid_attachment", "landing": "nyusatsu",
+      "status": "draft"
+    },
+    {
+      "ep": 15, "week": 15, "track": "B", "src": 1, "rewritten": true,
+      "title_ja": "本人確認書類は「最小化」が原則 — 求められた面と項目だけを出す",
+      "title_en": "Minimisation is the rule for identity documents: submit only the side and fields asked for",
+      "doc": null, "purpose": "identity_submit", "landing": "honnin",
+      "status": "draft"
+    },
+    {
+      "ep": 16, "week": 16, "track": "B", "src": 6,
+      "title_ja": "フリマ・ネット銀行の本人確認、画像を送る前にできること",
+      "title_en": "KYC for marketplaces and online banks: what to do before you upload",
+      "doc": "unten_menkyo", "purpose": "identity_submit", "landing": "honnin",
+      "status": "draft"
+    },
+    {
+      "ep": 17, "week": 17, "track": "B", "src": 12,
+      "title_ja": "賃貸契約で身分証のコピーを求められたら確認すること",
+      "title_en": "When a rental application asks for an ID copy",
+      "doc": "unten_menkyo", "purpose": "identity_submit", "landing": "honnin",
+      "status": "draft"
+    },
+    {
+      "ep": 18, "week": 18, "track": "A", "src": 9,
+      "title_ja": "履歴書PDF、相談用に連絡先だけ隠す",
+      "title_en": "Sharing a CV for advice: cover the contact details only",
+      "doc": "履歴書", "purpose": "consult_share", "landing": "aimae",
+      "status": "draft"
+    },
+    {
+      "ep": 19, "week": 19, "track": "A", "src": 15,
+      "title_ja": "給与明細を相談に出すとき、口座と社員番号の扱い",
+      "title_en": "Payslips for advice: what to do with the account and employee numbers",
+      "doc": "給与明細", "purpose": "consult_share", "landing": "aimae",
+      "status": "draft"
+    },
+    {
+      "ep": 20, "week": 20, "track": "A", "src": 21,
+      "title_ja": "通帳画像：残高証明として出す場合と相談用の違い",
+      "title_en": "Bankbook images: proof of balance versus sharing for advice",
+      "doc": "通帳", "purpose": "consult_share", "landing": "aimae",
+      "status": "draft"
+    },
+    {
+      "ep": 21, "week": 21, "track": "A", "src": 13,
+      "title_ja": "在留カード：提出先が求める面を確認してから隠す",
+      "title_en": "Residence cards: confirm which side is required before you cover anything",
+      "doc": "在留カード", "purpose": "identity_submit", "landing": "honnin",
+      "status": "draft"
+    },
+    {
+      "ep": 22, "week": 22, "track": "A", "src": 19,
+      "title_ja": "パスポート：番号・MRZを隠してよい場面、いけない場面",
+      "title_en": "Passports: when the number and MRZ may be covered, and when they may not",
+      "doc": "パスポート", "purpose": "identity_submit", "landing": "honnin",
+      "status": "draft"
+    },
+    {
+      "ep": 23, "week": 23, "track": "A", "src": 23,
+      "title_ja": "職務経歴書を匿名で共有するときの考え方",
+      "title_en": "Sharing a work history anonymously",
+      "doc": "職務経歴書", "purpose": "consult_share", "landing": "aimae",
+      "status": "draft"
+    },
+    {
+      "ep": 24, "week": 24, "track": "A", "src": 25,
+      "title_ja": "スマホだけで：撮影 → 黒塗り → 確認 → 送信",
+      "title_en": "Phone only: photograph, redact, check, send",
+      "doc": "unten_menkyo", "purpose": "identity_submit", "landing": "honnin",
+      "status": "draft"
+    },
+    {
+      "ep": 25, "week": 25, "track": "A", "src": 27,
+      "title_ja": "透かし「〇〇提出用」の入れ方と、その限界",
+      "title_en": "Adding a 'for submission to X' watermark — and what it cannot do",
+      "doc": "shikaku_kakuninsho", "purpose": "bid_attachment", "landing": "nyusatsu",
+      "status": "draft"
+    },
+    {
+      "ep": 26, "week": 26, "track": "B", "src": 14, "rewritten": true,
+      "title_ja": "提出した本人確認書類はいつまで残るのか — 最小化が効く理由",
+      "title_en": "How long a submitted ID copy stays on file — and why minimisation helps",
+      "doc": null, "purpose": "identity_submit", "landing": "honnin",
+      "status": "draft"
+    },
+    {
+      "ep": 27, "week": 27, "track": "B", "src": 20, "rewritten": true,
+      "title_ja": "「そもそも出さない」という選択 — 最小化原則の実務",
+      "title_en": "Choosing not to send it at all: minimisation in practice",
+      "doc": null, "purpose": "identity_submit", "landing": "honnin",
+      "status": "draft"
+    },
+    {
+      "ep": 28, "week": 28, "track": "B", "src": 22,
+      "title_ja": "学生証の画像を送るとき、学生が確認できること",
+      "title_en": "Student ID images: what a student can check first",
+      "doc": "学生証", "purpose": "identity_submit", "landing": "honnin",
+      "status": "draft"
+    },
+    {
+      "ep": 29, "week": 29, "track": "B", "src": 24,
+      "title_ja": "「サーバーに保存しない」ツールの見分け方",
+      "title_en": "How to tell whether a tool really keeps your file in the browser",
+      "doc": null, "purpose": "identity_submit", "landing": "honnin",
+      "status": "draft"
+    },
+    {
+      "ep": 30, "week": 30, "track": "B", "src": 16,
+      "title_ja": "2027年4月の犯収法改正で本人確認はどう変わるか",
+      "title_en": "What the April 2027 AML rule change means for identity verification",
+      "doc": null, "purpose": "identity_submit", "landing": "honnin",
+      "status": "draft"
+    },
+    {
+      "ep": 31, "week": 31, "track": "B", "src": 26,
+      "title_ja": "副業の本人確認を毎回やり直さないために",
+      "title_en": "Not redoing side-job identity checks from scratch every time",
+      "doc": null, "purpose": "identity_submit", "landing": "honnin",
+      "status": "draft"
+    },
+    {
+      "ep": 32, "week": 32, "track": "A", "src": 29,
+      "title_ja": "複数書類をまとめて処理する",
+      "title_en": "Processing several documents in one pass",
+      "doc": "shikaku_kakuninsho", "purpose": "bid_attachment", "landing": "nyusatsu",
+      "status": "draft",
+      "blocked_until": "batch processing ships",
+      "note": "Unshipped feature. The strategy forbids advertising it, so this episode must NOT be written or built before batch processing exists. Kept in the list so the slot is visible rather than forgotten."
+    },
+    {
+      "ep": 33, "week": 33, "track": "B", "src": 30,
+      "title_ja": "3か月の振り返りと、よくある黒塗りの落とし穴",
+      "title_en": "Three months in: the redaction mistakes we keep seeing",
+      "doc": null, "purpose": "identity_submit", "landing": "honnin",
+      "status": "draft"
+    }
+  ]
+}
