@@ -198,6 +198,26 @@ for (const p of PAGES) {
   const canon = await page.getAttribute('link[rel=canonical]', 'href');
   ok(`${p.slug}: self canonical`, canon === `https://slimfile.net/safe/jp/${p.slug}/`, canon);
 
+  /* ── social preview (S8) ──────────────────────────────────────────────────
+   * LinkedIn previewed these pages as "DocPack - Image Compression & PDF
+   * Conversion" with a 512×512 app icon: og:title repeated the <title> (which
+   * ends in "| SafeFile" and is written for a SERP, not for a card) and
+   * og:image pointed at a square icon that a 1.91:1 card letterboxes.
+   *
+   * og:description is deliberately NOT re-checked here — the block above
+   * already asserts it is byte-identical to meta[name=description], which is
+   * the no-drift rule B-10 exists for. Adding a second expectation for the
+   * same tag is how the two start disagreeing. */
+  const ogTitle = await page.getAttribute('meta[property="og:title"]', 'content');
+  ok(`${p.slug}: og:title is the page's H1`, ogTitle === p.h1, ogTitle);
+  const ogImage = await page.getAttribute('meta[property="og:image"]', 'content');
+  ok(`${p.slug}: og:image is the 1200x630 brand card`,
+     ogImage === 'https://slimfile.net/safe/brand/og_1200x630.png', ogImage);
+  const ogLocale = await page.getAttribute('meta[property="og:locale"]', 'content');
+  ok(`${p.slug}: og:locale ja_JP`, ogLocale === 'ja_JP', ogLocale);
+  const twCard = await page.getAttribute('meta[name="twitter:card"]', 'content');
+  ok(`${p.slug}: twitter:card summary_large_image`, twCard === 'summary_large_image', twCard);
+
   // CTA: the href's purpose and the counter's purpose must be the same value.
   // They are written in two places (HTML attribute and query string) and a
   // mismatch would silently misattribute every conversion.
@@ -213,9 +233,30 @@ for (const p of PAGES) {
   const sent = await beacons.read();
   const views = sent.filter((b) => b.name === 'landing_view');
   ok(`${p.slug}: exactly one landing_view`, views.length === 1, `got ${views.length} of ${sent.length} beacons`);
+  /* "Categories only" is the privacy claim this endpoint is built on, so it is
+   * checked as two separate properties rather than as one frozen object:
+   *
+   *   1. the KEY SET is exactly what we expect — adding a dimension has to be a
+   *      deliberate edit here, because each one is a new thing recorded about a
+   *      visit;
+   *   2. every VALUE is a short lowercase token, i.e. a category and not free
+   *      text. Pinning exact values instead would re-assert what the `from` and
+   *      `utm_source` checks already cover, and would turn a legitimate new
+   *      category into a failure.
+   *
+   * `utm_source` was added 2026-10-25: P16 ("share of landing visits arriving
+   * from social") had no dimension to compute from, and would have reported a
+   * confident 0 forever. `none` here means the URL carried no utm_source, which
+   * is what a direct visit to the page looks like. */
+  const VIEW_KEYS = ['from', 'locale', 'utm_source'];
+  const props = views.length === 1 ? views[0].props : {};
+  ok(`${p.slug}: landing_view carries exactly ${VIEW_KEYS.join('/')}`,
+     JSON.stringify(Object.keys(props).sort()) === JSON.stringify([...VIEW_KEYS].sort()),
+     JSON.stringify(props));
   ok(`${p.slug}: landing_view props are categories only`,
-     views.length === 1 && JSON.stringify(views[0].props) === JSON.stringify({ from: p.from, locale: 'ja' }),
-     JSON.stringify(views[0] && views[0].props));
+     Object.values(props).length > 0 && Object.values(props).every((v) => /^[a-z_]{1,24}$/.test(String(v))),
+     JSON.stringify(props));
+  ok(`${p.slug}: landing_view utm_source=none on a direct visit`, props.utm_source === 'none', props.utm_source);
   // 204 = the server's own whitelist accepted it. A 422 here would mean the
   // page is sending something SafeEvent refuses — silently, because sendBeacon
   // never reads the response.
@@ -239,7 +280,15 @@ for (const p of PAGES) {
       el.addEventListener('click', (e) => e.preventDefault(), true));
   });
   await cta.click();
-  await page.waitForTimeout(400);
+  // Wait for the REQUEST, not for a fixed 400 ms. The old sleep made this
+  // section intermittently red on whichever page happened to be slow that run
+  // — and "the counter did not fire" and "the counter had not fired YET" look
+  // identical from out here, which is the failure mode this harness exists to
+  // avoid. Polls for up to 3 s and gives up, so a genuine miss still fails.
+  for (let i = 0; i < 30 && beacons.statuses.length === statusesBeforeClick; i++) {
+    await page.waitForTimeout(100);
+  }
+  await page.waitForTimeout(100);
   const clicks = (await beacons.read()).filter((b) => b.name === 'cta_click');
   ok(`${p.slug}: cta_click fired`, clicks.length >= 1, `got ${clicks.length}`);
   ok(`${p.slug}: cta_click carries the purpose`,

@@ -156,18 +156,26 @@ class Api::SafeEventsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "the whole endpoint is capped and the cap is not per-visitor" do
-    with_memory_cache do
-      limit = Api::SafeEventsController::THROTTLE_LIMIT
-      # Prime the bucket to the limit rather than issuing hundreds of requests:
-      # the key shape is part of the contract being asserted, and a test that
-      # only counts requests would still pass if the key gained an IP.
-      bucket = Time.current.to_i / Api::SafeEventsController::THROTTLE_WINDOW.to_i
-      Rails.cache.write("safe_events:all:#{bucket}", limit, expires_in: 2.minutes)
+    # Time is frozen for the duration. The bucket is derived from the clock, so
+    # without this the test primes bucket N and the request can land in bucket
+    # N+1 — an empty bucket, no cap, the event is written, and the failure
+    # looks like "the limiter is broken". Observed once in a parallel run
+    # (2026-10-25); the limiter was fine and the test was racing the minute
+    # boundary.
+    travel_to Time.current do
+      with_memory_cache do
+        limit = Api::SafeEventsController::THROTTLE_LIMIT
+        # Prime the bucket to the limit rather than issuing hundreds of requests:
+        # the key shape is part of the contract being asserted, and a test that
+        # only counts requests would still pass if the key gained an IP.
+        bucket = Time.current.to_i / Api::SafeEventsController::THROTTLE_WINDOW.to_i
+        Rails.cache.write("safe_events:all:#{bucket}", limit, expires_in: 2.minutes)
 
-      assert_no_difference "SafeEvent.count" do
-        post_event(name: "landing_view", props: { from: "nyusatsu" })
+        assert_no_difference "SafeEvent.count" do
+          post_event(name: "landing_view", props: { from: "nyusatsu" })
+        end
+        assert_response :too_many_requests
       end
-      assert_response :too_many_requests
     end
   end
 

@@ -34,6 +34,29 @@ class BlogGeneratorService
     BlogImageService.new.generate_for_post(post)
   end
 
+  # ── JP fallback generation ──────────────────────────────────────────────────
+  #
+  # Used ONLY when the monthly Mac batch did not produce content/jp/epNN — see
+  # AutoGenerateJpPostJob. It writes text, never assets: carousels and the demo
+  # GIF need Playwright and ffmpeg, which the server does not have. The review
+  # mail is labelled 「アセット未生成」 so the gap is visible rather than inferred
+  # from a missing image.
+  #
+  # The system prompt is assembled from the SAME file the rest of the pipeline
+  # enforces (content/jp/guard_rules.json) instead of restating the rules in
+  # prose here. A generator told one set of rules while the guard checks another
+  # produces drafts that fail on arrival, every week, for a reason nobody can
+  # see from either file.
+  #
+  # Returns a plain String-keyed Hash (it is persisted to tmp/ as JSON and
+  # re-read on a later run), or nil.
+  def generate_jp(topic)
+    response = call_api(build_jp_prompt(topic), build_jp_system_prompt)
+    return nil if response.blank?
+
+    parse_jp_response(response)
+  end
+
   def improve_post(post, instruction)
     prompt = <<~PROMPT
       아래 블로그 포스트를 다음 지시에 따라 수정하세요:
@@ -244,6 +267,97 @@ class BlogGeneratorService
     data.dig("content", 0, "text")
   rescue StandardError => e
     Rails.logger.error("BlogGeneratorService error: #{e.message}")
+    nil
+  end
+
+  # ── JP prompt + parsing ────────────────────────────────────────────────────
+
+  def build_jp_system_prompt
+    rules = JSON.parse(JpContentGuard::RULES_PATH.read)
+    forbidden = rules["forbidden"].map { |f| "- /#{f['re']}/ — #{f['why']}" }.join("\n")
+    limits = rules["limits"]
+
+    <<~SYSTEM
+      あなたは日本語の実務記事を書くテクニカルライターです。読者は、提出先に書類を出す
+      前に「どこを隠せばよいのか」を確かめたい担当者です。恐怖訴求も体験談も使いません。
+
+      文体・制約 (SafeFile JP コンテンツ戦略 v3.1 §3):
+      - です・ます体。命令形は「〜してください」のみ。「あなた」は使わない(主語を省略するか
+        「提出する側」「担当者」)。1人称ブランド話法(弊社/当社/私たち)も使わない。
+      - 断定しない。法的効果は「〜される場合があります」まで。
+      - 数字は半角、年は西暦、日付は「2026年10月1日」形式。
+      - 書類名は正式名称(資格確認書 / 運転免許証 / マイナンバーカード(個人番号カード) /
+        住民票の写し / 在留カード)。資格確認書と資格情報のお知らせは別のものです。
+      - 構成: リード2〜3文 → H2を3〜5個(うち1つは「隠す/残す」などの表、1つは「手順は3つ」)
+        → 根拠の段落1つ → 必須文 → FAQ 3問。
+      - 本文は #{limits['body_chars_min']}〜#{limits['body_chars_max']}字(全角)。
+      - タイトルは #{limits['title_chars']}字以内。
+      - 必須文 「#{rules['must_line']['ja_sentence']}」 を**本文の独立した行**に、
+        「。」まで含めて1回だけ書く。
+      - 出荷済みの機能だけに触れる: 4種の自動判定・提出目的ゲート・帯マスキング・
+        ラスタ平坦化・EXIF除去・ブラウザ内処理。
+
+      法的主張について(重要):
+      法令が何を求める・制限すると書く場合は、同じ記事の中に *.go.jp の原文URLと
+      「確認日: YYYY-MM-DD」を必ず併記します。**出典を確認できない場合は、法的主張を
+      書かないでください。** URLを埋めるために根拠を推測して書くことは禁止です。
+      操作手順だけの記事には法令を無理に付けません。
+
+      次の表現は使えません(自動検査で弾かれます):
+      #{forbidden}
+
+      X スレッドは5〜6ツイート。1ツイート目=hook、②③④=要点3つ(①②③の絵文字番号)、
+      最後=CTA。1ツイートの編集上限は #{limits['tweet_editorial']}字(全角2・半角1換算)。
+      LinkedIn 本文は英語・#{limits['linkedin_chars']}字以内。
+
+      必ず JSON のみで応答します。マークダウンのコードブロックは使いません。
+    SYSTEM
+  end
+
+  def build_jp_prompt(topic)
+    <<~PROMPT
+      次の回(ep#{topic.ep})の記事を書いてください。
+
+      ブログ記事タイトル(この文言を基準にしてください): #{topic.topic}
+      英語タイトル: #{topic.title_en}
+      対象書類: #{topic.doc.presence || '(特定の1書類ではない)'}
+      提出目的: #{topic.purpose}
+      CTA のリンク先: #{JpEpisodeSource::LANDING_PATH.fetch(topic.landing, '/safe/jp/nyusatsu/')}
+
+      下記 JSON 形式で、他のテキストを一切付けずに応答してください:
+      {
+        "title_ja": "32字以内のタイトル",
+        "subtitle_ja": "1文のリード",
+        "body_ja": "本文(HTML。h2/h3/p/ul/ol/table/strong/a のみ使用)",
+        "meta_description_ja": "120字以内の説明",
+        "body_en": "英語版本文(HTML。同じ構成の並行リライト。翻訳調にしない)",
+        "faq": [{"q": "検索語の形の質問", "a": "回答"}, {"q": "", "a": ""}, {"q": "", "a": ""}],
+        "x_thread": ["1ツイート目", "2", "3", "4", "5"],
+        "linkedin_text": "英語の LinkedIn 本文"
+      }
+    PROMPT
+  end
+
+  # String keys, not symbols: the result is written to tmp/jp_generated/epNN.json
+  # and re-read on a later run, and a round trip through JSON would turn symbol
+  # keys into strings anyway. Making that explicit here stops the two paths
+  # (fresh / reused) from having different shapes.
+  def parse_jp_response(text)
+    json_match = text.match(/\{[\s\S]*\}/m)
+    return nil unless json_match
+
+    data = JSON.parse(json_match[0])
+    required = %w[title_ja body_ja]
+    missing = required.reject { |k| data[k].present? }
+    if missing.any?
+      Rails.logger.error("BlogGeneratorService#generate_jp: response is missing #{missing.join(', ')}")
+      return nil
+    end
+
+    data.slice("title_ja", "subtitle_ja", "body_ja", "meta_description_ja",
+               "body_en", "faq", "x_thread", "linkedin_text", "cover_svg")
+  rescue JSON::ParserError => e
+    Rails.logger.error("BlogGeneratorService#generate_jp JSON parse error: #{e.message}")
     nil
   end
 

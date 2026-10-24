@@ -9,16 +9,29 @@ module Admin
       # that state — the publish-failure email is the secondary one, and this
       # app's production SMTP has already failed once (2026-04-07).
       @stuck_posts = Post.publish_stuck.order(:published_at)
+      # Second banner, second failure. A JP week can also half-happen the other
+      # way round: the blog post is live and the X thread never went out. Loaded
+      # unconditionally for the same reason as above.
+      @x_stuck_posts = Post.x_stuck.order(:published_at)
+      # Third banner, third failure: a JP package offered for review, never
+      # approved, now past its publish date. The weekly job advances to the
+      # next episode by design, so no further mail is coming about this one.
+      @unapproved_jp = Post.jp_unapproved_overdue.order(:published_at)
 
       @posts = Post.recent
       @posts = if params[:status] == "stuck"
         @posts.publish_stuck
+      elsif params[:status] == "x_stuck"
+        @posts.x_stuck
+      elsif params[:status] == "jp_unapproved"
+        @posts.jp_unapproved_overdue
       elsif params[:status].present?
         @posts.where(status: params[:status])
       else
         @posts
       end
       @posts = @posts.by_category(params[:category]) if params[:category].present?
+      @posts = @posts.where(primary_locale: params[:primary_locale]) if params[:primary_locale].present?
     end
 
     def new
@@ -76,6 +89,19 @@ module Admin
     end
 
     def improve
+      # An approved JP package is a FROZEN version: XPublishJob re-computes the
+      # fingerprint at 12:00 JST and refuses to post if it has moved. Letting
+      # `improve` rewrite the body of an approved package would therefore block
+      # the thread — hours later, in a job nobody is watching — with the admin
+      # page still showing a green checkmark. Un-approve first; that is one
+      # click and it says what it does.
+      if @post.approved?
+        redirect_to admin_jp_package_path(@post.content_ep),
+                    alert: "承認済みのパッケージは編集できません。先に「差し戻す」を押してください " \
+                           "(本文が変わると approved_version が合わなくなり、X の投稿が止まります)。"
+        return
+      end
+
       instruction = params[:instruction].to_s.strip
       if instruction.blank?
         redirect_to edit_admin_post_path(@post), alert: "Instruction is required."

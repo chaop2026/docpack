@@ -6,6 +6,7 @@ bullets:
   - Many AI services store what you paste, so assume you cannot take it back
   - Paste it as an image and the text under the bars cannot be copied
 cta: Redact the personal data before you paste a contract into an AI
+x_reply: "Before pasting a contract into an AI tool, cover the other party's details — not the clauses:"
 ---
 
 A renewal-fee clause in a lease, the payment date in a works contract, a deduction line on a payslip — ask an AI and you get an explanation in seconds. The convenience is real. But the text you pasted carries things the question never needed: the landlord's and guarantor's names, the other party's address and phone number, the account to pay into, your own employee number. Most AI services retain what you type, and depending on the settings it may also be used for training. There is generally no way to take it back afterwards.
@@ -31,7 +32,9 @@ Keeping the clause wording is the part that matters. Anonymising "Party A shall,
 
 If you need to paste text rather than an image, retype it after redacting, or replace proper nouns with placeholders such as "Landlord A" or "Account X". Handing over a character string keeps the original characters no matter how it looks.
 
-Internal policy or a client engagement may restrict entering documents into third-party services. **Always check the recipient's own instructions.** For anything work-related, check your organisation's rules before you paste.
+Internal policy or a client engagement may not allow documents to be entered into third-party services at all. For anything work-related, read your organisation's rules before you paste.
+
+**Always check the recipient's own instructions.**
 
 Files are processed inside your browser and are never uploaded.
 

@@ -12,7 +12,7 @@ class AutoGenerateBlogPostJob < ApplicationJob
   queue_as :default
 
   def perform
-    topic = BlogTopic.unused.order("RANDOM()").first
+    topic = BlogTopic.next_ko.order("RANDOM()").first
     unless topic
       Rails.logger.info("AutoGenerateBlogPostJob: No unused topics remaining")
       return

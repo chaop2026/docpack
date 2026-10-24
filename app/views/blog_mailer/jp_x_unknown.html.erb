@@ -1,0 +1,68 @@
+<%#
+  "I asked and did not hear back."
+
+  Deliberately a different mail from jp_x_failed, because the required action is
+  different and the wrong action is costly. A failure means "it did not go out".
+  THIS means "it may or may not have gone out", and the only way to find out is
+  to look at the timeline. XPublishJob will not touch the thread again until a
+  human answers — re-sending a tweet that already exists is how a thread gets
+  posted twice, and a duplicate cannot be un-posted.
+%>
+<div style="font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Noto Sans JP',sans-serif;max-width:640px;margin:0 auto;padding:24px;color:#1A1918;line-height:1.7">
+
+  <div style="border:1px solid #F59E0B;background:#FEF3C7;border-radius:10px;padding:14px 16px;margin-bottom:18px">
+    <strong style="color:#92400E">⚠️ <%= @seq %>件目の結果が不明です — 自動では何もしません</strong>
+    <p style="font-size:13px;color:#92400E;margin:8px 0 0">
+      送信は行いましたが、応答が届きませんでした(タイムアウトまたは 5xx)。
+      <strong>そのツイートは投稿されている可能性があります。</strong>
+      同じ内容をもう一度送ると二重投稿になり、取り消せません。
+      そのためジョブはここで停止し、再送も再開もしていません。
+    </p>
+  </div>
+
+  <h1 style="font-size:18px;font-weight:600;margin:0 0 6px">
+    第<%= format("%02d", @post.content_ep) %>回 <%= @post.title_ja %>
+  </h1>
+  <p style="font-size:13px;color:#6B6963;margin:0 0 20px"><code>/ja/blog/<%= @post.slug %></code></p>
+
+  <h2 style="font-size:15px;font-weight:600;margin:0 0 8px">👀 やること</h2>
+  <ol style="font-size:13.5px;padding-left:20px;margin:0 0 20px">
+    <li style="margin-bottom:6px">
+      <a href="https://x.com/safefile_jp" style="color:#07596F">@safefile_jp のタイムライン</a>
+      を開いて、<strong><%= @seq %>件目の本文</strong>(下に全文)が出ているか見てください。
+    </li>
+    <li style="margin-bottom:6px">
+      出ている → 管理画面で <strong>「送信済みとして記録」</strong>。
+      そのツイートの ID を記録し、<%= @seq + 1 %>件目から再開します。
+    </li>
+    <li style="margin-bottom:6px">
+      出ていない → <strong>「未送信として再開」</strong>。<%= @seq %>件目から送り直します。
+    </li>
+  </ol>
+
+  <h2 style="font-size:15px;font-weight:600;margin:0 0 8px">📋 スレッドの状態</h2>
+  <table style="border-collapse:collapse;font-size:12.5px;width:100%;margin-bottom:18px">
+    <tr style="background:#F8F7F4">
+      <th style="padding:6px 8px;border:1px solid #E5E3DC;text-align:left">#</th>
+      <th style="padding:6px 8px;border:1px solid #E5E3DC;text-align:left">状態</th>
+      <th style="padding:6px 8px;border:1px solid #E5E3DC;text-align:left">tweet_id</th>
+    </tr>
+    <% @tweets.each do |t| %>
+      <tr<%= t["seq"] == @seq ? ' style="background:#FEF3C7"'.html_safe : "" %>>
+        <td style="padding:6px 8px;border:1px solid #E5E3DC"><%= t["seq"] %></td>
+        <td style="padding:6px 8px;border:1px solid #E5E3DC"><%= t["state"] %></td>
+        <td style="padding:6px 8px;border:1px solid #E5E3DC"><code><%= t["tweet_id"] || "—" %></code></td>
+      </tr>
+    <% end %>
+  </table>
+
+  <h2 style="font-size:15px;font-weight:600;margin:0 0 8px"><%= @seq %>件目の全文(これを探してください)</h2>
+  <pre style="white-space:pre-wrap;font-family:inherit;font-size:13.5px;background:#F8F7F4;border:1px solid #E5E3DC;border-radius:10px;padding:14px;margin:0 0 18px"><%= @tweets.find { |t| t["seq"] == @seq }&.dig("text") %></pre>
+
+  <p style="margin:0">
+    <a href="<%= @preview_url %>"
+       style="display:inline-block;background:#0A6E8A;color:#fff;text-decoration:none;font-weight:600;font-size:14px;padding:11px 20px;border-radius:12px">
+      管理画面で判断する
+    </a>
+  </p>
+</div>

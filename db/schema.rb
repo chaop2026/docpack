@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_10_22_000200) do
+ActiveRecord::Schema[8.0].define(version: 2026_10_25_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -81,6 +81,19 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_22_000200) do
     t.boolean "used", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "track", default: "ko", null: false
+    t.integer "ep"
+    t.string "title_en"
+    t.string "doc"
+    t.string "purpose"
+    t.string "landing"
+    t.date "publish_on"
+    t.boolean "verify_before", default: false, null: false
+    t.datetime "verified_at"
+    t.boolean "social_skip", default: false, null: false
+    t.datetime "review_sent_at"
+    t.index ["track", "ep"], name: "index_blog_topics_on_track_and_ep", unique: true, where: "(ep IS NOT NULL)"
+    t.check_constraint "track::text = ANY (ARRAY['ko'::character varying, 'jp'::character varying]::text[])", name: "blog_topics_track_check"
   end
 
   create_table "conversions", force: :cascade do |t|
@@ -128,7 +141,17 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_22_000200) do
     t.text "stats"
     t.string "subtitle_ko"
     t.text "publish_error"
+    t.string "title_ja"
+    t.string "subtitle_ja"
+    t.text "body_ja"
+    t.string "meta_description_ja"
+    t.string "primary_locale", default: "ko", null: false
+    t.string "content_track"
+    t.integer "content_ep"
+    t.jsonb "package", default: {}, null: false
+    t.index ["content_track", "content_ep"], name: "index_posts_on_content_track_and_ep", unique: true, where: "(content_track IS NOT NULL)"
     t.index ["slug"], name: "index_posts_on_slug", unique: true
+    t.check_constraint "primary_locale::text = ANY (ARRAY['ko'::character varying, 'ja'::character varying]::text[])", name: "posts_primary_locale_check"
   end
 
   create_table "safe_events", force: :cascade do |t|

@@ -6,7 +6,7 @@ namespace :blog do
     generated = 0
 
     count.times do |i|
-      topic = BlogTopic.unused.order("RANDOM()").first
+      topic = BlogTopic.next_ko.order("RANDOM()").first
       unless topic
         puts "No more unused topics available. Generated #{generated} posts."
         break
@@ -86,7 +86,7 @@ namespace :blog do
       load Rails.root.join("db/seeds/blog_topics.rb")
     end
 
-    topic = BlogTopic.unused.order("RANDOM()").first
+    topic = BlogTopic.next_ko.order("RANDOM()").first
     unless topic
       puts "ERROR: No unused topics remaining"
       exit 1
@@ -212,7 +212,7 @@ namespace :blog do
 
   desc "Generate 1 new post with new prompt and publish immediately"
   task publish_new: :environment do
-    topic = BlogTopic.unused.order("RANDOM()").first
+    topic = BlogTopic.next_ko.order("RANDOM()").first
     unless topic
       puts "ERROR: No unused topics remaining"
       exit 1

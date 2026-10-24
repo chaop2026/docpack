@@ -179,12 +179,16 @@ const tweets = [
   `①${fm.bullets[0]}`,
   `②${fm.bullets[1]}`,
   `③${fm.bullets[2]}`,
-  ...([...ctaTweet].length <= TWEET_LIMIT
+  ...(weightedLength(ctaTweet) <= TWEET_LIMIT
     ? [ctaTweet]
     : [`${fm.cta}\n${utmUrl}`, MUST_SENTENCE])
 ];
-const over = tweets.map((t, i) => ({ i: i + 1, len: [...t].length })).filter((t) => t.len > TWEET_LIMIT);
-if (over.length) warnings.push(`x_thread: tweet(s) ${over.map((o) => `${o.i} (${o.len}字)`).join(', ')} exceed ${TWEET_LIMIT}字 — shorten by hand`);
+// Measured in WEIGHTED length, the unit strategy v3.1 §3-3 defines the limit
+// in (「140字(全角2・半角1・URL 23 換算)」). Comparing 140 against a raw character
+// count — which this line did until 2026-10-25 — silently doubles the
+// allowance for Japanese: 140 raw CJK characters weigh 280.
+const over = tweets.map((t, i) => ({ i: i + 1, w: weightedLength(t), len: [...t].length })).filter((t) => t.w > TWEET_LIMIT);
+if (over.length) warnings.push(`x_thread: tweet(s) ${over.map((o) => `${o.i} (weighted ${o.w} / ${o.len}字)`).join(', ')} exceed the ${TWEET_LIMIT} weighted editorial limit — shorten by hand`);
 
 // Built here, written only after the guard passes. Scanning the finished file
 // rather than the tweet array means the header lines — which carry
@@ -204,7 +208,7 @@ const threadMd = [
     const len = [...t].length;
     const w = weightedLength(t);
     const flag = [
-      len > TWEET_LIMIT ? `⚠ 編集上限 ${TWEET_LIMIT}字 超過` : '',
+      w > TWEET_LIMIT ? `⚠ 編集上限 ${TWEET_LIMIT}(weighted) 超過` : '',
       w > RULES.limits.tweet_weighted ? `🛑 X上限 ${RULES.limits.tweet_weighted} 超過` : ''
     ].filter(Boolean).join(' / ');
     return [`## ${i + 1} / ${tweets.length}  (${len}字 / weighted ${w})${flag ? '  ' + flag : ''}`, '', '```', t, '```', ''];
@@ -545,7 +549,11 @@ const demoForManifest = () => {
   if (!noDemo) return demo;
   const kept = ['demo.gif', 'demo.mp4'].filter((n) => fs.existsSync(path.join(epDir, n)));
   if (!kept.length || !prevManifest.demo || /^(skipped|failed)/.test(prevManifest.demo)) return demo;
-  return `${prevManifest.demo} (carried over — this run used --no-demo)`;
+  // Strip any suffix a previous --no-demo run added before adding one. Without
+  // this, three rebuilds produce three copies of the note and the manifest
+  // grows a sentence per run.
+  const base = prevManifest.demo.replace(/( \(carried over — this run used --no-demo\))+$/, '');
+  return `${base} (carried over — this run used --no-demo)`;
 };
 
 const manifest = {

@@ -109,6 +109,23 @@ Rails.application.routes.draw do
     # Read-only; see Admin::JpPilotRequestsController.
     resources :jp_pilot_requests, only: [ :index ]
 
+    # SafeFile JP weekly package — the approval screen (2026-10-25).
+    #
+    # Keyed on the EPISODE NUMBER rather than on a Post id: the episode is the
+    # stable identifier across the whole pipeline (content/jp/epNN on the Mac,
+    # (content_track, content_ep) in the database, utm_campaign=epNN in every
+    # link), so the URL in a review email stays valid even if the row is
+    # recreated.
+    scope "jp", as: :jp do
+      get   "packages/:ep",                 to: "jp_packages#show",        as: :package
+      post  "packages/:ep/approve",         to: "jp_packages#approve",     as: :package_approve
+      post  "packages/:ep/unapprove",       to: "jp_packages#unapprove",   as: :package_unapprove
+      post  "packages/:ep/verify",          to: "jp_packages#verify",      as: :package_verify
+      post  "packages/:ep/tweet_sent",      to: "jp_packages#mark_tweet_sent",   as: :package_tweet_sent
+      post  "packages/:ep/tweet_unsent",    to: "jp_packages#mark_tweet_unsent", as: :package_tweet_unsent
+      post  "packages/:ep/linkedin",        to: "jp_packages#record_linkedin",   as: :package_linkedin
+    end
+
     root to: "banners#index"
   end
 

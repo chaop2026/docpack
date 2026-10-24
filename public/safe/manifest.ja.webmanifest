@@ -12,8 +12,8 @@
   "background_color": "#F7F5EF",
   "categories": ["utilities", "productivity", "security"],
   "icons": [
-    { "src": "/safe/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/safe/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/safe/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "/safe/brand/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/safe/brand/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/safe/brand/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

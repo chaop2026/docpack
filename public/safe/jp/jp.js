@@ -20,6 +20,24 @@
 
   var FROM = document.documentElement.getAttribute('data-from') || 'direct';
 
+  /* Which channel sent this visit. Mapped onto the fixed list the server
+   * accepts (SafeEvent::VALUES["utm_source"]) rather than passed through:
+   * a free-text utm_source is a visitor-controlled string, and the whole
+   * premise of this endpoint is that only category values are stored. Anything
+   * unrecognised becomes 'other', absent becomes 'none' — the two are different
+   * facts and are kept apart.
+   *
+   * Nothing is written to storage and nothing is read back; this is derived
+   * from the current URL on each page load. */
+  var UTM_SOURCE = (function () {
+    try {
+      var allowed = ['x', 'linkedin', 'youtube', 'blog', 'direct'];
+      var v = new URLSearchParams(window.location.search).get('utm_source');
+      if (!v) return 'none';
+      return allowed.indexOf(v.toLowerCase()) >= 0 ? v.toLowerCase() : 'other';
+    } catch (e) { return 'none'; }
+  })();
+
   function beacon(name, props) {
     try {
       var body = JSON.stringify({ name: name, props: props || {} });
@@ -31,13 +49,13 @@
     } catch (e) { /* never surfaces */ }
   }
 
-  beacon('landing_view', { from: FROM, locale: 'ja' });
+  beacon('landing_view', { from: FROM, locale: 'ja', utm_source: UTM_SOURCE });
 
   // CTA clicks. `data-purpose` mirrors the purpose in the link's own query
   // string so the counter and the destination cannot disagree.
   Array.prototype.forEach.call(document.querySelectorAll('[data-cta]'), function (el) {
     el.addEventListener('click', function () {
-      var p = { from: FROM, locale: 'ja' };
+      var p = { from: FROM, locale: 'ja', utm_source: UTM_SOURCE };
       var purpose = el.getAttribute('data-purpose');
       if (purpose) p.purpose = purpose;
       beacon('cta_click', p);

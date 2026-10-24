@@ -46,8 +46,13 @@
     <% alternates.each do |loc, href| %>
     <link rel="alternate" hreflang="<%= loc %>" href="<%= href %>">
     <% end %>
+    <%# @xdefault_url lets a page name its own default instead of assuming the
+        unprefixed path is one. That assumption holds for everything whose
+        original is Korean, and breaks for the JP blog track: /blog/:slug is a
+        301 to /ja/blog/:slug there, and an hreflang target must be a canonical,
+        indexable URL. Unset → previous behaviour, unchanged. %>
     <% if alternates.any? %>
-    <link rel="alternate" hreflang="x-default" href="<%= "#{base_url}#{localized_path(I18n.default_locale)}" %>">
+    <link rel="alternate" hreflang="x-default" href="<%= @xdefault_url || "#{base_url}#{localized_path(I18n.default_locale)}" %>">
     <% end %>
 
     <meta property="og:type" content="website">
@@ -135,7 +140,15 @@
           <details class="lang-dropdown">
             <summary class="btn-lang" aria-label="Select language"><%= locale_name(I18n.locale) %></summary>
             <ul class="lang-menu">
-              <% I18n.available_locales.each do |loc| %>
+              <%# @switcher_locales narrows the list for a page that does not
+                  exist in every UI language. The JP blog track is the case:
+                  /blog/:slug 301s to /ja/blog/:slug for a Japanese post, so
+                  offering 「한국어」 there produced a link that bounced the reader
+                  straight back to the page they were on — measured by
+                  script/canonical_sweep.rb as an internal link resolving via a
+                  301. Unset → every locale, which is what every other page
+                  still gets. %>
+              <% (@switcher_locales || I18n.available_locales).each do |loc| %>
                 <li>
                   <%= link_to locale_name(loc), locale_switch_path(loc),
                         class: "lang-menu-item#{' is-active' if loc == I18n.locale}",

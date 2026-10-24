@@ -1698,3 +1698,85 @@ p {
 }
 .upload-notice--error { color: var(--danger); background: #FEE2E2; }
 .upload-notice--warn { color: #92400E; background: var(--pdf-light); }
+
+/* ───────────────────────────────────────────────────────────────────────────
+   SafeFile JP blog article (posts/_jp_article.html.erb, primary_locale = ja)
+
+   Its own block rather than a reuse of .blog-post-body: that one styles the
+   Korean conversion layout (loss box, stats cards, error mockup) and this is a
+   reference article — tables and 根拠 paragraphs are the load-bearing parts.
+   Bento Soft tokens throughout; nothing new is introduced.
+   ─────────────────────────────────────────────────────────────────────────── */
+.jp-article { max-width: 680px; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+
+.jp-article-tag {
+  display: inline-block; font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.04em; padding: 3px 10px; border-radius: var(--r-chip);
+  background: var(--compress-light); color: var(--compress-text); margin-bottom: 10px;
+}
+.jp-article-head h1 {
+  font-size: 22px; font-weight: 600; letter-spacing: -0.02em;
+  line-height: 1.45; margin: 0 0 8px; color: var(--text);
+}
+.jp-article-sub { font-size: 14px; color: var(--text-sub); line-height: 1.6; margin: 0 0 12px; }
+.jp-article-meta { font-size: 12px; color: var(--text-sub); margin-bottom: 24px; }
+
+.jp-article-hero { margin: 0 0 28px; }
+.jp-article-hero img {
+  width: 100%; height: auto; display: block;
+  border: 0.5px solid var(--border-color); border-radius: var(--r-banner);
+}
+
+.jp-article-body { font-size: 15px; line-height: 1.85; color: var(--text); }
+.jp-article-body h2 {
+  font-size: 17px; font-weight: 600; letter-spacing: -0.01em;
+  margin: 2.2rem 0 0.75rem; padding-top: 1.2rem; border-top: 0.5px solid var(--border-color);
+}
+.jp-article-body h3 { font-size: 15px; font-weight: 600; margin: 1.6rem 0 0.5rem; }
+.jp-article-body p { margin: 0 0 1.1rem; }
+.jp-article-body ol, .jp-article-body ul { margin: 0 0 1.2rem; padding-left: 1.4rem; }
+.jp-article-body li { margin-bottom: 0.5rem; }
+.jp-article-body strong { font-weight: 600; }
+.jp-article-body a { color: var(--compress-text); text-decoration: underline; text-underline-offset: 2px; }
+
+/* Tables are the one element the strategy requires in every article (§3-2 ③).
+   Cells WRAP rather than nowrap: the first version used white-space: nowrap
+   with overflow-x, and at the article's 680px width that pushed the third
+   column ("残す") off-screen behind a scrollbar — on a 1280px desktop. The
+   whole point of a 隠す/残す table is the contrast between the two columns, so
+   hiding one of them to avoid a scrollbar is the wrong trade.
+   overflow-x stays as the fallback for a table that is genuinely too wide even
+   wrapped, so the page body still never scrolls sideways. */
+.jp-article-body table {
+  display: block; overflow-x: auto; width: 100%; border-collapse: collapse;
+  margin: 0 0 1.4rem; font-size: 13.5px;
+}
+.jp-article-body table th, .jp-article-body table td { min-width: 7em; }
+.jp-article-body th, .jp-article-body td {
+  border: 0.5px solid var(--border-color); padding: 8px 12px; text-align: left; vertical-align: top;
+}
+.jp-article-body th { background: var(--bg); font-weight: 600; }
+
+.jp-article-faq { margin-top: 2.4rem; }
+.jp-article-faq h2 {
+  font-size: 17px; font-weight: 600; margin: 0 0 1rem;
+  padding-top: 1.2rem; border-top: 0.5px solid var(--border-color);
+}
+.jp-faq-item { margin-bottom: 1.3rem; }
+.jp-faq-item h3 { font-size: 14px; font-weight: 600; margin: 0 0 0.4rem; }
+.jp-faq-item p { font-size: 14px; color: var(--text-sub); line-height: 1.75; margin: 0; }
+
+.jp-article-cta {
+  margin-top: 2.4rem; padding: 20px; background: var(--card-bg);
+  border: 0.5px solid var(--border-color); border-radius: var(--r-card); text-align: center;
+}
+.jp-cta-link {
+  display: inline-block; padding: 11px 22px; border-radius: var(--r-btn);
+  background: var(--compress); color: #fff; font-size: 14px; font-weight: 600;
+  text-decoration: none; transition: opacity 0.2s;
+}
+.jp-cta-link:hover { opacity: 0.88; }
+.jp-cta-note { font-size: 12px; color: var(--text-sub); line-height: 1.7; margin: 12px 0 0; }
+
+.jp-article-nav { margin-top: 1.8rem; text-align: center; }
+.jp-article-nav a { font-size: 13px; color: var(--text-sub); text-decoration: none; }

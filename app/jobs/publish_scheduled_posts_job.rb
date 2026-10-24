@@ -94,8 +94,32 @@ class PublishScheduledPostsJob < ApplicationJob
 
     Rails.logger.info("Published scheduled post: #{post.slug}")
     clear_error(post)
+    enqueue_x_thread(post)
     notify(post)
     true
+  end
+
+  # A JP package's X thread, armed by the approval and due three hours after the
+  # blog post (09:00 → 12:00 JST).
+  #
+  # The enqueue is best-effort and the STATE is not: `x.state` stays 'pending' in
+  # the database whatever happens here, so a lost enqueue is recoverable with
+  # `rake blog:x_pending` and visible through Post.x_stuck. That split is the
+  # same one the rest of this file is built on — the channel that reports a
+  # failure must not be the channel that failed.
+  def enqueue_x_thread(post)
+    return unless post.primary_locale == "ja"
+    return unless post.package.dig("x", "state") == "pending"
+
+    due = post.package.dig("x", "due_at")
+    at = due.present? ? Time.zone.parse(due.to_s) : Time.current + JpApproval::X_DELAY
+    XPublishJob.set(wait_until: at).perform_later(post.id)
+    Rails.logger.info("PublishScheduledPostsJob: '#{post.slug}' X thread enqueued for #{at.iso8601}")
+  rescue StandardError => e
+    Rails.logger.error(
+      "PublishScheduledPostsJob: '#{post.slug}' was published but its X thread could not be " \
+      "enqueued — #{e.class}: #{e.message}. x.state stays 'pending'; recover with `rake blog:x_pending`."
+    )
   end
 
   # Enrichment, not state. update_column on purpose: the record just failed

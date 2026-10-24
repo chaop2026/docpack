@@ -1,0 +1,69 @@
+<%#
+  The X thread was rejected, or was blocked before it started.
+  Distinct from jp_x_unknown: here the answer arrived and said no, so nothing is
+  in doubt about what is on the timeline.
+
+  Like every alert in this app, this is the SECONDARY channel. The primary one is
+  state: Post.x_stuck derives "the thread was due and did not finish" from the
+  row itself, and `rake blog:stuck` exits 1 on it without needing a mailbox or
+  the admin password. This app's production SMTP has already failed once
+  (2026-04-07, 535-5.7.8), so a lost alert is a premise rather than a risk.
+%>
+<div style="font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Noto Sans JP',sans-serif;max-width:640px;margin:0 auto;padding:24px;color:#1A1918;line-height:1.7">
+
+  <div style="border:1px solid #dc2626;background:#FEE2E2;border-radius:10px;padding:14px 16px;margin-bottom:18px">
+    <strong style="color:#991B1B">🛑 X スレッドが完了していません (state = <%= @state %>)</strong>
+    <p style="font-size:13px;color:#991B1B;margin:8px 0 0;word-break:break-all"><%= @reason %></p>
+  </div>
+
+  <h1 style="font-size:18px;font-weight:600;margin:0 0 6px">
+    第<%= format("%02d", @post.content_ep) %>回 <%= @post.title_ja %>
+  </h1>
+  <p style="font-size:13px;color:#6B6963;margin:0 0 20px">
+    ブログ記事はすでに公開されています → <code>/ja/blog/<%= @post.slug %></code><br>
+    <%# Said explicitly because the two are independent, and the obvious worry on
+        reading this mail is "did the blog post go out?" %>
+    X の失敗はブログの公開を取り消しません。
+  </p>
+
+  <% if @state == "blocked" %>
+    <p style="font-size:13.5px;background:#FEF3C7;border:1px solid #F59E0B;border-radius:10px;padding:12px 14px">
+      承認した時点の本文・派生物・資産・公開時刻のいずれかが、その後に変わっています。
+      承認は<strong>ひとつのバージョン</strong>を固定するものなので、変わった内容を
+      そのまま投稿することはしません。管理画面で<strong>差し戻して</strong>内容を確認し、
+      もう一度承認してください。
+    </p>
+  <% elsif @state == "partial_failed" %>
+    <p style="font-size:13.5px;background:#FEF3C7;border:1px solid #F59E0B;border-radius:10px;padding:12px 14px">
+      一部のツイートは投稿済みです(下表の <code>done</code>)。
+      <code>bin/rails blog:x_pending</code> で<strong>続きから</strong>再開します —
+      投稿済みのものは再送されません。
+    </p>
+  <% end %>
+
+  <h2 style="font-size:15px;font-weight:600;margin:0 0 8px">📋 スレッドの状態</h2>
+  <table style="border-collapse:collapse;font-size:12.5px;width:100%;margin-bottom:18px">
+    <tr style="background:#F8F7F4">
+      <th style="padding:6px 8px;border:1px solid #E5E3DC;text-align:left">#</th>
+      <th style="padding:6px 8px;border:1px solid #E5E3DC;text-align:left">状態</th>
+      <th style="padding:6px 8px;border:1px solid #E5E3DC;text-align:left">tweet_id</th>
+    </tr>
+    <% if @tweets.empty? %>
+      <tr><td colspan="3" style="padding:6px 8px;border:1px solid #E5E3DC">まだ1件も送っていません</td></tr>
+    <% end %>
+    <% @tweets.each do |t| %>
+      <tr>
+        <td style="padding:6px 8px;border:1px solid #E5E3DC"><%= t["seq"] %></td>
+        <td style="padding:6px 8px;border:1px solid #E5E3DC"><%= t["state"] %></td>
+        <td style="padding:6px 8px;border:1px solid #E5E3DC"><code><%= t["tweet_id"] || "—" %></code></td>
+      </tr>
+    <% end %>
+  </table>
+
+  <p style="margin:0">
+    <a href="<%= @preview_url %>"
+       style="display:inline-block;background:#0A6E8A;color:#fff;text-decoration:none;font-weight:600;font-size:14px;padding:11px 20px;border-radius:12px">
+      管理画面を開く
+    </a>
+  </p>
+</div>

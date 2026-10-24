@@ -2,7 +2,13 @@
     `helpers` proxy does not propagate to the layout head. %>
 <%# @url_locale, not I18n.locale — the canonical must follow the URL, not the
     reader's cookie/Accept-Language. See PostsController#show. %>
-<% canonical_path = @post_translated ? locale_prefixed("/blog/#{@post.slug}", @url_locale) : "/blog/#{@post.slug}" %>
+<%# Post#canonical_path_for folds in which locale the post was WRITTEN in. For a
+    Korean post it computes exactly what the old inline expression did — its
+    primary locale is the unprefixed one — so none of the 42 live posts move
+    (E-1, test/integration/blog_seo_snapshot_test.rb). For a Japanese post the
+    untranslated fallback is /ja/blog/:slug rather than /blog/:slug, which is a
+    301. %>
+<% canonical_path = @post.canonical_path_for(@url_locale) %>
 <%# Content follows @url_locale too, not just the canonical. Reading I18n.locale
     here meant an unprefixed URL served an English title/description/body to an
     `Accept-Language: en` request while pointing its canonical at the Korean
@@ -37,6 +43,17 @@
     "url": "<%= base_url %><%= canonical_path %>",
     "datePublished": "<%= @post.published_at&.iso8601 %>",
     "dateModified": "<%= @post.updated_at&.iso8601 %>",
+    <%# JP track only. The language of the DOCUMENT at this URL is the locale
+        the canonical above resolves to, not @url_locale: on an untranslated /es
+        URL the page serves the primary-locale text, so claiming inLanguage=es
+        would describe a translation that does not exist.
+        Deliberately NOT emitted for Korean posts. It would be correct there
+        too, but this round's requirement is that the 42 live posts do not move
+        by one character, and a new field in their structured data is a change.
+        Adding it to the Korean track is a separate, auditable step. %>
+    <% if @post.primary_locale == "ja" %>
+    "inLanguage": "<%= canonical_path.start_with?("/en/") ? "en" : "ja" %>",
+    <% end %>
     <% if @post.hero_image.attached? %>
     "image": "<%= url_for(@post.hero_image) %>",
     <% end %>
@@ -55,7 +72,49 @@
     }
   }
   </script>
+  <%# FAQPage — only when the page really renders a FAQ section. An empty or
+      absent list emits nothing: structured data that announces a section the
+      document does not contain is a claim about the page that is false, and
+      Google treats it as a markup violation rather than as a missing optional.
+      Only the JP track carries one (package.faq, three entries, written in
+      faq_ja.md and imported by content:jp_import). %>
+  <% if @faq.present? %>
+  <%# Built as a Ruby Hash and serialised with to_json rather than assembled by
+      string interpolation: a question containing a quote, a backslash or a
+      newline would otherwise produce invalid JSON-LD, and the failure is
+      silent (Google just drops the block).
+      Script-context safety comes from two layers, and the first one is already
+      doing the work: Rails sets escape_html_entities_in_json, so to_json emits
+      "<" as < and a hostile "</script>" never appears literally.
+      Probed with `</script><img src=x onerror=…>` as a question: the block
+      still parsed as JSON and no <img> reached the document. The gsub is the
+      second layer — it keeps this correct if that setting is ever turned off,
+      and "<\/" is valid JSON either way. %>
+  <% faq_ld = {
+       "@context" => "https://schema.org",
+       "@type" => "FAQPage",
+       "mainEntity" => @faq.map do |e|
+         {
+           "@type" => "Question",
+           "name" => e["q"].to_s,
+           "acceptedAnswer" => { "@type" => "Answer", "text" => e["a"].to_s }
+         }
+       end
+     } %>
+  <script type="application/ld+json">
+  <%= faq_ld.to_json.gsub("</", "<\\/").html_safe %>
+  </script>
+  <% end %>
 <% end %>
+
+<%# The JP track renders its own article shell and returns. Everything below is
+    the Korean marketing-page layout (hardcoded Korean CTAs, loss box, stats
+    cards, "블로그 목록으로") and is left exactly as it was — branching here
+    rather than threading conditionals through 140 lines keeps the Korean path
+    off the diff entirely, which is what E-1 is asking for. %>
+<% if @post.primary_locale == "ja" %>
+  <%= render "posts/jp_article", post: @post, url_locale: @url_locale, faq: @faq %>
+<% else %>
 
 <% if @post.trust_bar.present? %>
 <div class="blog-trust-bar">
@@ -197,3 +256,4 @@
     <a href="/blog" style="font-size:13px;color:#6B6963;text-decoration:none">&larr; 블로그 목록으로</a>
   </div>
 </div>
+<% end %>

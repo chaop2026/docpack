@@ -43,6 +43,65 @@
   </div>
 <% end %>
 
+<%# The second way a JP week half-happens: the blog post is live and the X
+    thread never went out. Derived from the row (Post.x_stuck), so it survives a
+    dead mailer, a dead queue, and the job never having run — the same argument
+    as the publish banner above. %>
+<% if @x_stuck_posts.any? %>
+  <div style="background: #FEF3C7; border: 1px solid #F59E0B; border-radius: 14px; padding: 1rem 1.25rem; margin-bottom: 1.5rem;">
+    <div style="font-size: 14px; font-weight: 600; color: #92400E; margin-bottom: 0.75rem;">
+      X 스레드 미완료 <%= @x_stuck_posts.size %>건 — 블로그는 게시됐는데 스레드가 끝나지 않았습니다
+    </div>
+    <% @x_stuck_posts.each do |p| %>
+      <% x = p.package["x"] || {} %>
+      <% tweets = x["tweets"] || [] %>
+      <div style="border-top: 0.5px solid #F59E0B; padding-top: 0.6rem; margin-top: 0.6rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+          <div>
+            <strong style="font-size: 13px; color: #1A1918;">ep<%= p.content_ep %> <%= p.slug %></strong>
+            <span style="font-size: 12px; color: var(--text-sub);">
+              &middot; state <%= x["state"] %><%= " (DRY RUN)" if x["dry_run"] %>
+              &middot; <%= tweets.count { |t| t["state"] == "done" } %>/<%= tweets.size %> 전송
+              &middot; 예정 <%= x["due_at"] %>
+            </span>
+          </div>
+          <a href="<%= admin_jp_package_path(p.content_ep) %>" class="admin-btn admin-btn-sm admin-btn-primary">패키지</a>
+        </div>
+        <div style="font-size: 12px; color: #92400E; margin-top: 0.3rem;">
+          <% if tweets.any? { |t| t["state"] == "unknown" } %>
+            ⚠️ 응답이 유실된 트윗이 있습니다 — <strong>사람이 타임라인을 보고</strong> 「송신됨」/「미송신」을 골라야 합니다. 자동 재전송은 하지 않습니다.
+          <% else %>
+            <%= x["error"].presence || "이유 미기록 — `bin/rails blog:x_pending` 으로 재enqueue 할 수 있습니다" %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+<% end %>
+
+<% if @unapproved_jp.any? %>
+  <div style="background: #FEF3C7; border: 1px solid #F59E0B; border-radius: 14px; padding: 1rem 1.25rem; margin-bottom: 1.5rem;">
+    <div style="font-size: 14px; font-weight: 600; color: #92400E; margin-bottom: 0.75rem;">
+      승인되지 않은 JP 패키지 <%= @unapproved_jp.size %>건 — 게시 예정일이 지났는데 아직 초안입니다
+    </div>
+    <div style="font-size: 12px; color: #92400E; margin-bottom: 0.6rem;">
+      주간 잡은 다음 회차로 넘어갑니다(한 회차가 뒤를 막지 않도록). 그래서 이 건에 대한 메일은 더 오지 않습니다.
+    </div>
+    <% @unapproved_jp.each do |p| %>
+      <div style="border-top: 0.5px solid #F59E0B; padding-top: 0.6rem; margin-top: 0.6rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+        <div>
+          <strong style="font-size: 13px; color: #1A1918;">ep<%= p.content_ep %> <%= p.title_ja %></strong>
+          <span style="font-size: 12px; color: var(--text-sub);">
+            &middot; 예정 <%= p.published_at&.in_time_zone("Asia/Tokyo")&.strftime("%Y-%m-%d %H:%M JST") %>
+            <% if p.guard_violations.any? %>&middot; 가드 위반 <%= p.guard_violations.size %>건<% end %>
+          </span>
+        </div>
+        <a href="<%= admin_jp_package_path(p.content_ep) %>" class="admin-btn admin-btn-sm admin-btn-primary">패키지</a>
+      </div>
+    <% end %>
+  </div>
+<% end %>
+
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
   <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
     <a href="<%= admin_posts_path %>" class="admin-btn admin-btn-sm <%= 'admin-btn-primary' if params[:status].blank? && params[:category].blank? %>">All</a>
@@ -53,6 +112,23 @@
        class="admin-btn admin-btn-sm <%= 'admin-btn-primary' if params[:status] == 'stuck' %>"
        style="<%= 'border-color: #A32D2D; color: #A32D2D;' if params[:status] != 'stuck' && @stuck_posts.any? %>">
       Stuck<%= " (#{@stuck_posts.size})" if @stuck_posts.any? %>
+    </a>
+    <a href="<%= admin_posts_path(status: "x_stuck") %>"
+       class="admin-btn admin-btn-sm <%= 'admin-btn-primary' if params[:status] == 'x_stuck' %>"
+       style="<%= 'border-color: #92400E; color: #92400E;' if params[:status] != 'x_stuck' && @x_stuck_posts.any? %>">
+      X stuck<%= " (#{@x_stuck_posts.size})" if @x_stuck_posts.any? %>
+    </a>
+    <span style="color: var(--border-color);">|</span>
+    <%# Track filter. The two tracks share this table but are different
+        publications — a Japanese episode has no title_ko, so without this the
+        only way to find one is to recognise its slug. %>
+    <a href="<%= admin_posts_path(primary_locale: "ja") %>"
+       class="admin-btn admin-btn-sm <%= 'admin-btn-primary' if params[:primary_locale] == 'ja' %>">
+      JP (<%= Post.jp.count %>)
+    </a>
+    <a href="<%= admin_posts_path(primary_locale: "ko") %>"
+       class="admin-btn admin-btn-sm <%= 'admin-btn-primary' if params[:primary_locale] == 'ko' %>">
+      KO
     </a>
     <span style="color: var(--border-color);">|</span>
     <% %w[image pdf office student freelancer global].each do |c| %>
@@ -94,7 +170,18 @@
   <tbody>
     <% @posts.each do |post| %>
       <tr>
-        <td style="max-width: 300px;"><%= truncate(post.title_ko.to_s, length: 50) %></td>
+        <%# title_ko is nil on a JP package, so this reads the post's OWN
+            primary-locale title. Without it the JP rows showed a blank cell. %>
+        <td style="max-width: 300px;">
+          <% if post.primary_locale == "ja" %>
+            <span class="admin-badge" style="background:#1A1613;color:#F6F4EE;">JA</span>
+            <a href="<%= admin_jp_package_path(post.content_ep) %>" style="color:#07596F;text-decoration:none">
+              <%= truncate(post.title_ja.to_s, length: 44) %>
+            </a>
+          <% else %>
+            <%= truncate(post.title_ko.to_s, length: 50) %>
+          <% end %>
+        </td>
         <td><span class="admin-badge admin-badge-gray"><%= post.category %></span></td>
         <td>
           <span class="admin-badge <%= post.status == 'published' ? 'admin-badge-green' : 'admin-badge-gray' %>">
@@ -106,7 +193,10 @@
         <td>
           <div class="admin-btn-group">
             <a href="<%= edit_admin_post_path(post) %>" class="admin-btn admin-btn-sm">Edit</a>
-            <a href="<%= blog_post_path(slug: post.slug) %>" class="admin-btn admin-btn-sm" target="_blank">View</a>
+            <%# The post's own canonical URL. blog_post_path would give /blog/:slug,
+                which for a JP package is a 301 — a "View" link that redirects is
+                not wrong, but it hides which address the post actually lives at. %>
+            <a href="<%= post.canonical_path_for(post.primary_locale_sym) %>" class="admin-btn admin-btn-sm" target="_blank">View</a>
             <% unless post.status == "published" %>
               <%= button_to "Publish", publish_admin_post_path(post), method: :post, class: "admin-btn admin-btn-sm admin-btn-primary", data: { turbo_confirm: "Publish this post now?" } %>
             <% end %>

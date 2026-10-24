@@ -55,6 +55,12 @@
       well, so the sitemap cannot list an unpublished post even if the loop above
       ever stops scoping to Post.published. %>
   <% locales = post.indexable_locales %>
+  <%# x-default names the post's OWN original, not the unprefixed path.
+      Those are the same thing for every Korean post (primary_locale 'ko' is the
+      locale with no prefix), so the 42 live entries are unchanged. They are not
+      the same thing for a Japanese post: /blog/:slug 301s to /ja/blog/:slug
+      there, and an hreflang target has to be a canonical, indexable URL. %>
+  <% xdefault = prefix.(post.primary_locale_sym, "/blog/#{post.slug}") %>
   <% locales.each do |loc| %>
   <url>
     <loc><%= @base_url %><%= prefix.(loc, "/blog/#{post.slug}") %></loc>
@@ -64,7 +70,7 @@
     <% locales.each do |alt| %>
     <xhtml:link rel="alternate" hreflang="<%= alt %>" href="<%= @base_url %><%= prefix.(alt, "/blog/#{post.slug}") %>"/>
     <% end %>
-    <xhtml:link rel="alternate" hreflang="x-default" href="<%= @base_url %><%= prefix.(default, "/blog/#{post.slug}") %>"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="<%= @base_url %><%= xdefault %>"/>
   </url>
   <% end %>
 <% end %>

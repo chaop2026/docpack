@@ -118,10 +118,25 @@
       { "id": "duty", "re": "義務(が|を|です|づけ|化|です)", "why": "「義務」は法的義務の主張" },
       { "id": "statute_named", "re": "(?<![方手用療文語作寸魔話漢])法(第[0-9０-９]+条|の規定|に基づ|により定め|上の)", "why": "法令・条項の名指し" },
       { "id": "enforcement_date", "re": "施行(日|され|後|前)", "why": "施行日の主張" },
-      { "id": "kokuji", "re": "告示|省令|政令", "why": "告示・省令・政令の名指し" }
+      { "id": "kokuji", "re": "告示|省令|政令", "why": "告示・省令・政令の名指し" },
+
+      { "id": "statute_named_en", "re": "\\b(Health Insurance Act|National Health Insurance Act|Act on Prevention of Transfer of Criminal Proceeds|Personal Information Protection Act|My Number Act)\\b", "ignorecase": true, "why": "names a statute in English" },
+      { "id": "in_force_en", "re": "\\b(in force since|came into force|takes effect on|effective from)\\b", "ignorecase": true, "why": "asserts an enforcement date in English" },
+      { "id": "restricted_en", "re": "\\bmay be (restricted|prohibited)\\b|\\brequired by law\\b|\\bthe law requires\\b", "ignorecase": true, "why": "asserts a legal requirement or restriction in English" },
+      { "id": "article_en", "re": "\\bArticle\\s+[0-9]+", "why": "cites an article number" }
+    ],
+    "_en_note": [
+      "The English patterns exist because post_en.md is a parallel rewrite, not a",
+      "translation — it carries the same legal claim in its own words, and the",
+      "Japanese patterns above can never match it. Without these four, an English",
+      "article could assert what a statute requires with no source at all and the",
+      "guard would report nothing. They are deliberately narrow (named statutes,",
+      "enforcement-date phrasings, «may be restricted», «Article N») rather than",
+      "keyword-ish, because a false positive here pushes an author to bolt a",
+      "citation onto a sentence that did not need one."
     ],
     "source_url_re": "https?://([a-zA-Z0-9-]+\\.)*go\\.jp(/|\\b)",
-    "confirmed_on_re": "確認日\\s*[:：]\\s*[0-9]{4}-[0-9]{2}-[0-9]{2}",
+    "confirmed_on_re": "(確認日|Confirmed|confirmed)\\s*[:：]\\s*[0-9]{4}-[0-9]{2}-[0-9]{2}",
     "why": "法的主張があるのに、同じ記事に *.go.jp の原文URLと「確認日: YYYY-MM-DD」がない"
   },
 

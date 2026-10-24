@@ -46,11 +46,11 @@ const OPTIONAL_SHELL_ASSETS = [
   '/safe/manifest.en.webmanifest',
   '/safe/manifest.ja.webmanifest',
   '/safe/manifest.es.webmanifest',
-  '/safe/icon.svg',
-  '/safe/icon-192.png',
-  '/safe/icon-512.png',
-  '/safe/icon-maskable-512.png',
-  '/safe/apple-touch-icon.png',
+  '/safe/brand/icon.svg',
+  '/safe/brand/icon-192.png',
+  '/safe/brand/icon-512.png',
+  '/safe/brand/icon-maskable-512.png',
+  '/safe/brand/icon-180.png',
 ];
 
 // Cross-origin hosts whose (version-pinned) assets we cache-first for revisit speed.

@@ -38,7 +38,18 @@ class SafeEvent < ApplicationRecord
     # visitor has touched anything. Without this key that row is identical to
     # "the visitor changed the dropdown", and every purpose statistic silently
     # counts preselections as choices. Two fixed categories, no free text.
-    "source"    => %w[init user]
+    "source"    => %w[init user],
+    # Which channel sent this visit, read from ?utm_source= and mapped onto this
+    # fixed list (anything else becomes "other"; absent becomes "none").
+    #
+    # Added 2026-10-25 because P16 — "share of landing visits arriving from
+    # social" — had no dimension to compute from. `from` records WHICH landing
+    # page, not where the visitor came from, so the metric was unmeasurable and
+    # would have reported a confident 0. `blog` is listed and is deliberately
+    # excluded from P16's numerator (JpWeeklyKpi): the blog's own in-article CTA
+    # is internal linking, and counting it would make the metric rise as the
+    # blog grows, which is the opposite of what P16 asks.
+    "utm_source" => %w[x linkedin youtube blog direct other none]
   }.freeze
 
   # Which keys each event may carry. A key that is valid for one event is not
@@ -49,8 +60,8 @@ class SafeEvent < ApplicationRecord
     "doc_class"    => %w[doc_class locale from],
     "purpose"      => %w[purpose doc_class locale from source],
     "download"     => %w[format doc_class purpose locale from],
-    "landing_view" => %w[from locale],
-    "cta_click"    => %w[from purpose locale]
+    "landing_view" => %w[from locale utm_source],
+    "cta_click"    => %w[from purpose locale utm_source]
   }.freeze
 
   validates :name, inclusion: { in: NAMES }

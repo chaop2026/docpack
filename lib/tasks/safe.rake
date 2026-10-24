@@ -85,6 +85,15 @@ namespace :safe do
       end
     end
 
+    # ── Content channels (S8) ────────────────────────────────────────────────
+    #
+    # Added so the weekly file answers "what actually went out" from the
+    # database rather than from memory, and so the approval screen can quote the
+    # same numbers. Every figure below is derived from Post rows; nothing is
+    # typed in. The ones this app CANNOT know (X impressions, YouTube views) are
+    # printed as 「—」 with a note, not estimated.
+    lines.concat(JpWeeklyKpi.new(window: window_start...window_end).lines)
+
     lines << "## 예측 대조 (jp_forecast_report §7)"
     lines << ""
     lines << "- P6 (資格確認書 가 doc_class 1위인가): `doc_class × doc_class` 표를 본다."

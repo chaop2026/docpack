@@ -1,0 +1,73 @@
+<%# SafeFile JP blog article (primary_locale = "ja").
+    Separate from the Korean layout on purpose: that one is a conversion page
+    built around loss framing (error mockup, loss box, stats cards, two CTAs)
+    with its copy hardcoded in Korean. The JP strategy forbids most of it —
+    v3.1 §3-1 rules out fear appeals, first-person brand voice and 「あなた」 —
+    so reusing the shell would mean suppressing two thirds of it with
+    conditionals and leaving Korean strings in a Japanese document.
+
+    `url_locale` decides which body is shown (ja, or en on /en/blog/:slug when
+    body_en exists). The page never reads I18n.locale: the content has to be a
+    property of the URL, which is the bug this app already shipped once.
+%>
+<% showing_en = url_locale.to_sym == :en && post.body_en.present? %>
+<% utm = "utm_source=blog&utm_medium=organic&utm_campaign=ep#{format('%02d', post.content_ep.to_i)}" %>
+<% landing = post.package["landing_path"].presence || "/safe/jp/nyusatsu/" %>
+
+<article class="jp-article" lang="<%= showing_en ? "en" : "ja" %>">
+  <header class="jp-article-head">
+    <% if post.package["intent"].present? %>
+      <div class="jp-article-tag"><%= post.package["intent"] %></div>
+    <% end %>
+    <h1><%= post.title(url_locale) %></h1>
+    <% if post.subtitle(url_locale).present? %>
+      <p class="jp-article-sub"><%= post.subtitle(url_locale) %></p>
+    <% end %>
+    <div class="jp-article-meta">
+      <time datetime="<%= post.published_at&.iso8601 %>">
+        <%= post.published_at&.in_time_zone("Asia/Tokyo")&.strftime(showing_en ? "%B %-d, %Y" : "%Y年%-m月%-d日") %>
+      </time>
+    </div>
+  </header>
+
+  <% if post.hero_image.attached? %>
+    <figure class="jp-article-hero">
+      <%= image_tag post.hero_image, alt: post.title(url_locale), loading: "eager" %>
+    </figure>
+  <% end %>
+
+  <div class="jp-article-body">
+    <%= post.body(url_locale).to_s.html_safe %>
+  </div>
+
+  <%# FAQ is rendered as real content, not only as JSON-LD. Structured data that
+      describes a section the document does not contain is a false claim about
+      the page — so the markup and the JSON-LD in show.html.erb read the same
+      list, and both are absent together. %>
+  <% if faq.present? %>
+    <section class="jp-article-faq">
+      <h2><%= showing_en ? "Frequently asked questions" : "よくある質問" %></h2>
+      <% faq.each do |entry| %>
+        <div class="jp-faq-item">
+          <h3><%= entry["q"] %></h3>
+          <p><%= entry["a"] %></p>
+        </div>
+      <% end %>
+    </section>
+  <% end %>
+
+  <aside class="jp-article-cta">
+    <a href="<%= landing %>?<%= utm %>" class="jp-cta-link">
+      <%= showing_en ? "Try it in the browser" : "ブラウザだけで試す" %>
+    </a>
+    <p class="jp-cta-note">
+      <%= showing_en ?
+            "Files are processed inside the browser and are not sent to a server. No sign-up." :
+            "ファイルはブラウザの中だけで処理され、サーバーには送信されません。登録も不要です。" %>
+    </p>
+  </aside>
+
+  <nav class="jp-article-nav">
+    <a href="/ja/blog"><%= showing_en ? "← All posts" : "← 記事一覧" %></a>
+  </nav>
+</article>
