@@ -12,7 +12,7 @@
   "files": [
     {
       "name": "post_ja.md",
-      "bytes": 3331
+      "bytes": 3973
     },
     {
       "name": "post_en.md",
@@ -20,7 +20,7 @@
     },
     {
       "name": "x_thread.md",
-      "bytes": 1116
+      "bytes": 1188
     },
     {
       "name": "carousel_1.png",
@@ -38,7 +38,7 @@
       "pixels": "1080x1350"
     }
   ],
-  "demo": "skipped: track B has no tool demo",
+  "demo": "skipped: --no-demo",
   "warnings": [],
   "posted": {
     "x": false,

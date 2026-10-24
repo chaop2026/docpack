@@ -12,7 +12,7 @@
   "files": [
     {
       "name": "post_ja.md",
-      "bytes": 3754
+      "bytes": 4190
     },
     {
       "name": "post_en.md",
@@ -20,7 +20,7 @@
     },
     {
       "name": "x_thread.md",
-      "bytes": 1149
+      "bytes": 1221
     },
     {
       "name": "carousel_1.png",
@@ -46,12 +46,13 @@
       "bytes": 224290
     }
   ],
-  "demo": "ok: 40 frames, demo.gif 396KB, demo.mp4 219KB",
+  "demo": "ok: 40 frames, demo.gif 396KB, demo.mp4 219KB (carried over — this run used --no-demo)",
   "warnings": [],
   "posted": {
-    "x": false,
+    "x": true,
     "youtube_shorts": false,
     "instagram": false,
-    "blog": false
+    "blog": false,
+    "x_url": "https://x.com/safefile_jp/status/2113999418223685682"
   }
 }

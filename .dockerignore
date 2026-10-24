@@ -49,3 +49,18 @@
 # Ignore Docker-related files
 /.dockerignore
 /Dockerfile*
+
+# Never ship these into the production image (2026-10-25, S8).
+#
+# public/safe/작업물/ sits UNDER public/, so anything in it is served by
+# ActionDispatch::Static at a guessable URL the moment the image is deployed —
+# it is not a private directory, it is an unlisted public one. The folder's
+# provenance is unconfirmed (see CLAUDE.md «public/safe/작업물/ 정체 확인 필요»),
+# so it is excluded from the build rather than deleted: an exclusion is
+# reversible and a delete is not.
+/public/safe/작업물/
+
+# docs/jp/private/ holds the named pilot prospect list. It is gitignored, but
+# `COPY . .` copies the working tree, not the git index — so without this line
+# the file would ride into every production image built on this machine.
+/docs/jp/private/

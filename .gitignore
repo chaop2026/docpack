@@ -56,3 +56,4 @@
 # artifact with no technical purpose, and strategy v2 §4 holds the card dummies
 # to internal test use until a Japanese lawyer has reviewed them.
 docs/jp/*.zip
+docs/jp/private/

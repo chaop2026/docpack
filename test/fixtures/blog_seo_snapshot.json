@@ -1,0 +1,405 @@
+{
+  "GET /blog/bilingual-post": {
+    "status": 200,
+    "canonical": "/blog/bilingual-post",
+    "robots": null,
+    "og_locale": "ko_KR",
+    "og_url": "/blog/bilingual-post",
+    "html_lang": "ko",
+    "hreflang": [
+      [
+        "en",
+        "/en/blog/bilingual-post"
+      ],
+      [
+        "ko",
+        "/blog/bilingual-post"
+      ],
+      [
+        "x-default",
+        "/blog/bilingual-post"
+      ]
+    ]
+  },
+  "GET /en/blog/bilingual-post": {
+    "status": 200,
+    "canonical": "/en/blog/bilingual-post",
+    "robots": null,
+    "og_locale": "en_US",
+    "og_url": "/en/blog/bilingual-post",
+    "html_lang": "en",
+    "hreflang": [
+      [
+        "en",
+        "/en/blog/bilingual-post"
+      ],
+      [
+        "ko",
+        "/blog/bilingual-post"
+      ],
+      [
+        "x-default",
+        "/blog/bilingual-post"
+      ]
+    ]
+  },
+  "GET /ja/blog/bilingual-post": {
+    "status": 200,
+    "canonical": "/blog/bilingual-post",
+    "robots": "noindex,follow",
+    "og_locale": "ja_JP",
+    "og_url": "/blog/bilingual-post",
+    "html_lang": "ja",
+    "hreflang": [
+      [
+        "en",
+        "/en/blog/bilingual-post"
+      ],
+      [
+        "ko",
+        "/blog/bilingual-post"
+      ],
+      [
+        "x-default",
+        "/blog/bilingual-post"
+      ]
+    ]
+  },
+  "GET /es/blog/bilingual-post": {
+    "status": 200,
+    "canonical": "/blog/bilingual-post",
+    "robots": "noindex,follow",
+    "og_locale": "es_ES",
+    "og_url": "/blog/bilingual-post",
+    "html_lang": "es",
+    "hreflang": [
+      [
+        "en",
+        "/en/blog/bilingual-post"
+      ],
+      [
+        "ko",
+        "/blog/bilingual-post"
+      ],
+      [
+        "x-default",
+        "/blog/bilingual-post"
+      ]
+    ]
+  },
+  "MODEL bilingual-post": {
+    "indexable_locales": [
+      "ko",
+      "en"
+    ],
+    "indexable": {
+      "ko": true,
+      "en": true,
+      "ja": false,
+      "es": false
+    },
+    "translated": {
+      "ko": true,
+      "en": true,
+      "ja": false,
+      "es": false
+    }
+  },
+  "GET /blog/bilingual-published-post": {
+    "status": 200,
+    "canonical": "/blog/bilingual-published-post",
+    "robots": null,
+    "og_locale": "ko_KR",
+    "og_url": "/blog/bilingual-published-post",
+    "html_lang": "ko",
+    "hreflang": [
+      [
+        "en",
+        "/en/blog/bilingual-published-post"
+      ],
+      [
+        "ko",
+        "/blog/bilingual-published-post"
+      ],
+      [
+        "x-default",
+        "/blog/bilingual-published-post"
+      ]
+    ]
+  },
+  "GET /en/blog/bilingual-published-post": {
+    "status": 200,
+    "canonical": "/en/blog/bilingual-published-post",
+    "robots": null,
+    "og_locale": "en_US",
+    "og_url": "/en/blog/bilingual-published-post",
+    "html_lang": "en",
+    "hreflang": [
+      [
+        "en",
+        "/en/blog/bilingual-published-post"
+      ],
+      [
+        "ko",
+        "/blog/bilingual-published-post"
+      ],
+      [
+        "x-default",
+        "/blog/bilingual-published-post"
+      ]
+    ]
+  },
+  "GET /ja/blog/bilingual-published-post": {
+    "status": 200,
+    "canonical": "/blog/bilingual-published-post",
+    "robots": "noindex,follow",
+    "og_locale": "ja_JP",
+    "og_url": "/blog/bilingual-published-post",
+    "html_lang": "ja",
+    "hreflang": [
+      [
+        "en",
+        "/en/blog/bilingual-published-post"
+      ],
+      [
+        "ko",
+        "/blog/bilingual-published-post"
+      ],
+      [
+        "x-default",
+        "/blog/bilingual-published-post"
+      ]
+    ]
+  },
+  "GET /es/blog/bilingual-published-post": {
+    "status": 200,
+    "canonical": "/blog/bilingual-published-post",
+    "robots": "noindex,follow",
+    "og_locale": "es_ES",
+    "og_url": "/blog/bilingual-published-post",
+    "html_lang": "es",
+    "hreflang": [
+      [
+        "en",
+        "/en/blog/bilingual-published-post"
+      ],
+      [
+        "ko",
+        "/blog/bilingual-published-post"
+      ],
+      [
+        "x-default",
+        "/blog/bilingual-published-post"
+      ]
+    ]
+  },
+  "MODEL bilingual-published-post": {
+    "indexable_locales": [
+      "ko",
+      "en"
+    ],
+    "indexable": {
+      "ko": true,
+      "en": true,
+      "ja": false,
+      "es": false
+    },
+    "translated": {
+      "ko": true,
+      "en": true,
+      "ja": false,
+      "es": false
+    }
+  },
+  "GET /blog/draft-post": {
+    "status": 200,
+    "canonical": "/blog/draft-post",
+    "robots": "noindex,follow",
+    "og_locale": "ko_KR",
+    "og_url": "/blog/draft-post",
+    "html_lang": "ko",
+    "hreflang": []
+  },
+  "GET /en/blog/draft-post": {
+    "status": 200,
+    "canonical": "/blog/draft-post",
+    "robots": "noindex,follow",
+    "og_locale": "en_US",
+    "og_url": "/blog/draft-post",
+    "html_lang": "en",
+    "hreflang": []
+  },
+  "GET /ja/blog/draft-post": {
+    "status": 200,
+    "canonical": "/blog/draft-post",
+    "robots": "noindex,follow",
+    "og_locale": "ja_JP",
+    "og_url": "/blog/draft-post",
+    "html_lang": "ja",
+    "hreflang": []
+  },
+  "GET /es/blog/draft-post": {
+    "status": 200,
+    "canonical": "/blog/draft-post",
+    "robots": "noindex,follow",
+    "og_locale": "es_ES",
+    "og_url": "/blog/draft-post",
+    "html_lang": "es",
+    "hreflang": []
+  },
+  "MODEL draft-post": {
+    "indexable_locales": [],
+    "indexable": {
+      "ko": false,
+      "en": false,
+      "ja": false,
+      "es": false
+    },
+    "translated": {
+      "ko": true,
+      "en": false,
+      "ja": false,
+      "es": false
+    }
+  },
+  "GET /blog/korean-only-post": {
+    "status": 200,
+    "canonical": "/blog/korean-only-post",
+    "robots": null,
+    "og_locale": "ko_KR",
+    "og_url": "/blog/korean-only-post",
+    "html_lang": "ko",
+    "hreflang": [
+      [
+        "ko",
+        "/blog/korean-only-post"
+      ],
+      [
+        "x-default",
+        "/blog/korean-only-post"
+      ]
+    ]
+  },
+  "GET /en/blog/korean-only-post": {
+    "status": 200,
+    "canonical": "/blog/korean-only-post",
+    "robots": "noindex,follow",
+    "og_locale": "en_US",
+    "og_url": "/blog/korean-only-post",
+    "html_lang": "en",
+    "hreflang": [
+      [
+        "ko",
+        "/blog/korean-only-post"
+      ],
+      [
+        "x-default",
+        "/blog/korean-only-post"
+      ]
+    ]
+  },
+  "GET /ja/blog/korean-only-post": {
+    "status": 200,
+    "canonical": "/blog/korean-only-post",
+    "robots": "noindex,follow",
+    "og_locale": "ja_JP",
+    "og_url": "/blog/korean-only-post",
+    "html_lang": "ja",
+    "hreflang": [
+      [
+        "ko",
+        "/blog/korean-only-post"
+      ],
+      [
+        "x-default",
+        "/blog/korean-only-post"
+      ]
+    ]
+  },
+  "GET /es/blog/korean-only-post": {
+    "status": 200,
+    "canonical": "/blog/korean-only-post",
+    "robots": "noindex,follow",
+    "og_locale": "es_ES",
+    "og_url": "/blog/korean-only-post",
+    "html_lang": "es",
+    "hreflang": [
+      [
+        "ko",
+        "/blog/korean-only-post"
+      ],
+      [
+        "x-default",
+        "/blog/korean-only-post"
+      ]
+    ]
+  },
+  "MODEL korean-only-post": {
+    "indexable_locales": [
+      "ko"
+    ],
+    "indexable": {
+      "ko": true,
+      "en": false,
+      "ja": false,
+      "es": false
+    },
+    "translated": {
+      "ko": true,
+      "en": false,
+      "ja": false,
+      "es": false
+    }
+  },
+  "GET /blog/scheduled-post": {
+    "status": 200,
+    "canonical": "/blog/scheduled-post",
+    "robots": "noindex,follow",
+    "og_locale": "ko_KR",
+    "og_url": "/blog/scheduled-post",
+    "html_lang": "ko",
+    "hreflang": []
+  },
+  "GET /en/blog/scheduled-post": {
+    "status": 200,
+    "canonical": "/blog/scheduled-post",
+    "robots": "noindex,follow",
+    "og_locale": "en_US",
+    "og_url": "/blog/scheduled-post",
+    "html_lang": "en",
+    "hreflang": []
+  },
+  "GET /ja/blog/scheduled-post": {
+    "status": 200,
+    "canonical": "/blog/scheduled-post",
+    "robots": "noindex,follow",
+    "og_locale": "ja_JP",
+    "og_url": "/blog/scheduled-post",
+    "html_lang": "ja",
+    "hreflang": []
+  },
+  "GET /es/blog/scheduled-post": {
+    "status": 200,
+    "canonical": "/blog/scheduled-post",
+    "robots": "noindex,follow",
+    "og_locale": "es_ES",
+    "og_url": "/blog/scheduled-post",
+    "html_lang": "es",
+    "hreflang": []
+  },
+  "MODEL scheduled-post": {
+    "indexable_locales": [],
+    "indexable": {
+      "ko": false,
+      "en": false,
+      "ja": false,
+      "es": false
+    },
+    "translated": {
+      "ko": true,
+      "en": false,
+      "ja": false,
+      "es": false
+    }
+  }
+}

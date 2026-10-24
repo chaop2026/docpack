@@ -12,7 +12,7 @@
   "files": [
     {
       "name": "post_ja.md",
-      "bytes": 3441
+      "bytes": 3433
     },
     {
       "name": "post_en.md",
@@ -20,7 +20,7 @@
     },
     {
       "name": "x_thread.md",
-      "bytes": 1096
+      "bytes": 1168
     },
     {
       "name": "carousel_1.png",
@@ -38,7 +38,7 @@
       "pixels": "1080x1350"
     }
   ],
-  "demo": "failed: no dummy document exists for doc=\"契約書\" (only shikaku_kakuninsho, unten_menkyo, mynumber_card, juminhyo have fixtures)",
+  "demo": "skipped: --no-demo",
   "warnings": [],
   "posted": {
     "x": false,

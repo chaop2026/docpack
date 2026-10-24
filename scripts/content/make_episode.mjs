@@ -49,7 +49,16 @@ const FIXTURE_FOR_DOC = {
   juminhyo: 'jp/juminhyo/ichibu_plain.jpg'
 };
 
-const TWEET_LIMIT = 140;
+// The writing rules are NOT defined here any more. They live in
+// content/jp/guard_rules.json so the server's JpContentGuard enforces the same
+// list on import — a rule that exists in one of the two places is a rule the
+// other half of the project can break without anything saying so.
+const { RULES, weightedLength, runForbidden, runLegalClaim, mustLineViolations } =
+  await import(pathToFileURL(path.join(__dirname, 'guard_rules.mjs')).href);
+
+// Our editorial limit, not X's. X's actual cap is RULES.limits.tweet_weighted
+// (280 weighted); 140 keeps a thread readable. Both are reported by name.
+const TWEET_LIMIT = RULES.limits.tweet_editorial;
 
 /* ── args ─────────────────────────────────────────────────────────────────── */
 const argv = process.argv.slice(2);
@@ -62,6 +71,14 @@ if (!epArg) {
 const EP = Number(epArg);
 const EPP = String(EP).padStart(2, '0');   // the zero-padded form used in folder names, UTM tags and labels
 const epDir = path.join(CONTENT, 'ep' + EPP);
+
+// Read BEFORE anything is written. The parts of a manifest this script does not
+// own — `posted`, which records what has actually been published — are carried
+// forward from it; see the manifest literal near the bottom of this file.
+const manifestPath = path.join(epDir, 'manifest.json');
+const prevManifest = fs.existsSync(manifestPath)
+  ? (() => { try { return JSON.parse(fs.readFileSync(manifestPath, 'utf8')); } catch { return {}; } })()
+  : {};
 
 /* ── plan ─────────────────────────────────────────────────────────────────── */
 const plan = JSON.parse(fs.readFileSync(path.join(CONTENT, 'topics.json'), 'utf8'));
@@ -154,8 +171,8 @@ if (enBody === null) warnings.push('post_en.md is absent — write the English v
  * into its own tweet rather than squeezing the CTA to make room: a thread with
  * six tweets is fine, a CTA the author did not write is not.
  */
-const MUST_LINE = '提出先の指示を必ず確認してください';
-const MUST_SENTENCE = `${MUST_LINE}。`;
+const MUST_LINE = RULES.mustLine;
+const MUST_SENTENCE = RULES.mustSentence;
 const ctaTweet = `${fm.cta}\n${MUST_SENTENCE}\n${utmUrl}`;
 const tweets = [
   `${fm.hook}\n\n${fm.title}`,
@@ -180,10 +197,17 @@ const threadMd = [
   `> ${topic.title_ja}`,
   `> landing: ${utmUrl}`,
   '',
+  // Both numbers, labelled. 字 is what the author counts; weighted is what X
+  // counts (CJK 2, URL a flat 23) and is the only one that decides whether the
+  // tweet can be posted. v3 conflated them.
   ...tweets.flatMap((t, i) => {
     const len = [...t].length;
-    const flag = len > TWEET_LIMIT ? `  ⚠ OVER ${TWEET_LIMIT}字` : '';
-    return [`## ${i + 1} / ${tweets.length}  (${len}字)${flag}`, '', '```', t, '```', ''];
+    const w = weightedLength(t);
+    const flag = [
+      len > TWEET_LIMIT ? `⚠ 編集上限 ${TWEET_LIMIT}字 超過` : '',
+      w > RULES.limits.tweet_weighted ? `🛑 X上限 ${RULES.limits.tweet_weighted} 超過` : ''
+    ].filter(Boolean).join(' / ');
+    return [`## ${i + 1} / ${tweets.length}  (${len}字 / weighted ${w})${flag ? '  ' + flag : ''}`, '', '```', t, '```', ''];
   })
 ].join('\n');
 
@@ -214,57 +238,45 @@ const CORPUS = [
   [ 'carousel text (generated)', [fm.title, fm.hook, ...fm.bullets, fm.cta].join('\n') ]
 ];
 
-const FORBIDDEN = [
-  { re: /タイムズカー/, why: 'incident name — the strategy forbids naming it' },
-  { re: /絶対/, why: '「絶対」 is forbidden; use 原則 / リスクを下げる' },
-  { re: /唯一/, why: '「唯一」 is forbidden' },
-  { re: /必ず安全/, why: '「必ず安全」 is forbidden' },
-  { re: /防ぎます|防げます/, why: '「防ぐ」 is forbidden; use リスクを下げる' },
+// The list itself is content/jp/guard_rules.json (see guard_rules.mjs).
+const violations = runForbidden(CORPUS);
 
-  // Unshipped features. The tool's file input has no `multiple` attribute and
-  // handleFile() reads files[0], so every one of these describes something that
-  // does not exist. 「一括処理」 alone used to be the whole rule, which is why
-  // 「複数枚をまとめて読み込めます」 walked straight past it — the paraphrase
-  // and the English wording are the forms a draft actually reaches for.
-  { re: /複数(枚|ファイル|のPDF|PDF)/, why: 'multi-file input has not shipped — the file input takes one file' },
-  { re: /まとめて(読み込|処理|ダウンロード)/, why: 'multi-file input has not shipped' },
-  { re: /一括/, why: 'batch processing has not shipped — do not advertise it' },
-  { re: /処理記録|処理ログ/, why: 'the processing log is a Team-plan roadmap item, not a shipped feature' },
-  { re: /\bbatch\b/i, why: 'batch processing has not shipped' },
-  { re: /several files|multiple files|all at once|at once is fine/i, why: 'multi-file input has not shipped' },
-  { re: /processing log/i, why: 'the processing log has not shipped' },
+// The required line, checked as its own line ending in 「。」 rather than as a
+// substring — cross-review Q4 asked for the punctuation and the line break to
+// be part of the rule, because a line buried mid-paragraph reads as copy
+// instead of as the standing instruction.
+violations.push(...mustLineViolations('post_ja.md (body)', body));
 
-  // Legal effect. topics.json caps every claim at 「制限される場合があります」
-  // / "may be restricted", and these are the phrasings that assert the current
-  // state of the law instead. We have no lawyer's review of any of this, so an
-  // assertion is a claim we cannot back.
-  { re: /制限されています|禁止されています|違法です/, why: 'asserts current legal effect; cap is 「制限される場合があります」' },
-  { re: /is restricted|is prohibited|is illegal|law constrains/i, why: 'asserts current legal effect; cap is "may be restricted"' },
-
-  // First-person victim story. A heuristic, not a judgement: it catches the
-  // shape the strategy forbids (a personal leak told as having happened to the
-  // author) and nothing else. It cannot replace reading the draft, and the
-  // report says so rather than implying the rule is now automated.
-  { re: /私の.{0,40}(免許証|保険証|住民票|マイナンバー).{0,60}(流出|漏えい|漏洩|晒され)/s,
-    why: 'first-person victim story — the strategy forbids writing one' }
-];
-
-const violations = [];
-for (const [where, text] of CORPUS) {
-  for (const f of FORBIDDEN) {
-    const m = text.match(f.re);
-    if (m) violations.push(`${where}: 「${m[0].slice(0, 40)}」 — ${f.why}`);
-  }
-}
-if (!body.includes(MUST_LINE)) violations.push(`post_ja.md (body) is missing the required line 「${MUST_LINE}」`);
-if (enBody && !/check the recipient's own instructions/i.test(enBody)) {
-  violations.push('post_en.md is missing the English form of the required line ("check the recipient\'s own instructions")');
+if (enBody && !new RegExp(RULES.mustLineEn, 'i').test(enBody)) {
+  violations.push(`post_en.md is missing the English form of the required line ("${RULES.mustLineEn}")`);
 }
 // The required line is appended above, so this can only fail if that code is
 // changed. That is exactly when it should fail: the thread is the surface that
 // shipped without it.
 if (!tweets.some((t) => t.includes(MUST_LINE))) {
   violations.push(`x_thread.md (generated) carries no 「${MUST_LINE}」 — the generator stopped adding it`);
+}
+
+// Conditional source requirement: only fires when the article actually makes a
+// claim about what the law requires or restricts. The whole published article is
+// the scope — the claim and its source need not share a paragraph, but they do
+// have to reach the same reader.
+violations.push(...runLegalClaim('post_ja.md', [fm.title, fm.hook, fm.cta, ...fm.bullets, body].join('\n')));
+if (enBody) violations.push(...runLegalClaim('post_en.md', enBody));
+
+// Title length, by the same number the server uses.
+if ([...fm.title].length > RULES.limits.title_chars) {
+  violations.push(`post_ja.md (frontmatter): title は ${RULES.limits.title_chars}字以内 — 現在 ${[...fm.title].length}字`);
+}
+
+// Weighted length, reported for every tweet. The editorial limit is a warning
+// (above); exceeding X's own 280 weighted cap is a violation, because such a
+// tweet cannot be posted at all.
+const tooHeavy = tweets
+  .map((t, i) => ({ i: i + 1, w: weightedLength(t) }))
+  .filter((t) => t.w > RULES.limits.tweet_weighted);
+if (tooHeavy.length) {
+  violations.push(`x_thread.md (generated): tweet(s) ${tooHeavy.map((t) => `${t.i} (weighted ${t.w})`).join(', ')} exceed X's own limit of ${RULES.limits.tweet_weighted}`);
 }
 if (violations.length) {
   console.error(`\nep${EP}: content rules violated — nothing was written:\n`);
@@ -525,6 +537,17 @@ const fileEntry = (name) => {
   if (size) entry.pixels = `${size.width}x${size.height}`;
   return entry;
 };
+// `--no-demo` means "do not re-record", not "the demo does not exist". If the
+// artifacts are still on disk, the previous manifest's own description of them
+// is the truest thing we have; overwriting it with "skipped" would make a
+// rebuild-for-a-guard-change look like a regression in the assets.
+const demoForManifest = () => {
+  if (!noDemo) return demo;
+  const kept = ['demo.gif', 'demo.mp4'].filter((n) => fs.existsSync(path.join(epDir, n)));
+  if (!kept.length || !prevManifest.demo || /^(skipped|failed)/.test(prevManifest.demo)) return demo;
+  return `${prevManifest.demo} (carried over — this run used --no-demo)`;
+};
+
 const manifest = {
   ep: EP,
   week: topic.week,
@@ -538,17 +561,24 @@ const manifest = {
   generated_by: 'scripts/content/make_episode.mjs',
   files: ['post_ja.md', 'post_en.md', 'x_thread.md', 'carousel_1.png', 'carousel_2.png', 'carousel_3.png', 'demo.gif', 'demo.mp4']
     .map(fileEntry).filter(Boolean),
-  demo,
+  demo: demoForManifest(),
   warnings,
   // Publishing checklist. Justin ticks these by hand after posting, then sets
   // topics.json status to "posted". They start false — a checklist that
   // defaults to done is not a checklist.
-  posted: { x: false, youtube_shorts: false, instagram: false, blog: false }
+  //
+  // CARRIED OVER, not recomputed. These record what happened in the world, and
+  // this script cannot know it. Measured 2026-10-25: re-running ep01 with
+  // --no-demo to pick up a guard change reset `posted.x` from true to false and
+  // dropped the pinned tweet URL — the manifest then said the thread had never
+  // been posted, which is the kind of wrong that reads as fresh work. A rebuild
+  // of the ASSETS must not rewrite the record of the PUBLISHING.
+  posted: { x: false, youtube_shorts: false, instagram: false, blog: false, ...(prevManifest.posted || {}) }
 };
 fs.writeFileSync(path.join(epDir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
 
 process.stdout.write(`\nep${EPP} built in ${path.relative(REPO, epDir)}\n`);
-process.stdout.write(`  demo: ${demo}\n`);
+process.stdout.write(`  demo: ${manifest.demo}\n`);
 if (warnings.length) {
   process.stdout.write('\nwarnings:\n');
   warnings.forEach((w) => process.stdout.write('  - ' + w + '\n'));

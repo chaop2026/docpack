@@ -1,0 +1,22 @@
+🛡️ 𝗦𝗮𝗳𝗲𝗙𝗶𝗹𝗲 — redact only what the recipient doesn't need. In your browser.
+
+I shipped a small tool for a very specific paperwork problem.
+
+📄 𝗧𝗵𝗲 𝗽𝗿𝗼𝗯𝗹𝗲𝗺
+Companies bidding on public-works contracts in Japan must attach a copy of their health-insurance certificate — insurer/insured numbers blacked out, name and employer still visible. Miss one number → the bid comes back.
+
+⚙️ 𝗪𝗵𝗮𝘁 𝗶𝘁 𝗱𝗼𝗲𝘀
+• Detects which document you uploaded (資格確認書, driver's licence, My Number card, 住民票)
+• Applies the redaction rules for the stated purpose
+• Flattens the output to an image — nothing remains under the black bars
+• Everything runs in the browser; files never leave your machine
+
+🧑‍💻 𝗛𝗼𝘄 𝗶𝘁 𝗶𝘀 𝗯𝘂𝗶𝗹𝘁
+Solo developer, on top of slimfile.net (my file-compression service). Rails outside, plain JavaScript + Tesseract OCR inside. Free, no sign-up.
+
+👉 Try it: https://slimfile.net/safe/jp/nyusatsu/?utm_source=linkedin&utm_campaign=launch
+English UI: https://slimfile.net/safe/?lang=en
+
+⚠️ Always follow the recipient's instructions — the tool applies rules; the rules come from them.
+
+#redaction #privacy #Japan #indiehacker #Rails

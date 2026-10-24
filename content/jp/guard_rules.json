@@ -1,0 +1,132 @@
+{
+  "_readme": [
+    "SafeFile JP content guard rules — the SINGLE source for the writing rules that",
+    "can be checked mechanically. Strategy v3.1 §3-1 and §3-4.",
+    "",
+    "Two engines read this file and must agree:",
+    "  * scripts/content/make_episode.mjs  (Mac, before the assets are written)",
+    "  * app/services/jp_content_guard.rb  (server, on every content:jp_import)",
+    "",
+    "Before S8 the two lived apart: make_episode.mjs held the list as JS constants",
+    "and the server had no check at all. Cross-review Q4 asked for one source,",
+    "because a rule enforced in one place and trusted in the other is a rule that",
+    "exists in one place — the exact way ep01 shipped 「複数枚をまとめて読み込めます」",
+    "with a clean build (the guard was reading only the Japanese body at the time).",
+    "",
+    "── Regex portability ──────────────────────────────────────────────────────",
+    "Patterns are plain strings compiled by BOTH JavaScript RegExp and Ruby Regexp,",
+    "so they must stay inside the syntax both accept. Flags are declared as fields",
+    "rather than written inline ((?i) is Ruby-only, and dotall is `s` in JS but `m`",
+    "in Ruby): use \"ignorecase\": true and \"dotall\": true. Lookbehind is used in",
+    "one place (legal_claim #4) and is supported by both engines; both loaders",
+    "compile every pattern at startup, so an unportable one fails loudly on the",
+    "next run instead of silently never matching.",
+    "",
+    "── What is NOT in here ────────────────────────────────────────────────────",
+    "Rules that a regex cannot decide. They are listed in scripts/content/README.md",
+    "under a separate heading so that «there is a rule» and «the rule is enforced»",
+    "do not look the same: a first-person victim account (the pattern below catches",
+    "one shape of it, not the idea), and the ≤800px reduced-illustration rule for",
+    "dummy documents (no episode carries an illustration, so nothing fires it)."
+  ],
+
+  "must_line": {
+    "ja": "提出先の指示を必ず確認してください",
+    "ja_sentence": "提出先の指示を必ず確認してください。",
+    "en": "check the recipient's own instructions",
+    "_note": [
+      "The Japanese form must appear as its OWN LINE and must end in 「。」.",
+      "Cross-review Q4 asked for the punctuation to be part of the rule: a line",
+      "that trails off mid-sentence, or one buried inside a paragraph, reads as",
+      "copy rather than as the standing instruction it is."
+    ]
+  },
+
+  "limits": {
+    "title_chars": 32,
+    "tweet_weighted": 280,
+    "tweet_editorial": 140,
+    "linkedin_chars": 1300,
+    "faq_questions": 3,
+    "body_chars_min": 1500,
+    "body_chars_max": 2200,
+    "_note": [
+      "tweet_weighted (280) is X's actual limit under twitter-text weighting: CJK",
+      "counts 2, Latin 1, any URL a flat 23, and an emoji ZWJ sequence 2 for the",
+      "whole cluster. tweet_editorial (140) is OUR house limit, not the platform's",
+      "— v3 called 140 «X's limit», which cross-review Q3 corrected. The guard",
+      "fails on tweet_editorial so threads stay readable, and says which number it",
+      "is failing on; a tweet over 280 is impossible to post at all."
+    ]
+  },
+
+  "forbidden": [
+    { "id": "incident_name", "re": "タイムズカー", "why": "事件名 — 戦略が名指しを禁じている / incident name, the strategy forbids naming it" },
+    { "id": "zettai", "re": "絶対", "why": "「絶対」は断定 — 「原則」「リスクを下げる」を使う" },
+    { "id": "yuitsu", "re": "唯一", "why": "「唯一」は断定" },
+    { "id": "kanarazu_anzen", "re": "必ず安全", "why": "「必ず安全」は断定" },
+    { "id": "kanzen_ni", "re": "完全に", "why": "「完全に」は断定 — 「読み取れなくする」に置き換える" },
+    { "id": "hundred_percent", "re": "100\\s*(%|％)", "why": "「100%」は断定" },
+    {
+      "id": "fusegu_all_forms",
+      "re": "防[ぐぎげがごい]",
+      "why": "「防ぐ」は活用形すべて禁止(防ぐ/防ぎます/防げます/防いで/防がない…) — 「リスクを下げる」を使う",
+      "_note": "Cross-review Q4: the old rule listed 防ぎます|防げます only, so 「防ぐ」「防いで」「防げる」 walked past it. 防 followed by one of ぐぎげがごい is the verb; 防止・防犯・消防・予防する are followed by other characters and do not match."
+    },
+
+    { "id": "ikkatsu", "re": "一括", "why": "一括処理は未出荷 — 宣伝しない" },
+    { "id": "fukusu_files", "re": "複数(枚|ファイル|のPDF|PDF|書類をまとめ)", "why": "複数ファイル入力は未出荷 — ファイル入力は1件のみ" },
+    { "id": "matomete", "re": "まとめて(読み込|処理|ダウンロード|黒塗り)", "why": "複数ファイル入力は未出荷" },
+    { "id": "shori_kiroku", "re": "処理記録|処理ログ", "why": "処理ログはチームプランのロードマップ項目で、出荷済み機能ではない" },
+    { "id": "hozon_kyoyu", "re": "保存して(共有|おく)|共有リンク", "why": "保存・共有リンクは未出荷" },
+    { "id": "batch_en", "re": "\\bbatch\\b", "ignorecase": true, "why": "batch processing has not shipped" },
+    { "id": "multifile_en", "re": "several files|multiple files|all at once|at once is fine|in one pass|in bulk", "ignorecase": true, "why": "multi-file input has not shipped" },
+    { "id": "proclog_en", "re": "processing log", "ignorecase": true, "why": "the processing log has not shipped" },
+
+    { "id": "legal_assert_ja", "re": "制限されています|禁止されています|違法です|義務づけられています|原則として制限されて", "why": "法的効果を断定している — 上限は「制限される場合があります」" },
+    { "id": "legal_assert_en", "re": "is restricted|is prohibited|is illegal|law constrains|are required by law", "ignorecase": true, "why": "asserts current legal effect; the cap is \"may be restricted\"" },
+
+    { "id": "anata", "re": "あなた", "why": "「あなた」は使わない — 主語を省略するか「提出する側」「担当者」" },
+    { "id": "first_person_brand", "re": "弊社|当社|私たち|我々", "why": "1人称ブランド話法は禁止 — 「SafeFile」または無主語" },
+    { "id": "first_person_brand_en", "re": "\\bwe (?:offer|provide|guarantee|ensure)\\b|\\bour (?:service|product|tool) (?:guarantees|ensures)\\b", "ignorecase": true, "why": "brand first-person / sales voice is forbidden on LinkedIn too" },
+
+    {
+      "id": "first_person_victim",
+      "re": "私の.{0,40}(免許証|保険証|住民票|マイナンバー).{0,60}(流出|漏えい|漏洩|晒され)",
+      "dotall": true,
+      "why": "1人称の被害談 — 戦略が書くことを禁じている",
+      "_note": "A heuristic: it catches one SHAPE (a personal leak told as having happened to the author) and nothing else. It does not replace reading the draft — see scripts/content/README.md."
+    }
+  ],
+
+  "legal_claim": {
+    "_note": [
+      "Cross-review Q4: «every article must carry a 施行日» invites hallucination.",
+      "A 手順 article about dragging a file onto a page has no legal claim to source,",
+      "and forcing one produces a citation nobody checked.",
+      "",
+      "So the rule is conditional: IF the text makes a claim about what the law",
+      "requires or restricts, THEN the same article must carry a primary source on a",
+      "*.go.jp host AND the date it was confirmed. If it makes no such claim it",
+      "passes untouched. The point is to stop unsourced legal assertions, not to get",
+      "a URL into every post — and a go.jp host passing a regex is NOT verification;",
+      "it only means a human had to put a checkable address next to the claim."
+    ],
+    "claim_patterns": [
+      { "id": "required", "re": "(が|を)(?:法令上)?求められ(て|ます|る|た)", "why": "「求められる」は法的要求の主張" },
+      { "id": "restricted", "re": "制限され(る|ます|て|た)", "why": "「制限される」は法的効果の主張" },
+      { "id": "duty", "re": "義務(が|を|です|づけ|化|です)", "why": "「義務」は法的義務の主張" },
+      { "id": "statute_named", "re": "(?<![方手用療文語作寸魔話漢])法(第[0-9０-９]+条|の規定|に基づ|により定め|上の)", "why": "法令・条項の名指し" },
+      { "id": "enforcement_date", "re": "施行(日|され|後|前)", "why": "施行日の主張" },
+      { "id": "kokuji", "re": "告示|省令|政令", "why": "告示・省令・政令の名指し" }
+    ],
+    "source_url_re": "https?://([a-zA-Z0-9-]+\\.)*go\\.jp(/|\\b)",
+    "confirmed_on_re": "確認日\\s*[:：]\\s*[0-9]{4}-[0-9]{2}-[0-9]{2}",
+    "why": "法的主張があるのに、同じ記事に *.go.jp の原文URLと「確認日: YYYY-MM-DD」がない"
+  },
+
+  "required_sections_ja": {
+    "_note": "Strategy v3.1 §3-2. Checked only as headings being present, not as prose quality.",
+    "faq_heading": "よくある質問"
+  }
+}

@@ -2102,3 +2102,12 @@ sleep 을 넣어야 한다; 문서의 주장을 「일반 봇을 속이는 fake 
 **B-10 (사람 확인)**: `nyusatsu` 의 meta/og/twitter description 이 아직 `複数PDFを一括` 이라고
 말한다 — 본문은 고쳤지만 검색 스니펫에는 단서가 들어갈 자리가 없다(대안 문안 §5).
 **일본 변호사 검토는 여전히 없다.**
+
+## JP-1 이슈 로그 추가 (2026-10-25 · S8)
+
+**`public/safe/작업물/` 정체 확인 필요 (Justin)** — 안에 PDF 1개
+(`SafeFile — 문서 속 개인정보, 1분 안에 지우고 공유.pdf`). `public/` 밑이므로 배포되면
+`ActionDispatch::Static` 이 `/safe/작업물/<파일명>` 으로 **공개 서빙한다**. 삭제하지 않고
+`.gitignore`(기존) + `.dockerignore`(S8 추가)로 **배포 대상에서만** 뺐다 — 제외는 되돌릴 수
+있고 삭제는 되돌릴 수 없다. 확인 후 (a) 삭제 / (b) `docs/` 로 이동 / (c) 의도적 공개물이면
+`.dockerignore` 에서 제거 중 택1.

@@ -9,7 +9,7 @@
 
 **title**: 入札添付の資格確認書・保険証コピー、番号だけ自動で黒塗り | SafeFile
 **meta description**: 公共工事の入札で求められる被保険者記号・番号・保険者番号のマスキングを、ブラウザだけで自動処理。ファイルはサーバーに送信しません。再提出をなくします。
-**KR 요지**: 입찰 첨부 보험증 사본의 번호 마스킹을 브라우저에서 자동·일괄 처리. 서버 미전송. 반려 방지.
+**KR 요지**: 입찰 첨부 보험증 사본의 번호 마스킹을 브라우저에서 자동 처리(일괄 처리는 파일럿 중 순차 제공). 서버 미전송. 반려 방지.
 
 ### H1
 入札添付の資格確認書、番号だけを自動で黒塗り。再提出をなくす。
@@ -149,7 +149,7 @@ AIに相談する前に、個人情報だけ黒塗り。文脈はそのまま。
 突然のご連絡失礼いたします。Tasicop の Justin と申します。公共工事の入札で添付する資格確認書・被保険者証の写しについて、被保険者記号・番号・保険者番号の黒塗りをブラウザ内で自動処理するツール「SafeFile」を運営しています。
 
 - 書類の種類を判定し、告知要求制限の対象箇所だけを黒塗り（氏名・事業所名は残ります）
-- 複数PDFを一括処理、ファイルはサーバーに送信しません
+- ファイルはサーバーに送信しません（複数PDFの一括処理はパイロット期間中に順次提供）
 - 出力は画像に平坦化され、黒塗りの下に原文が残りません
 
 現在、入札書類を月に複数件提出されている事業者様を対象に、先着10社へチームプラン（通常月額2,980円）を3か月無料でご提供しています。お返事として「よく提出される発注者名」を1つお知らせいただければ、その発注者の指示に合わせたプリセットを用意してお送りします。
@@ -162,6 +162,6 @@ Tasicop / Justin（成勲）
 chaop2@gmail.com
 
 **EN**: Subject: 3 months free for the first 10 companies — automatic redaction of tender attachment documents (SafeFile)
-Dear Sir/Madam, I am Justin at Tasicop. SafeFile automatically redacts the insured symbol/number and insurer number on health-insurance certificate copies attached to public-works tenders, entirely in the browser. It detects the document type, blacks out only the fields subject to the disclosure restriction, processes multiple PDFs at once, and never uploads your files. Output is flattened to an image, so no original text remains under the black bars. We are offering the Team plan (normally ¥2,980/month) free for 3 months to the first 10 companies that submit tender documents monthly. Reply with the name of one contracting authority you submit to most, and we will prepare a preset matching its instructions. Try it in 5 minutes: https://slimfile.net/safe/jp/nyusatsu/ — Justin, Tasicop
+Dear Sir/Madam, I am Justin at Tasicop. SafeFile automatically redacts the insured symbol/number and insurer number on health-insurance certificate copies attached to public-works tenders, entirely in the browser. It detects the document type, blacks out only the fields subject to the disclosure restriction, never uploads your files (batch processing of multiple PDFs arrives progressively during the pilot). Output is flattened to an image, so no original text remains under the black bars. We are offering the Team plan (normally ¥2,980/month) free for 3 months to the first 10 companies that submit tender documents monthly. Reply with the name of one contracting authority you submit to most, and we will prepare a preset matching its instructions. Try it in 5 minutes: https://slimfile.net/safe/jp/nyusatsu/ — Justin, Tasicop
 
 **KR 요지**: 입찰 첨부 서류 자동 마스킹 툴 소개, 선착 10사 3개월 무료, 자주 내는 발주처 1곳만 회신하면 프리셋 제작.
