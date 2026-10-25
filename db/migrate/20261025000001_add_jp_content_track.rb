@@ -17,6 +17,25 @@ class AddJpContentTrack < ActiveRecord::Migration[8.0]
   # to rows the default was in place for and this column is being added to rows
   # that already exist.
   def up
+    # Bounded waiting, on a table that production serves every blog request
+    # from (cross-review Q4).
+    #
+    # lock_timeout     — ADD COLUMN needs ACCESS EXCLUSIVE. Without a bound it
+    #                    queues behind any open transaction on `posts`, and
+    #                    because it queues, every SELECT arriving after it
+    #                    queues behind IT. One slow reader turns a
+    #                    sub-second migration into a site-wide stall. 5s means
+    #                    the deploy fails and is retried instead.
+    # statement_timeout— a cap on the statements themselves. Everything here is
+    #                    metadata-only on Postgres 11+ (the defaults are not
+    #                    backfilled into existing rows), so 30s is enormous
+    #                    slack; it exists to turn "wedged" into "failed".
+    #
+    # SET LOCAL, so both revert at the end of this migration's transaction and
+    # nothing leaks into the session that runs the next one.
+    execute "SET LOCAL lock_timeout = '5s'"
+    execute "SET LOCAL statement_timeout = '30s'"
+
     add_column :posts, :title_ja,            :string
     add_column :posts, :subtitle_ja,         :string
     add_column :posts, :body_ja,             :text
@@ -93,6 +112,19 @@ class AddJpContentTrack < ActiveRecord::Migration[8.0]
               name: "index_blog_topics_on_track_and_ep"
   end
 
+  # ⚠️ `down` DROPS the Japanese columns, and with them every Japanese post's
+  # body, title and package — including `package.x.tweets`, which is the only
+  # record of which tweets are already live on the timeline.
+  #
+  # So rolling back is only non-destructive BEFORE any JP row exists:
+  #
+  #   no jp rows yet   → safe. Verified by a rollback/migrate round trip on the
+  #                      development database (see docs/jp/s8b_report.md).
+  #   jp rows exist    → DATA LOSS. Take a `pg_dump` first, and expect to lose
+  #                      the knowledge of what has been posted even with it —
+  #                      restoring a dump does not un-post a tweet.
+  #
+  # `SELECT count(*) FROM posts WHERE content_track = 'jp'` is the check.
   def down
     remove_index :blog_topics, name: "index_blog_topics_on_track_and_ep"
     remove_check_constraint :blog_topics, name: "blog_topics_track_check"

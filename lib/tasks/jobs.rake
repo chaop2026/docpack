@@ -86,13 +86,25 @@ namespace :blog do
     # state saying "owed" with nothing scheduled to pay it. This re-enqueues
     # from the state.
     #
-    # Safe to run repeatedly: XPublishJob takes a row lock, skips every tweet
-    # already marked done, and refuses to move past an 'unknown' one without an
-    # explicit human decision. Running it twice posts nothing twice.
+    # Safe to run repeatedly: XPublishJob claims the thread before sending,
+    # skips every tweet already marked done, and refuses to move past an
+    # 'unknown' one without an explicit human decision. Running it twice posts
+    # nothing twice.
     candidates = Post.jp.select do |p|
       state = p.package.dig("x", "state")
       state.in?(%w[pending partial_failed]) ||
         (state == "unknown" && p.package.dig("x", "resume_requested"))
+    end
+
+    # An un-approved package is not re-enqueued at all (cross-review Q3).
+    # XPublishJob would block it anyway — the fingerprint check is fail-closed —
+    # but blocking it leaves `x.state='blocked'` behind, which reads as "this
+    # went wrong" when the truth is "nobody approved it yet". Refusing at the
+    # enqueue keeps the state honest and says what to do instead.
+    unapproved, candidates = candidates.partition { |p| p.package["approved_at"].blank? }
+    unapproved.each do |p|
+      warn "SKIP ep#{p.content_ep} #{p.slug}: 承認されていません (approved_at なし) — " \
+           "/admin/jp/packages/#{p.content_ep} で承認してください"
     end
 
     if candidates.empty?

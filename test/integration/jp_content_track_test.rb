@@ -137,10 +137,9 @@ class JpContentTrackTest < ActionDispatch::IntegrationTest
 
     before = post.slice(:title_ja, :body_ja, :body_en, :status).merge("pkg" => post.package)
 
-    # What the rake task does when the freeze holds.
-    refute(post.status == "draft" && post.package["approved_at"].blank?,
-           "the guard condition must be false for an approved package")
-    JpImport.record_conflict!(post, source)
+    # The SERVICE refuses, not the caller. Called directly with no pre-check in
+    # front of it, which is the arrangement cross-review Q2 asked for.
+    assert_equal :conflict, JpImport.apply!(post: post, source: source, topic: topic)
     post.reload
 
     assert_equal before["title_ja"], post.title_ja
@@ -149,6 +148,89 @@ class JpContentTrackTest < ActionDispatch::IntegrationTest
     assert_equal before["pkg"]["approved_version"], post.package["approved_version"]
     assert post.import_conflict.present?
     assert_equal source.content_hash, post.import_conflict["content_hash"]
+  end
+
+  test "a DIFFERENT body cannot be written into an approved package" do
+    # The previous test's source happens to match what is already stored. This
+    # one makes the disk genuinely different, so "nothing changed" cannot be
+    # true by coincidence.
+    post, _, topic = import!
+    post.update!(published_at: 1.day.from_now)
+    JpApproval.approve!(post, topic: topic)
+    post.reload
+    before_body = post.body_ja
+    before_version = post.package["approved_version"]
+    before_assets = post.package_assets.map { |a| a.filename.to_s }.sort
+
+    other = source
+    other.define_singleton_method(:body_ja_html) { "<p>まったく違う本文</p>" }
+    other.define_singleton_method(:title_ja) { "差し替えられたタイトル" }
+    other.define_singleton_method(:content_hash) { "deadbeef" * 8 }
+
+    assert_equal :conflict, JpImport.apply!(post: post, source: other, topic: topic)
+    post.reload
+
+    assert_equal before_body, post.body_ja, "an approved body must not be replaced"
+    refute_equal "差し替えられたタイトル", post.title_ja
+    assert_equal before_version, post.package["approved_version"]
+    assert_equal before_assets, post.package_assets.map { |a| a.filename.to_s }.sort
+    assert_equal "deadbeef" * 8, post.import_conflict["content_hash"],
+                 "the conflict record names the version that was refused"
+  end
+
+  test "an approval landing after the caller's check still blocks the write" do
+    # The window cross-review Q2 named: the rake task reads `status == draft`,
+    # the human presses 承認 a moment later, and the import overwrites an
+    # approved package. Reproduced by doing the caller's check first, then
+    # approving, then calling the service — which is exactly that ordering.
+    post, _, topic = import!
+    post.update!(published_at: 1.day.from_now)
+
+    assert JpImport.writable?(post), "the caller's check passes at this instant"
+
+    JpApproval.approve!(post, topic: topic)     # ← the race
+    body_before = post.reload.body_ja
+
+    other = source
+    other.define_singleton_method(:body_ja_html) { "<p>レースで入った本文</p>" }
+    other.define_singleton_method(:content_hash) { "f" * 64 }
+
+    assert_equal :conflict, JpImport.apply!(post: post, source: other, topic: topic),
+                 "the service must re-check under the lock, not trust the caller"
+    assert_equal body_before, post.reload.body_ja
+  end
+
+  test "an unchanged import writes nothing at all — not even updated_at" do
+    post, = import!
+    post.reload
+    before = { updated_at: post.updated_at, package: post.package.deep_dup }
+    asset_ids = post.package_assets.map(&:id).sort
+    hero_id = post.hero_image.attachment&.id
+
+    topic = BlogTopic.find_by(track: "jp", ep: EP)
+    assert_equal :unchanged, JpImport.apply!(post: post, source: source, topic: topic)
+    post.reload
+
+    assert_equal before[:updated_at].to_f, post.updated_at.to_f,
+                 "updated_at must not move — it would lie about when the content last changed"
+    assert_equal before[:package], post.package
+    assert_equal asset_ids, post.package_assets.map(&:id).sort,
+                 "Active Storage blobs must not be churned by a no-op import"
+    assert_equal hero_id, post.hero_image.attachment&.id
+  end
+
+  test "a changed guard verdict re-imports even when the episode files did not move" do
+    # `unchanged?` folds in the guard result on purpose: the rules live in a
+    # file the episode folder does not contain, so a tightened guard_rules.json
+    # has to be able to re-mark a package as violating.
+    post, _, topic = import!
+    post.update_column(:package, post.package.merge(
+      "guard" => { "violations" => [ "stale verdict from an older rule set" ] }
+    ))
+    post.reload
+
+    assert_equal :applied, JpImport.apply!(post: post, source: source, topic: topic)
+    assert_empty post.reload.guard_violations
   end
 
   test "import never overwrites the keys that record what was published" do
@@ -179,8 +261,89 @@ class JpContentTrackTest < ActionDispatch::IntegrationTest
     JpImport.record_conflict!(post, source)
     assert post.reload.import_conflict.present?
 
-    JpImport.apply!(post: post, source: source, topic: topic)
+    # Not :unchanged — `unchanged?` treats a recorded conflict as a reason to
+    # write, precisely so the stale conflict gets cleared instead of pinning
+    # the admin banner forever.
+    assert_equal :applied, JpImport.apply!(post: post, source: source, topic: topic)
     assert_nil post.reload.import_conflict
+  end
+
+  # ── what the rescue may and may not swallow (cross-review Q2) ───────────────
+
+  test "a RecordInvalid on slug :blank is re-raised — only :taken means we lost a race" do
+    # The sharpest case: the error is on the SAME attribute the rescue cares
+    # about, with a different error type. A rescue that keyed on the attribute
+    # alone — or, as the old one did, on "a row exists" — would swallow this
+    # and report a successful import of a post that was never created.
+    #
+    # (A blank title_ja cannot be used here: a JP post is created as a draft,
+    # and the published-post invariant does not apply to drafts, so it saves
+    # fine. That is the hole cross-review Q2 named and JpEpisodeSource#validate!
+    # now closes at the import boundary — see the validate! tests below.)
+    existing, = JpImport.find_or_create_post!(ep: EP, source: source)
+    assert existing.persisted?
+
+    s = source
+    s.define_singleton_method(:slug) { "" }
+
+    err = assert_raises(ActiveRecord::RecordInvalid) do
+      JpImport.find_or_create_post!(ep: 91, source: s)
+    end
+    assert_equal [ :slug ], err.record.errors.details.keys
+    assert_equal :blank, err.record.errors.details[:slug].first[:error],
+                 "a blank slug is a content error, not a lost race"
+    assert_nil Post.find_by(content_track: "jp", content_ep: 91),
+               "nothing may be created, and nothing may be adopted"
+  end
+
+  test "a slug collision IS swallowed, and only when the winner's row exists" do
+    first, created = JpImport.find_or_create_post!(ep: EP, source: source)
+    assert created
+
+    original_find_by = Post.method(:find_by)
+    calls = 0
+    Post.stub(:find_by, ->(*args) { (calls += 1) == 1 ? nil : original_find_by.call(*args) }) do
+      found, created_again = JpImport.find_or_create_post!(ep: EP, source: source)
+      assert_equal first.id, found.id
+      refute created_again
+    end
+  end
+
+  # ── input validation: "there is no package here" vs "it breaks a rule" ──────
+
+  test "a blank resolved title_ja is refused by validate!" do
+    s = source
+    s.define_singleton_method(:title_ja) { "" }
+    err = assert_raises(JpEpisodeSource::InvalidEpisode) { s.validate! }
+    assert_match(/blank title_ja/, err.message)
+  end
+
+  test "a body that renders to no prose is refused by validate!" do
+    s = source
+    s.define_singleton_method(:body_ja_html) { "<p></p>\n<table></table>" }
+    err = assert_raises(JpEpisodeSource::InvalidEpisode) { s.validate! }
+    assert_match(/no prose/, err.message)
+  end
+
+  test "an empty x_thread is refused by validate!" do
+    s = source
+    s.define_singleton_method(:x_thread) { [] }
+    err = assert_raises(JpEpisodeSource::InvalidEpisode) { s.validate! }
+    assert_match(/no tweets/, err.message)
+  end
+
+  test "a guard violation is NOT a validation failure — it imports and disables approval" do
+    # The two answers have to stay distinguishable: exit 1 means "there is no
+    # package", exit 0 + violations means "there is a package and it breaks a
+    # writing rule".
+    post, _, topic = import!
+    post.update_column(:package, post.package.merge("guard" => { "violations" => [ "x" ] }))
+    post.reload
+
+    assert_nothing_raised { source.validate! }
+    assert post.guard_violations.any?
+    refute post.approvable?(topic), "approval is disabled"
+    assert_equal "draft", post.status, "but the package is imported and present"
   end
 
   # ── routing ─────────────────────────────────────────────────────────────────
@@ -265,8 +428,8 @@ class JpContentTrackTest < ActionDispatch::IntegrationTest
 
     get "/ja/blog/#{post.slug}"
     # Compact JSON now (built as a Hash and serialised with to_json), so no
-            # space after the colon — the old pretty-printed spelling would pass
-            # only by accident of how the block was assembled.
+    # space after the colon — the old pretty-printed spelling would pass only by
+    # accident of how the block was assembled.
     assert_includes response.body, '"@type":"FAQPage"'
 
     post.update_column(:package, post.package.merge("faq" => []))

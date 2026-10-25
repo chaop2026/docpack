@@ -68,3 +68,36 @@ bilingual_published:
   published_at: <%= 1.day.ago.to_fs(:db) %>
   meta_description_ko: "한국어 설명 KODESC"
   meta_description_en: "English description ENDESC"
+
+# ── Added 2026-10-25 (S8b, cross-review Q1) ────────────────────────────────
+#
+# Two shapes the E-1 snapshot did not cover, both of which exercise branches
+# the Japanese track touched.
+
+# body_en WITHOUT body_ko, unpublished. The published-post invariant does not
+# apply to drafts, so this row is legal — and it is the shape that would break
+# if `translated?`/`indexable_locales` ever stopped folding in publication
+# state: English text exists, so a body-only rule would call /en indexable on a
+# post nobody has published.
+english_only_draft:
+  title_ko: "영문만 있는 초안"
+  title_en: "English-only draft"
+  body_ko: ""
+  body_en: "<p>English body on an unpublished post.</p>"
+  slug: "english-only-draft"
+  category: "global"
+  status: "draft"
+  meta_description_en: "Draft with an English body and no Korean one"
+
+# NOT fixtured: a post at the redirect TARGET (resident-number-masking /
+# contract-sharing-checklist).
+#
+# Those two slugs are owned by `blog:migrate_privacy`, and
+# test/integration/privacy_guide_ownership_test.rb asserts the database holds
+# none of them before that task runs. A fixture sitting on one would break that
+# assertion — measured: 8 failures, all the same precondition — and that
+# ownership guard is worth more than a second assertion here.
+#
+# The signal that can actually regress is the 301 itself (Search Console had
+# already indexed the old URLs), and the snapshot pins all eight of those —
+# both slugs x four locale prefixes — without needing a row at the target.

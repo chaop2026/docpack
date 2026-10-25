@@ -8,11 +8,13 @@ require "digest"
 # and upserts a Post keyed on (content_track='jp', content_ep=NN).
 #
 # ── Exit codes ──────────────────────────────────────────────────────────────
-#   0  imported or updated
-#   1  the episode cannot be imported at all (missing folder, blocked topic,
-#      unparseable file)
-#   2  refused: the package is already APPROVED or past draft. Nothing was
-#      written except a record of the conflict.
+#   0  imported, updated, or already up to date ("unchanged" — nothing written)
+#   1  the episode cannot be imported at all: missing folder, blocked topic,
+#      unparseable file, or it fails input validation (no title, no prose, no
+#      tweets). This is "there is no package here", NOT "the package breaks a
+#      writing rule" — a guard violation imports fine and exits 0, it just
+#      leaves the approval button disabled.
+#   2  refused: the package is already APPROVED or past draft.
 #
 # Code 2 is the interesting one. Cross-review Q2: approval has to mean "this
 # exact text, these exact assets, at this exact time", and an import that
@@ -20,6 +22,14 @@ require "digest"
 # nobody approved while the admin page went on showing a green checkmark. So
 # approval freezes the row, and a later import reports the collision instead of
 # resolving it. The human un-approves (差し戻す) and re-runs.
+#
+# What "refused" writes, precisely: the body, title, assets, status and
+# approval fingerprint are untouched, and `package.import_conflict` — one key —
+# is added so the admin page can name the version on disk that was refused.
+# The earlier wording, "nothing was written", was wrong about that one key.
+#
+# The enforcement lives in JpImport#apply! under the row lock, not here. The
+# check below is a fast-fail with a readable message; the service is the judge.
 namespace :content do
   JP_TRACK = "jp".freeze
 
@@ -52,27 +62,49 @@ namespace :content do
     abort "#{dir} does not exist — run `node scripts/content/make_episode.mjs #{ep}` first" unless dir.directory?
 
     source = JpEpisodeSource.new(dir: dir, topic_row: topic_row, ep: ep)
-    source.validate!
+    # Input validation, not content rules. A missing title or an empty body is
+    # not a package with a problem — it is not a package, and importing it would
+    # create a row nothing can explain. Exit 1 here is deliberately a different
+    # answer from a guard violation (exit 0, approval disabled).
+    begin
+      source.validate!
+    rescue JpEpisodeSource::InvalidEpisode => e
+      abort "ep#{ep}: #{e.message}"
+    end
 
     topic = JpImport.upsert_topic!(topic_row)
     post, created = JpImport.find_or_create_post!(ep: ep, source: source)
 
-    # The freeze. `status` alone is not enough: an approved package is still
-    # `draft` until the approval sets it to `scheduled`, so checking only the
-    # status would let an import overwrite a package Justin approved minutes
-    # earlier. Both conditions, and both are checked after the row exists so a
-    # concurrent approval between find and write is still caught by the reload.
+    # The freeze is enforced INSIDE JpImport#apply!, under the row lock — this
+    # early check only exists to fail fast and print a useful message. It is not
+    # load-bearing: an approval landing between here and the write is caught by
+    # the service, which is the point of cross-review Q2.
     post.reload
-    unless post.status == "draft" && post.package["approved_at"].blank?
-      JpImport.record_conflict!(post, source)
+    unless JpImport.writable?(post)
       warn "ep#{ep}: 承認された(または公開段階の)パッケージと衝突 — " \
            "admin で 差し戻す してから再実行してください " \
            "(status=#{post.status}, approved_at=#{post.package['approved_at'].inspect}, " \
            "content_hash=#{source.content_hash})"
+      JpImport.record_conflict!(post, source)
       exit 2
     end
 
-    JpImport.apply!(post: post, source: source, topic: topic)
+    outcome = JpImport.apply!(post: post, source: source, topic: topic)
+    post.reload
+
+    if outcome == :conflict
+      # The race the early check cannot see: approved between the check above
+      # and the lock inside the service.
+      warn "ep#{ep}: 直前に承認されました — 何も書いていません " \
+           "(status=#{post.status}, approved_at=#{post.package['approved_at'].inspect})"
+      exit 2
+    end
+
+    if outcome == :unchanged
+      puts "ep#{format('%02d', ep)}: unchanged — disk and row already agree " \
+           "(content_hash=#{source.content_hash.first(12)}). Nothing was written."
+      next
+    end
 
     puts "ep#{format('%02d', ep)}: #{created ? 'created' : 'updated'} Post ##{post.id} " \
          "slug=#{post.slug} status=#{post.status}"

@@ -34,8 +34,10 @@ class BlogSeoSnapshotTest < ActionDispatch::IntegrationTest
   LOCALE_PREFIXES = [ nil, "en", "ja", "es" ].freeze
 
   # Below this, the snapshot is not describing the thing it claims to describe.
-  # Four shapes × four prefixes is the floor; the fixtures give five posts today.
-  MIN_ENTRIES = 16
+  # Six post shapes × four prefixes, plus one model row each, plus the eight
+  # renamed-slug redirects. Raised from 16 when S8b added the English-only
+  # draft and the redirect entries; the file holds 38 today.
+  MIN_ENTRIES = 36
 
   def test_korean_blog_indexing_signals_are_unchanged
     captured = capture_signals
@@ -91,7 +93,38 @@ class BlogSeoSnapshotTest < ActionDispatch::IntegrationTest
         "indexable" => I18n.available_locales.to_h { |l| [ l.to_s, post.indexable?(l) ] },
         "translated" => I18n.available_locales.to_h { |l| [ l.to_s, post.translated?(l) ] }
       }
-    end
+    end.merge(renamed_slug_signals)
+  end
+
+  # The permanent slug renames in config/routes.rb (OLD_BLOG_SLUGS).
+  #
+  # These are not reachable from `Post.order(:slug)` — no row carries the old
+  # spelling, which is the whole point of the redirect. They exist because
+  # Search Console had already indexed the old URLs, so the 301 and its target
+  # are indexing signals like any other and belong in this snapshot.
+  #
+  # Enumerated from the ROUTING TABLE rather than from a list copied into this
+  # file. OLD_BLOG_SLUGS itself is not reachable from here (it is assigned
+  # inside the `draw` block and lands on no constant this test can reach —
+  # measured), and a hand-copied list is the "two lists drift" problem: add a
+  # third rename and the snapshot would quietly keep covering two.
+  def renamed_slug_signals
+    paths = Rails.application.routes.routes.filter_map do |r|
+      next unless r.app.is_a?(ActionDispatch::Routing::Redirect) ||
+                  r.app.try(:app).is_a?(ActionDispatch::Routing::Redirect)
+
+      spec = r.path.spec.to_s.sub("(.:format)", "")
+      next unless spec.include?("/blog/")
+      next if spec.include?(":")  # the /blog/index.html rule is a locale-scoped pattern
+
+      spec
+    end.uniq.sort
+
+    raise "no /blog/ redirect routes found — the renamed-slug redirects would " \
+          "silently drop out of this snapshot" if paths.empty?
+
+    paths.index_with { |path| signals_for(path) }
+         .transform_keys { |path| "GET #{path}" }
   end
 
   def signals_for(path)

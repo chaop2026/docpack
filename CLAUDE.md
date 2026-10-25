@@ -2191,3 +2191,83 @@ ep04~33 본문 미작성 · 본문 분량 규칙은 값만 있고 미강제(켜�
 `JpMarkdown` 은 좁은 서브셋이라 밖의 문법은 **조용히 평문**이 된다 ·
 **X 요금제·월 쓰기 한도·미디어 업로드 권한 확인 전까지 `X_API_DRY_RUN=1` 유지** ·
 **일본 변호사 검토는 여전히 없다.**
+
+## SafeFile JP S8b — 교차검증 RED 2건 (크래시 내구성 + import 승인 보호, 2026-10-25)
+
+브랜치 `main`. **미배포·미푸시·실제 게시 0건.** 프로덕션 DB 미접촉. `X_API_DRY_RUN=1` 고정.
+보고 [`docs/jp/s8b_report.md`](docs/jp/s8b_report.md) · 입력 [`codex_review_s8_2026-10-25.md`](docs/jp/codex_review_s8_2026-10-25.md)
+
+`bin/rails test` 333→**354 runs / 2,200→2,287 assertions / 0 failures**(연속 5회) ·
+골든 **557/557** · `check_matrix` 188+10 · `jp_landing_check` **128/128** · SW **9/9** ·
+canonical sweep **6/6** · E-1 25→**38**(기존 25 바이트 동일) · rubocop 86 · brakeman 8 (둘 다 동일).
+
+### 🔴 RED Q3 — 「즉시 썼다」가 트랜잭션 안에서는 거짓이었다
+`perform` 이 `post.with_lock do … run(post) end` 로 **루프 전체를 한 트랜잭션**으로 감싸고 있었다.
+수정 전 실측(스텁이 seq 3 API 성공 **직후** `Interrupt`):
+
+```
+CRASHED: process killed right after the API returned seq 3
+state="pending"
+tweets=[]
+```
+
+**지적보다 나빴다** — 트윗 3개가 타임라인에 있는데 DB 엔 id 가 아니라 **배열 자체가 없다.** 다음 실행이
+1·2·3 을 다시 올린다. 바로 그 줄의 주석이 「written FIRST, and alone … a crash one line later must
+not lose it」 이었다. **트랜잭션 안에서 쓰기는 커밋 전까지 사실이 아니다.**
+
+→ 잠금을 **소유권 선점**으로: 짧은 `with_lock` 이 상태·승인을 보고 `state='running'`+`worker_token`+
+`claimed_at` 을 **커밋하고 나온다**. 전송 루프는 **트랜잭션 밖**, 트윗마다 ⓐ `sending` 커밋 →
+ⓑ API → ⓒ `tweet_id`+`done` 커밋. 모든 쓰기는 `WHERE package->'x'->>'worker_token' = ?` 조건부이고
+`jsonb_set(package,'{x}',…)` 라 **형제 키를 덮지 않는다**.
+**`sending` 이 핵심** — API 를 부르기 **전에** 커밋하므로 죽은 프로세스가 「시작도 안 했다」와 구별된다.
+재실행 시 `sending` 은 **`unknown` 승격**(「안 보냈을 것」이라 판단하면 살아 있는 트윗을 다시 올린다).
+선점 TTL 30분: 크래시한 워커도 신선한 claim 을 남기므로 TTL 전에는 뺏지 않는다.
+
+승인 지문은 **fail-closed** — 없으면 blocked. 전엔 true 였다(「어드민을 안 거친 패키지」). 정확히
+반대다. **드라이런도 예외 아님**: 승인 검사를 건너뛰는 드라이런은 실제로 돌 경로를 검증하지 않는다.
+
+### 🔴 RED Q2 — 호출부의 가드는 그 호출부를 지킨다
+승인 검사가 rake 에 있어, 「검사 → 사람이 承認 → import 가 덮어씀」 창이 열려 있었다.
+`JpImport#apply!` 가 `with_lock` 안에서 재검사하고 `:applied/:unchanged/:conflict` 를 돌려준다.
+같은 `content_hash`+같은 가드 판정이면 **완전 무쓰기**(`updated_at`·blob id 포함 — 테스트로 고정).
+계약 문구 정정: 「아무것도 쓰지 않는다」는 거짓이었다 → 「본문·자산·상태·지문은 쓰지 않고
+`package.import_conflict` **1키**만 쓴다」.
+`RecordInvalid` rescue 를 `{slug: [{error: :taken}]}` **뿐일 때만** 흡수하도록 좁혔다 — 전엔
+「오류가 났고 행이 있으면 경쟁에서 졌다」라 **내용 오류가 성공 보고로 둔갑**했다.
+입력 검증(`validate!`)과 콘텐츠 가드를 분리: 전자는 「패키지가 없다」(exit 1), 후자는 「규칙을
+어겼다」(exit 0 + 승인 비활성). 실측 exit 0/1/2 세 경로 전부 확인.
+
+### 테스트가 내 구현·내 테스트를 잡은 것 3건
+- `find_or_create_post!` 의 좁힌 rescue 를 **빈 `title_ja`** 로 재현하려다 **아무 예외도 안 났다** —
+  JP 글은 draft 이고 발행 불변식은 draft 에 적용되지 않는다. 리뷰가 말한 그 구멍이고, 그래서
+  입력 검증이 필요하다. 테스트는 `slug` 의 **`:blank`** 로 바꿨다(속성 같고 오류 종류만 다름 —
+  속성만 보는 rescue 도 「행이 있다」만 보는 rescue 도 이것을 삼킨다).
+- E-1 픽스처로 리다이렉트 **대상** 슬러그에 글을 넣었다가 `PrivacyGuideOwnershipTest` 8건을 깼다
+  (`blog:migrate_privacy` 소유). **대상 글은 넣지 않기로** 했다 — 회귀할 수 있는 신호는 301 자체이고
+  8개 전부 고정돼 있다. 기존 소유권 가드가 여기 단언 하나보다 가치 있다.
+- 🔴 **2워커 테스트의 공허 방지 단언이 발화했고, 내 테스트가 틀렸다는 뜻이었다.** `sleep` → 폴링으로
+  바꿔도 **매번** 5초 데드라인. 원인은 타이밍 흔들림이 아니라 **창이 닫혀 있던 것** — 잡이 0.1초에
+  끝나고 `finish!` 가 토큰을 지운다. `Queue` 2개 **래치**로 첫 워커를 루프 안에 붙잡아 창을 사실로
+  만들었다. **타이밍에 기대는 동시성 테스트는 「경쟁을 재현했다」와 「운이 좋았다」를 구별하지 못한다.**
+- ⚠️ `minitest` 의 `stub` 은 스레드 안전하지 않다 — 두 스레드가 같은 싱글턴을 바꿨다 되돌리면
+  `undefined method 'new' for class XClient`(실측). 스텁은 두 스레드를 감싸 한 번만 건다.
+
+### AMBER
+- Q1 중복 검증: **측정 결과 사용자에게 보이지 않았다** — Rails 가 동일 (속성, 종류)를 중복 제거한다
+  (`errors.where(:title_ko).size == 1`). 결함이 아니라 중복이라 제거만 했고 KO 메시지는 바이트 동일.
+  부수로 JA 속성명이 `"Title ja을(를) …"` 였던 것을 `ko.yml` 에 7개 추가해 고쳤다.
+- Q4 마이그레이션: `SET LOCAL lock_timeout='5s'`·`statement_timeout='30s'`. ADD COLUMN 이 큐에 서면
+  **그 뒤 SELECT 가 전부 그 뒤에 선다** — 느린 리더 하나가 1초 마이그레이션을 사이트 정지로 만든다.
+  롤백 왕복 실측(JP 행 0인 상태): 복원 성공, `schema.rb` 바이트 동일. `down` 에 **JP 행 생성 후는
+  데이터 소실**(`package.x.tweets` = 어느 트윗이 올라갔는지에 대한 유일한 기록) 경고 추가 —
+  **덤프를 떠도 트윗은 되돌릴 수 없다.**
+- Q1(E-1) 픽스처 2모양: `body_en` 만 있는 KO draft(= `translated(en)=true` 인데 `indexable_locales=[]`),
+  OLD_BLOG_SLUGS 8 URL 301. 리다이렉트 목록은 **라우팅 테이블에서 열거**한다(손으로 베끼면 세 번째
+  rename 이 생겼을 때 스냅샷이 조용히 둘만 덮는다).
+- Q5 배포 체크리스트는 s8b_report §5 가 정본(8항목, 실행 위치·명령 포함).
+
+### 남는 공백
+X 요금제·월 쓰기 한도·미디어 업로드 권한 **미확인 → `X_API_DRY_RUN=1` 유지** ·
+크래시 후 스레드는 claim TTL 30분 멈춘다(안전하지만 재개가 늦다) ·
+ep04~33 본문 미작성 · 본문 분량 규칙 미강제 · `JpMarkdown` 서브셋 밖은 조용히 평문 ·
+`utm_source` 는 배포 후에만 쌓인다 · **일본 변호사 검토는 여전히 없다.**

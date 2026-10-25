@@ -182,8 +182,19 @@ ko:
       post:
         title_ko: "제목(한국어)"
         title_en: "제목(영어)"
+        # Added 2026-10-25 with the JP track. Without these a rejected Japanese
+        # package reported "Title ja을(를) 입력해 주세요" — half English humanize,
+        # half Korean particle. The admin form and the publish-failure email
+        # both render these strings.
+        title_ja: "제목(일본어)"
         body_ko: "본문(한국어)"
         body_en: "본문(영어)"
+        body_ja: "본문(일본어)"
+        subtitle_ja: "부제(일본어)"
+        meta_description_ja: "메타 설명(일본어)"
+        primary_locale: "정본 언어"
+        content_track: "콘텐츠 트랙"
+        content_ep: "회차"
         meta_description_ko: "메타 설명(한국어)"
         meta_description_en: "메타 설명(영어)"
         slug: "슬러그"

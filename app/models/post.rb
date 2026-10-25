@@ -371,12 +371,22 @@ class Post < ApplicationRecord
     errors.add(:slug, "は公開URLの一部なので変更できません (#{was} → #{now})")
   end
 
+  # The TITLE half is only this method's business for the Japanese track.
+  #
+  # `validates :title_ko, presence: true, if: primary_locale == "ko"` already
+  # covers Korean posts, and covers them in more cases than this does (it runs
+  # for drafts too, not only on publish). Checking it here as well duplicated
+  # the rule — cross-review Q1.
+  #
+  # Measured before changing it: the duplicate was NOT user-visible. Rails
+  # de-duplicates identical (attribute, type) pairs, so a published Korean post
+  # with no title produced one error object on :title_ko and one
+  # "제목(한국어)을(를) 입력해 주세요" in full_messages, not two. So this removes a
+  # redundant rule rather than a defect — worth doing because the next reader
+  # should not have to run that measurement to know which rule is in force.
   def primary_title_and_body_present
-    title_attr = :"title_#{primary_locale}"
-    body_attr  = :"body_#{primary_locale}"
-
-    errors.add(title_attr, :blank) if self[title_attr].blank?
-    errors.add(body_attr, :blank)  if self[body_attr].blank?
+    errors.add(:title_ja, :blank) if primary_locale == "ja" && title_ja.blank?
+    errors.add(:"body_#{primary_locale}", :blank) if self[:"body_#{primary_locale}"].blank?
   end
 
   # See the before_save above. Only ever clears — the job owns writing it, via

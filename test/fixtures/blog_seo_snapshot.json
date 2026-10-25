@@ -262,6 +262,57 @@
       "es": false
     }
   },
+  "GET /blog/english-only-draft": {
+    "status": 200,
+    "canonical": "/blog/english-only-draft",
+    "robots": "noindex,follow",
+    "og_locale": "ko_KR",
+    "og_url": "/blog/english-only-draft",
+    "html_lang": "ko",
+    "hreflang": []
+  },
+  "GET /en/blog/english-only-draft": {
+    "status": 200,
+    "canonical": "/en/blog/english-only-draft",
+    "robots": "noindex,follow",
+    "og_locale": "en_US",
+    "og_url": "/en/blog/english-only-draft",
+    "html_lang": "en",
+    "hreflang": []
+  },
+  "GET /ja/blog/english-only-draft": {
+    "status": 200,
+    "canonical": "/blog/english-only-draft",
+    "robots": "noindex,follow",
+    "og_locale": "ja_JP",
+    "og_url": "/blog/english-only-draft",
+    "html_lang": "ja",
+    "hreflang": []
+  },
+  "GET /es/blog/english-only-draft": {
+    "status": 200,
+    "canonical": "/blog/english-only-draft",
+    "robots": "noindex,follow",
+    "og_locale": "es_ES",
+    "og_url": "/blog/english-only-draft",
+    "html_lang": "es",
+    "hreflang": []
+  },
+  "MODEL english-only-draft": {
+    "indexable_locales": [],
+    "indexable": {
+      "ko": false,
+      "en": false,
+      "ja": false,
+      "es": false
+    },
+    "translated": {
+      "ko": false,
+      "en": true,
+      "ja": false,
+      "es": false
+    }
+  },
   "GET /blog/korean-only-post": {
     "status": 200,
     "canonical": "/blog/korean-only-post",
@@ -401,5 +452,37 @@
       "ja": false,
       "es": false
     }
+  },
+  "GET /blog/contract-checklist": {
+    "status": 301,
+    "location": "/blog/contract-sharing-checklist"
+  },
+  "GET /blog/rrn-masking": {
+    "status": 301,
+    "location": "/blog/resident-number-masking"
+  },
+  "GET /en/blog/contract-checklist": {
+    "status": 301,
+    "location": "/en/blog/contract-sharing-checklist"
+  },
+  "GET /en/blog/rrn-masking": {
+    "status": 301,
+    "location": "/en/blog/resident-number-masking"
+  },
+  "GET /es/blog/contract-checklist": {
+    "status": 301,
+    "location": "/es/blog/contract-sharing-checklist"
+  },
+  "GET /es/blog/rrn-masking": {
+    "status": 301,
+    "location": "/es/blog/resident-number-masking"
+  },
+  "GET /ja/blog/contract-checklist": {
+    "status": 301,
+    "location": "/ja/blog/contract-sharing-checklist"
+  },
+  "GET /ja/blog/rrn-masking": {
+    "status": 301,
+    "location": "/ja/blog/resident-number-masking"
   }
 }

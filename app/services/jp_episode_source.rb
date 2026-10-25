@@ -25,11 +25,36 @@ class JpEpisodeSource
     @ep = ep
   end
 
+  # Checked BEFORE anything is written, and distinct from the content guard.
+  #
+  # The two answer different questions, and conflating them hides one of them:
+  #
+  #   validate!            — is there an episode here at all? A missing title or
+  #                          an empty body is not a package with a problem, it
+  #                          is not a package. Import REFUSES (exit 1).
+  #   JpContentGuard       — does this episode follow the writing rules? It is
+  #                          imported either way; a violation disables the
+  #                          approval button (exit 0).
+  #
+  # Cross-review Q2: a blank title_ja used to pass straight through, because a
+  # JP post is created as a `draft` and the published-post invariant does not
+  # apply to drafts. The row was then unapprovable for a reason nothing stated.
   def validate!
     raise InvalidEpisode, "#{dir}/post_ja.md is missing" unless path("post_ja.md").exist?
     raise InvalidEpisode, "#{dir}/post_ja.md has no frontmatter title" if fm_ja["title"].blank?
     raise InvalidEpisode, "#{dir}/post_ja.md has no body" if body_ja_markdown.blank?
     raise InvalidEpisode, "ep#{ep} has no publish_on in topics.json" if topic_row["publish_on"].blank?
+
+    # The resolved values, not just the raw file. `title_ja` prefers
+    # topics.json's blog_title_ja, and the rendered body can come out empty
+    # from a file that is not empty (frontmatter only, or markdown that renders
+    # to nothing) — so the check has to be on what would actually be stored.
+    raise InvalidEpisode, "ep#{ep} resolves to a blank title_ja" if title_ja.blank?
+    if body_ja_html.blank? || body_ja_html.gsub(/<[^>]*>/, "").strip.empty?
+      raise InvalidEpisode, "ep#{ep} body_ja renders to no prose (#{body_ja_html.to_s.length} bytes of markup)"
+    end
+    raise InvalidEpisode, "#{dir}/x_thread.md has no tweets — run make_episode.mjs #{ep}" if x_thread.empty?
+
     true
   end
 
