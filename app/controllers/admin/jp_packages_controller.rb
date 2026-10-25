@@ -53,19 +53,24 @@ module Admin
         return
       end
 
-      update_tweet(seq, "state" => "done", "tweet_id" => tweet_id,
-                        "recorded_by_hand_at" => Time.current.iso8601)
-      arm_resume!
+      # `done`, so the run guard never looks at it again — this seq needs no
+      # re-send authorisation, only the ones AFTER it will be attempted.
+      resume!(seq, { "state" => "done", "tweet_id" => tweet_id,
+                     "error" => nil, "recorded_by_hand_at" => Time.current.iso8601 })
       redirect_to admin_jp_package_path(@post.content_ep),
                   notice: "#{seq}件目を送信済みとして記録しました。#{seq + 1}件目から再開します。"
     end
 
-    # "It is not there." Clears the id and resumes from THIS tweet.
+    # "It is not there." Authorises a re-send of THIS seq, and only this one.
     def mark_tweet_unsent
       seq = params[:seq].to_i
-      update_tweet(seq, "state" => "pending", "tweet_id" => nil,
-                        "recorded_by_hand_at" => Time.current.iso8601)
-      arm_resume!
+      # The tweet stays `unknown`; what changes is that this seq is now on the
+      # authorised list. The job consumes that authorisation when it reaches the
+      # seq — see XPublishJob#run. Leaving the state alone keeps the record of
+      # what happened ("we asked and did not hear back") until the re-send
+      # actually begins.
+      resume!(seq, { "recorded_by_hand_at" => Time.current.iso8601,
+                     "authorised_resend_at" => Time.current.iso8601 }, authorise: seq)
       redirect_to admin_jp_package_path(@post.content_ep),
                   notice: "#{seq}件目を未送信として、そこから再開します。"
     end
@@ -88,23 +93,36 @@ module Admin
       @topic = BlogTopic.find_by(track: "jp", ep: @post.content_ep)
     end
 
-    def update_tweet(seq, attrs)
-      rows = (@post.package.dig("x", "tweets") || []).map { |t| t["seq"] == seq ? t.merge(attrs) : t }
-      write_x("tweets" => rows)
-    end
+    # One write for the human's decision, then enqueue.
+    #
+    # `authorise:` adds the seq to `x.resume_seqs` — the list of tweets a person
+    # has confirmed are NOT on the timeline. That list replaced a boolean
+    # (`resume_requested`) in S8c, and the boolean was a defect rather than a
+    # style choice: it said "move past an unknown" in general, so a thread
+    # resumed once would also wave past a DIFFERENT tweet that went
+    # indeterminate later and nobody had looked at. Measured against 7cf81ec,
+    # that reposted a possibly-live tweet and finished reporting success.
+    #
+    # 「送信済みとして記録」 therefore authorises nothing: the seq becomes `done`
+    # and the guard has no reason to stop at it.
+    def resume!(seq, tweet_attrs, authorise: nil)
+      x = (@post.package["x"] || {}).dup
+      x["tweets"] = (x["tweets"] || []).map { |t| t["seq"] == seq ? t.merge(tweet_attrs) : t }
+      x["state"] = "partial_failed"
+      # This seq's entry is rewritten, never accumulated: the two buttons are
+      # mutually exclusive answers about the same tweet, so pressing
+      # 「送信済みとして記録」 must clear any authorisation an earlier
+      # 「未送信として再開」 left behind. (Harmless if it lingered — the run guard
+      # only consults the list for `unknown` rows — but a list that still names
+      # a tweet now marked `done` invites a wrong reading.)
+      x["resume_seqs"] = ((Array(x["resume_seqs"]).map(&:to_i) - [ seq ]) + Array(authorise)).uniq.sort
+      # The old boolean must not linger: a stale `true` would be read by any
+      # code that has not been updated.
+      x.delete("resume_requested")
 
-    # `resume_requested` is what lets XPublishJob move past an `unknown` — it is
-    # the recorded fact that a human looked. Cleared by the job once it runs, so
-    # it can never authorise a second automatic pass.
-    def arm_resume!
-      write_x("state" => "partial_failed", "resume_requested" => true)
-      XPublishJob.perform_later(@post.id)
-    end
-
-    def write_x(attrs)
-      x = (@post.package["x"] || {}).merge(attrs)
       @post.update_column(:package, @post.package.merge("x" => x))
       @post.reload
+      XPublishJob.perform_later(@post.id)
     end
 
     def jst(time)

@@ -93,7 +93,11 @@ namespace :blog do
     candidates = Post.jp.select do |p|
       state = p.package.dig("x", "state")
       state.in?(%w[pending partial_failed]) ||
-        (state == "unknown" && p.package.dig("x", "resume_requested"))
+        # `resume_seqs` (S8c) replaced a boolean. A thread sitting at `unknown`
+        # is only re-enqueueable when a human has named the specific tweets
+        # they confirmed are not on the timeline; an empty list means nobody
+        # has looked yet and the thread must stay put.
+        (state == "unknown" && Array(p.package.dig("x", "resume_seqs")).any?)
     end
 
     # An un-approved package is not re-enqueued at all (cross-review Q3).

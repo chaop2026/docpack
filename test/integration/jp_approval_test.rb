@@ -202,6 +202,72 @@ class JpApprovalTest < ActionDispatch::IntegrationTest
     assert_redirected_to admin_login_path
   end
 
+  # ── the two answers to an 'unknown' tweet, through the REAL routes ─────────
+  #
+  # XPublishJobTest builds these shapes by hand so its cases stay readable.
+  # These two assert the controller actually writes that shape, which is what
+  # stops the hand-built version from drifting away from production.
+
+  def package_with_unknown_seq2
+    post_rec = make_package
+    make_topic
+    post_rec.update_column(:package, post_rec.package.merge(
+      "x" => { "state" => "unknown", "due_at" => 1.hour.ago.iso8601,
+               "resume_requested" => true, # the legacy key, to prove it is dropped
+               "tweets" => [
+                 { "seq" => 1, "state" => "done", "tweet_id" => "i1" },
+                 { "seq" => 2, "state" => "unknown", "tweet_id" => nil },
+                 { "seq" => 3, "state" => "pending", "tweet_id" => nil }
+               ] }
+    ))
+    post_rec.reload
+  end
+
+  test "「未送信として再開」 authorises exactly that one sequence" do
+    post_rec = package_with_unknown_seq2
+    login
+
+    post admin_jp_package_tweet_unsent_path(42), params: { seq: 2 }
+    post_rec.reload
+    x = post_rec.package["x"]
+
+    assert_equal [ 2 ], x["resume_seqs"], "and nothing else"
+    assert_equal "partial_failed", x["state"]
+    assert_equal "unknown", x["tweets"][1]["state"],
+                 "the record of what happened stays until the re-send actually begins"
+    refute x.key?("resume_requested"), "the legacy boolean must not linger"
+  end
+
+  test "「送信済みとして記録」 authorises nothing and clears any earlier authorisation" do
+    post_rec = package_with_unknown_seq2
+    login
+
+    post admin_jp_package_tweet_unsent_path(42), params: { seq: 2 }
+    assert_equal [ 2 ], post_rec.reload.package.dig("x", "resume_seqs")
+
+    # The human looks again and finds it WAS on the timeline after all.
+    post admin_jp_package_tweet_sent_path(42), params: { seq: 2, tweet_id: "9988" }
+    post_rec.reload
+    x = post_rec.package["x"]
+
+    assert_equal "done", x["tweets"][1]["state"]
+    assert_equal "9988", x["tweets"][1]["tweet_id"]
+    assert_empty x["resume_seqs"],
+                 "a tweet recorded as sent must not stay on the re-send list"
+    refute x.key?("resume_requested")
+  end
+
+  test "an unknown tweet nobody has answered authorises nothing" do
+    post_rec = package_with_unknown_seq2
+    post_rec.update_column(:package, post_rec.package.merge(
+      "x" => post_rec.package["x"].except("resume_requested")
+    ))
+    post_rec.reload
+
+    assert_empty Array(post_rec.package.dig("x", "resume_seqs")),
+                 "no button pressed, no authorisation — the job must stay put"
+  end
+
   test "recording a LinkedIn URL is what makes P18 count it" do
     post_rec = make_package
     make_topic

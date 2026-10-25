@@ -2271,3 +2271,64 @@ X 요금제·월 쓰기 한도·미디어 업로드 권한 **미확인 → `X_AP
 크래시 후 스레드는 claim TTL 30분 멈춘다(안전하지만 재개가 늦다) ·
 ep04~33 본문 미작성 · 본문 분량 규칙 미강제 · `JpMarkdown` 서브셋 밖은 조용히 평문 ·
 `utm_source` 는 배포 후에만 쌓인다 · **일본 변호사 검토는 여전히 없다.**
+
+## SafeFile JP S8c — X 게시 잔여 결함 2건 (2026-10-25)
+
+브랜치 `main`. **미배포·미푸시·실제 게시 0건.** 프로덕션 DB 미접촉. `X_API_DRY_RUN=1` 고정.
+보고 [`docs/jp/s8c_report.md`](docs/jp/s8c_report.md) · 입력 [`codex_review_s8b_2026-10-25.md`](docs/jp/codex_review_s8b_2026-10-25.md)
+
+`bin/rails test` 354→**367 runs / 2,287→2,348 assertions / 0 failures** · 골든 **557/557** ·
+E-1 **38/38** · `jp_landing_check` 128/128 · SW 9/9 · sweep 6/6 · rubocop 86 · brakeman 8.
+
+### 🔴 분리 쓰기가 살아 있는 트윗을 재게시했다
+`handle_indeterminate` 가 ①`mark_tweet!(seq→unknown)` ②`write_x!(state→unknown,
+resume_requested→false)` 를 두 번 썼다. 사이에서 크래시 + `resume_requested` 가 **이전의 무관한
+사람 결정**으로 true 인 상태를 재현:
+```
+STATE AFTER:  x.state="running" resume_requested=true  / seq3="unknown"
+RESENT COUNT: 4  ["t3","t4","t5","en reply"]   ← 결과 불명이던 t3 가 다시 올라감
+FINAL:        x.state="done"                   ← 성공으로 끝났다
+```
+→ `write_x!(post, token, attrs, tweet_patches: {seq => …})` 로 **스레드 상태와 트윗 상태를
+한 UPDATE** 에. `handle_indeterminate`·`promote_sending_to_unknown!`·`fail_tweet!` 전부 1문.
+
+### `resume_requested`(boolean) → `resume_seqs[]` — 스타일이 아니라 결함
+boolean 은 「unknown 을 지나가도 된다」를 **일반적으로** 허가했다. 「트윗 3을 다시 보내도 된다」가
+아니다. 그래서 한 번 재개된 스레드가 **나중에 불명이 된 다른 트윗**도 통과시켰다.
+목록은 그럴 수 없다 — **아무도 보지 않은 seq 는 목록에 없다.** 권한은 **한 번만 소비**된다:
+잡이 그 seq 에 도달하면 `pending` 복귀 + 목록 제거를 **한 번의 쓰기**로 하고, 그 뒤 죽으면
+seq 는 `pending`(사람이 단언한 그대로)이며 권한은 소진돼 재사용 불가.
+어드민 두 버튼은 같은 트윗에 대한 **상호배타적 답**이라 그 seq 항목을 덮어쓴다(누적 아님).
+
+### `finish!` — 「done 인데 posted 없음」이 자가 복구되지 않았다
+```
+HALF STATE:  x.state="done" posted=nil
+SELF-HEAL?:  posted=nil api_calls=0 / x_stuck? false   ← 어떤 채널도 보고하지 않는다
+```
+→ `jsonb_set(jsonb_set(package,'{x}',…),'{posted}',…)` **1문**, 토큰 조건부, 0행이면 `ClaimLost`.
+`claim!` 에 레거시 복구 경로(그 모양이면 **finish 만** 재실행, API 호출 0).
+
+### Q2' — `approve!` 가 낡은 사본으로 지문을 계산했다
+`Post.transaction` 만 있고 **reload 가 없었다**. 지문은 승인의 전부(「이 텍스트를 검토했다」)인데
+DB 에 없는 버전에 서명하게 된다. 증상은 「어드민은 초록인데 12:00 JST 에 스레드가 스스로를 막는다」.
+→ `post.with_lock { post.reload; 검사; version_for }`. 검사도 전부 안으로 — `approvable?` 가
+읽는 `package` 를 import 가 다시 쓴다. **「옛 지문으로 새 본문 승인」은 도달 불가.**
+
+### 옛 코드 대조 (판별력 확인)
+7cf81ec 로 S8c 테스트 파일을 돌리면 **33개 중 6개 실패**(새 코드 0). 어드민 컨트롤러 2건,
+`JpApproval` 2건도 각각 옛 버전에서 실패.
+> ⚠️ `finish refuses to write under a token…` 은 **옛 코드에서도 통과**한다(옛 finish 도 첫
+> 쓰기는 토큰 조건부였다). 판별력이 없다는 뜻이라, 원자성 주장은 **UPDATE 문 수를 세는**
+> 테스트(`sql.active_record` 구독 → 정확히 1건 + `jsonb_set(jsonb_set(`)가 담당한다.
+> **끝 상태만 보는 단언은 2문짜리 구현도 깨끗한 실행에서는 통과시킨다.**
+
+### 배포 체크리스트
+**s8b_report §5 8항목 그대로 유효**(내부 구조만 바뀌었고 배포 대상·환경 변수·마이그레이션·정적
+자산 무변경). 한 줄 추가: 기존 행의 `resume_requested` 는 무해하지만 **그 키만으로는 이제 아무것도
+허가되지 않으므로**, 배포 시점에 「사람이 재개를 눌러둔 unknown 스레드」가 있었다면 버튼을 한 번 더
+눌러야 한다. 현재 프로덕션 JP 패키지 **0건**이라 이번 배포에는 해당 없음.
+
+### 남는 공백
+X 한도 미확인(`X_API_DRY_RUN=1` 유지) · 크래시 후 TTL 30분 대기 · `claim!` 복구 경로는 레거시
+전용이라 언젠가 발화하지 않는 코드가 된다(프로덕션 0건 확인 후 제거) · ep04~33 미작성 ·
+**일본 변호사 검토는 여전히 없다.**

@@ -68,6 +68,19 @@ class XPublishJobTest < ActiveSupport::TestCase
     end
   end
 
+  # Crashes at the single statement that records an unknown outcome. A subclass
+  # rather than a stub: perform_now builds its own instance, and prepending a
+  # module would be permanent for the whole suite.
+  class CrashAtUnknownWrite < XPublishJob
+    private
+
+    def write_x!(post, token, attrs = {}, tweet_patches: nil)
+      raise Interrupt, "process ended at the unknown write" if attrs["state"] == "unknown"
+
+      super
+    end
+  end
+
   # A client that fails the test if it is asked to send anything at all. Used to
   # turn "no tweet was resent" into an assertion the test can SEE rather than
   # infer from a count that might have been zero for another reason.
@@ -102,8 +115,8 @@ class XPublishJobTest < ActiveSupport::TestCase
     post.reload
   end
 
-  def run_with(client, post)
-    XClient.stub(:new, client) { XPublishJob.perform_now(post.id) }
+  def run_with(client, post, job: XPublishJob)
+    XClient.stub(:new, client) { job.perform_now(post.id) }
     post.reload
   end
 
@@ -119,6 +132,36 @@ class XPublishJobTest < ActiveSupport::TestCase
 
   def states(post)
     post.package.dig("x", "tweets").map { |t| [ t["seq"], t["state"] ] }.to_h
+  end
+
+  # What the admin's two buttons write. Kept here as named helpers rather than
+  # inline hashes so the shape is stated once; the real controller actions are
+  # exercised in test/integration/jp_approval_test.rb, which is what stops
+  # these from drifting away from production.
+  #
+  # 「送信済みとして記録」 — the human read the id off the timeline. The seq
+  # becomes `done`, so it authorises nothing: the guard has no reason to stop.
+  def admin_mark_sent!(post, seq, tweet_id)
+    rows = post.package.dig("x", "tweets").map { |t| t["seq"] == seq ? t.merge("state" => "done", "tweet_id" => tweet_id) : t }
+    x = post.package["x"].merge(
+      "tweets" => rows, "state" => "partial_failed",
+      # The controller rewrites this seq's entry rather than accumulating it:
+      # the two buttons are mutually exclusive answers about the same tweet.
+      "resume_seqs" => Array(post.package.dig("x", "resume_seqs")).map(&:to_i) - [ seq ]
+    ).except("resume_requested")
+    post.update_column(:package, post.package.merge("x" => x))
+    post.reload
+  end
+
+  # 「未送信として再開」 — the human confirmed it is NOT on the timeline. The seq
+  # stays `unknown` and is added to resume_seqs; the job consumes that.
+  def admin_mark_unsent!(post, seq)
+    x = post.package["x"].merge(
+      "state" => "partial_failed",
+      "resume_seqs" => (Array(post.package.dig("x", "resume_seqs")) + [ seq ]).uniq.sort
+    ).except("resume_requested")
+    post.update_column(:package, post.package.merge("x" => x))
+    post.reload
   end
 
   def tweet_ids(post)
@@ -183,12 +226,7 @@ class XPublishJobTest < ActiveSupport::TestCase
     post = make_post
     run_with(FakeClient.new(fail_at: 2, error: XClient::IndeterminateError.new("timeout")), post)
 
-    # What Admin::JpPackagesController#mark_tweet_sent does.
-    rows = post.package.dig("x", "tweets").map do |t|
-      t["seq"] == 2 ? t.merge("state" => "done", "tweet_id" => "hand-2") : t
-    end
-    x = post.package["x"].merge("tweets" => rows, "state" => "partial_failed", "resume_requested" => true)
-    post.update_column(:package, post.package.merge("x" => x))
+    admin_mark_sent!(post, 2, "hand-2")
 
     client = FakeClient.new
     run_with(client, post.reload)
@@ -203,16 +241,14 @@ class XPublishJobTest < ActiveSupport::TestCase
     post = make_post
     run_with(FakeClient.new(fail_at: 2, error: XClient::IndeterminateError.new("timeout")), post)
 
-    rows = post.package.dig("x", "tweets").map do |t|
-      t["seq"] == 2 ? t.merge("state" => "pending", "tweet_id" => nil) : t
-    end
-    x = post.package["x"].merge("tweets" => rows, "state" => "partial_failed", "resume_requested" => true)
-    post.update_column(:package, post.package.merge("x" => x))
+    admin_mark_unsent!(post, 2)
 
     client = FakeClient.new
     run_with(client, post.reload)
 
     assert_equal 3, client.posted.length, "tweets 2, 3 and 4"
+    assert_empty post.package.dig("x", "resume_seqs"),
+                 "the authorisation is consumed, so it cannot cover a later unknown"
     assert_equal "two", client.posted[0][:text]
     assert_equal "id-1", client.posted[0][:reply_to]
   end
@@ -303,13 +339,7 @@ class XPublishJobTest < ActiveSupport::TestCase
     age_claim!(post.reload)
     run_with(ForbiddenClient.new, post)   # promotes seq 2 to unknown
 
-    # What the admin's 「送信済みとして記録」 does: the human read the id off the
-    # timeline.
-    rows = post.package.dig("x", "tweets").map do |t|
-      t["seq"] == 2 ? t.merge("state" => "done", "tweet_id" => "hand-2") : t
-    end
-    x = post.package["x"].merge("tweets" => rows, "state" => "partial_failed", "resume_requested" => true)
-    post.update_column(:package, post.package.merge("x" => x))
+    admin_mark_sent!(post, 2, "hand-2")
 
     client = FakeClient.new
     run_with(client, post.reload)
@@ -365,13 +395,186 @@ class XPublishJobTest < ActiveSupport::TestCase
     ))
 
     assert_raises(XPublishJob::ClaimLost) do
-      job.send(:write_x!, post.reload, "my-stale-token", "state" => "done")
+      job.send(:write_x!, post.reload, "my-stale-token", { "state" => "done" })
     end
     assert_equal "the-new-owner", post.reload.package.dig("x", "worker_token"),
                  "the stale worker must not have written anything"
   end
 
   # ── the approval fingerprint ────────────────────────────────────────────────
+
+  # ── S8c: the unknown write is ONE statement, and resume is per-sequence ─────
+  #
+  # The defect these close: `handle_indeterminate` used to write the tweet's
+  # state and the thread's state separately. A crash in between left
+  # `x.state=running` with a tweet at `unknown`, and the run guard consulted a
+  # THREAD-level boolean (`resume_requested`) that an earlier, unrelated human
+  # decision had set to true. Measured against 7cf81ec:
+  #
+  #   RESENT COUNT: 4  ["t3", "t4", "t5", "en reply"]
+  #
+  # t3 — the tweet whose outcome was unknown, possibly already live — was
+  # reposted, and the thread then reported `done`.
+
+  test "a NEW unknown during a resumed run is not covered by the earlier authorisation" do
+    post = make_post(tweets: %w[t1 t2 t3 t4 t5], reply: "en reply")
+
+    # A human authorised seq 1 at some earlier point. Under the old boolean this
+    # is the flag that leaked; here it is a list entry about a different tweet.
+    admin_mark_unsent!(post, 1)
+
+    # Now a DIFFERENT tweet goes indeterminate, and the process dies at the
+    # write. Because that write is a single statement, "during" it means it did
+    # not land at all — the seq is still `sending`.
+    crasher = Class.new do
+      attr_reader :posted
+      def initialize = (@posted = [])
+      def dry_run? = false
+      def upload_media(path:, content_type:) = "media-1"
+      def post_tweet(text:, media_id: nil, reply_to: nil)
+        @posted << text
+        raise XClient::IndeterminateError, "timeout" if @posted.length == 3
+
+        "id-#{@posted.length}"
+      end
+    end.new
+
+    assert_raises(Interrupt) { run_with(crasher, post, job: CrashAtUnknownWrite) }
+    post.reload
+    assert_equal "sending", states(post)[3],
+                 "a single-statement write is all-or-nothing: it did not land"
+
+    # A later worker takes over the dead claim.
+    age_claim!(post)
+    run_with(ForbiddenClient.new, post)
+
+    assert_equal "unknown", post.package.dig("x", "state")
+    assert_equal "unknown", states(post)[3]
+    assert_equal [ 1 ], post.package.dig("x", "resume_seqs"),
+                 "the unrelated authorisation is still there and still does not cover seq 3"
+    assert_equal %w[pending pending], [ states(post)[4], states(post)[5] ],
+                 "nothing behind the unknown was attempted"
+  end
+
+  test "an authorisation for one sequence never covers another" do
+    post = make_post(tweets: %w[t1 t2 t3], reply: "en reply")
+    run_with(FakeClient.new(fail_at: 2, error: XClient::IndeterminateError.new("timeout")), post)
+    assert_equal "unknown", states(post)[2]
+
+    # Authorise seq 2 only. The job re-sends seq 2, then seq 3 goes
+    # indeterminate — a tweet nobody has looked at.
+    admin_mark_unsent!(post, 2)
+    second = FakeClient.new(fail_at: 2, error: XClient::IndeterminateError.new("timeout again"))
+    run_with(second, post)
+
+    assert_equal %w[t2 t3], second.posted.map { |p| p[:text] }, "seq 2 re-sent, then seq 3 tried"
+    assert_equal "unknown", states(post)[3]
+    assert_empty post.package.dig("x", "resume_seqs"), "seq 2's authorisation was consumed"
+
+    # And a further run must not touch seq 3.
+    third = ForbiddenClient.new
+    run_with(third, post)
+    assert_equal "unknown", post.package.dig("x", "state")
+  end
+
+  test "consuming an authorisation clears the unknown and the list entry together" do
+    post = make_post(tweets: %w[t1 t2 t3], reply: "en reply")
+    run_with(FakeClient.new(fail_at: 2, error: XClient::IndeterminateError.new("timeout")), post)
+    admin_mark_unsent!(post, 2)
+    assert_equal [ 2 ], post.package.dig("x", "resume_seqs")
+
+    run_with(FakeClient.new, post)
+    assert_equal "done", states(post)[2]
+    assert_empty post.package.dig("x", "resume_seqs")
+  end
+
+  # ── S8c: finish! is one statement ──────────────────────────────────────────
+
+  test "finish cannot leave the thread done without recording that it was posted" do
+    # The old finish wrote `x` and then `posted` in two statements, the second
+    # with no token condition. Measured against 7cf81ec, a crash in between gave
+    # `x.state="done" posted=nil`, and nothing recovered it:
+    # `SELF-HEAL?: posted=nil api_calls=0`, `x_stuck? false`.
+    #
+    # There is no "in between" to crash in any more, so the assertion is that
+    # the two always agree.
+    post = make_post(tweets: %w[a b], reply: nil)
+    run_with(FakeClient.new, post)
+
+    assert_equal "done", post.package.dig("x", "state")
+    assert_equal true, post.package.dig("posted", "x")
+    assert_equal post.package.dig("x", "url"), post.package.dig("posted", "x_url")
+    assert_nil post.package.dig("x", "worker_token"), "the claim is released by the same write"
+  end
+
+  test "a legacy half-finished thread is repaired without touching the API" do
+    # The shape the old code could produce. Planted by hand, because the current
+    # code cannot create it.
+    post = make_post(tweets: %w[a b], reply: nil)
+    run_with(FakeClient.new, post)
+    post.update_column(:package, post.package.merge("posted" => post.package["posted"].except("x", "x_url")))
+    post.reload
+    assert_equal "done", post.package.dig("x", "state")
+    assert_nil post.package.dig("posted", "x")
+
+    repairer = ForbiddenClient.new   # raises if a single tweet is sent
+    run_with(repairer, post)
+
+    assert_equal true, post.package.dig("posted", "x")
+    assert_equal post.package.dig("x", "url"), post.package.dig("posted", "x_url")
+  end
+
+  test "finish is exactly ONE update statement" do
+    # The atomicity claim, asserted directly rather than inferred from an end
+    # state that a two-statement version also reaches on a clean run. Counting
+    # the UPDATEs is what distinguishes "there is no in-between" from "the
+    # in-between happened to be survived this time".
+    post = make_post(tweets: %w[a b], reply: nil)
+    run_with(FakeClient.new(fail_at: 2), post)   # seq 1 done, seq 2 failed
+    # Put it back in a shape where finish! is the next thing to run.
+    rows = post.package.dig("x", "tweets").map { |t| t.merge("state" => "done", "tweet_id" => "id-#{t['seq']}") }
+    token = post.package.dig("x", "worker_token")
+    post.update_column(:package, post.package.merge(
+      "x" => post.package["x"].merge("tweets" => rows, "state" => "running", "worker_token" => token)
+    ))
+    post.reload
+
+    updates = []
+    sub = ActiveSupport::Notifications.subscribe("sql.active_record") do |*, payload|
+      updates << payload[:sql] if payload[:sql] =~ /\AUPDATE "posts"/
+    end
+    begin
+      XPublishJob.new.send(:finish!, post, token)
+    ensure
+      ActiveSupport::Notifications.unsubscribe(sub)
+    end
+
+    assert_equal 1, updates.length, "finish! must be one statement, got:\n#{updates.join("\n")}"
+    assert_match(/jsonb_set\(jsonb_set\(/, updates.first, "both subtrees in the one statement")
+    assert_match(/worker_token/, updates.first, "and it carries the token condition")
+    post.reload
+    assert_equal "done", post.package.dig("x", "state")
+    assert_equal true, post.package.dig("posted", "x")
+  end
+
+  test "finish refuses to write under a token that is no longer ours" do
+    post = make_post(tweets: %w[a b], reply: nil)
+    job = XPublishJob.new
+
+    # Get the thread to the point where finish would be called, then hand it a
+    # different owner.
+    run_with(FakeClient.new, post)
+    before = post.package.deep_dup
+    post.update_column(:package, post.package.merge(
+      "x" => post.package["x"].merge("worker_token" => "someone-else")
+    ))
+    post.reload
+
+    assert_raises(XPublishJob::ClaimLost) { job.send(:finish!, post, "my-stale-token") }
+    post.reload
+    assert_equal "someone-else", post.package.dig("x", "worker_token")
+    assert_equal before.dig("x", "url"), post.package.dig("x", "url"), "nothing else moved"
+  end
 
   test "a package with NO recorded approval is blocked, not posted" do
     # Fail-closed (cross-review Q3). This used to return true when the

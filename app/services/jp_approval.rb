@@ -39,12 +39,40 @@ module JpApproval
   # One transaction: scheduling the blog post and arming the X thread are the
   # same decision, and a half-applied approval (scheduled, but with no X state)
   # would publish the blog on Monday and silently never post the thread.
+  # ── Why the row lock, and why the reload inside it (S8c, cross-review Q2') ──
+  #
+  # This used to be a bare `Post.transaction` around writes computed from the
+  # in-memory `post`. Two problems, and they compound:
+  #
+  #   * no lock, so JpImport#apply! — which DOES take `with_lock` — could be
+  #     rewriting the body concurrently;
+  #   * no reload, so `approvable?`, `published_at` and above all `version_for`
+  #     were computed from whatever the caller happened to be holding.
+  #
+  # The fingerprint is the whole point of approval: it says "this exact text was
+  # reviewed". Computing it from a stale copy produces a signature over a
+  # version that is not the one in the database — and because XPublishJob
+  # re-checks it at 12:00 JST, the visible symptom would be a thread that
+  # blocks itself while the admin shows a green check.
+  #
+  # With the lock, the two paths serialise: either the import finishes first and
+  # this approves the NEW text (its fingerprint matching what is stored), or
+  # this approves first and the import is refused — JpImport re-checks
+  # `writable?` under the same lock and returns :conflict. "Old fingerprint over
+  # new body" is not reachable either way.
+  #
+  # Every validity check moved inside for the same reason: `approvable?` reads
+  # guard violations out of `package`, which is exactly what an import rewrites.
   def approve!(post, topic: nil)
     raise ArgumentError, "post #{post.id} is not a JP package" unless post.primary_locale == "ja"
-    raise ArgumentError, "approval is blocked: #{blocked_reason(post, topic)}" unless post.approvable?(topic)
-    raise ArgumentError, "published_at is not set — the weekly job sets it from topics.json publish_on" if post.published_at.blank?
 
-    Post.transaction do
+    post.with_lock do
+      post.reload
+      topic&.reload
+
+      raise ArgumentError, "approval is blocked: #{blocked_reason(post, topic)}" unless post.approvable?(topic)
+      raise ArgumentError, "published_at is not set — the weekly job sets it from topics.json publish_on" if post.published_at.blank?
+
       post.update!(status: "scheduled")
       post.update_column(
         :package,
