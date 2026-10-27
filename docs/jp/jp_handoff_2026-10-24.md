@@ -153,3 +153,12 @@ docs/jp/jp_handoff_2026-10-24.md 를 먼저 읽고(프로젝트 문서 claude/20
 - **다음 행동 순서**: ① s8 실행(Claude Code) ② 배포(Justin) ③ 파일럿 메일 5통 발송(폼) ④ 첫 주간 승인 테스트(ep01, 블로그 게시 월요일 2026-10-26 → 실제로는 s8 배포 후 첫 월요일).
 - **폐기·주의 문서**: §5-2 ⑤·§1-2 ⑤의 「X API Free 월 1,500」 전제는 **틀림**(교차검증 Q3) — v3.1 §2-3 참조. §5-3의 1주차 10-27은 화요일 — **10-26(月)** 로 정정됨. P15는 원문 보존, **P18 신설**.
 - Codex CLI는 이 세션 연결 셸에서 안 보임 → 교차검증은 ChatGPT 웹(Chrome)으로 수행. 결과는 항상 `docs/jp/codex_review_*.md`에 저장.
+
+## 8. 2026-10-25 18:45 — S8 배포 완료·ep01 승인 (이 절이 §7보다 최신)
+
+- S8 → S8b → S8c(교차검증 3라운드, 최종 GREEN) → **배포 완료**(3d68a43, 18:05 KST). 체크리스트 ⓪~⑧ 전부 통과. ep01~03 프로덕션 import(draft). 주간 잡 `auto_generate_jp` 등록(다음 실행 10-31 토 00:00 KST).
+- **ep01 승인됨**(18:44, Claude가 Chrome으로 「承認」 클릭) → 블로그 10-26 09:00 JST 자동 공개, X 12:00 드라이런.
+- 결정(Justin): 사람 작업은 **토요일 한 번**(승인 + LinkedIn 예약 게시). LinkedIn = 개발 일지·쉬운 말·시각물(PDF ≤10장 또는 MP4 또는 사진) 필수. 승인 화면·메일은 **한국어**여야 함(현재 일본어 — S9).
+- 주의: `X_API_DRY_RUN`이 `deploy.yml` env에 없어 컨테이너에 안 들어감(키 없어 자동 드라이런). **X 키 넣기 전 S9-1 필수.**
+- 다음: `docs/jp/s9_todo.md`(한국어 승인 화면·LinkedIn 개발 일지·PDF 설명서·deploy.yml) → 파일럿 메일 5통 발송. 스킬 `weekly-osmu-pipeline` 저장됨(§6에 적용·변경법).
+- 미커밋: codex_review_s8c·s8b_report(-U docpack 수정)·s9_todo·linkedin_en.md·전략 §3-3·이 절 → 다음 Claude Code 세션에서 커밋.

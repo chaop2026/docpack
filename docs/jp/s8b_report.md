@@ -295,7 +295,7 @@ ssh root@<프로덕션호스트>
 > **[기존 터미널]** 위 ssh 세션 안(프롬프트 `root@...#`) — 원격 서버
 
 ```
-docker exec -i $(docker ps -qf name=docpack-db) pg_dump -U postgres docpack_production | gzip > ~/docpack_pre_s8b_$(date +%Y%m%d_%H%M).sql.gz && ls -lh ~/docpack_pre_s8b_*.sql.gz
+docker exec -i $(docker ps -qf name=docpack-db) pg_dump -U docpack docpack_production | gzip > ~/docpack_pre_s8b_$(date +%Y%m%d_%H%M).sql.gz && ls -lh ~/docpack_pre_s8b_*.sql.gz
 ```
 
 마이그레이션의 `down` 은 JP 행이 생긴 뒤에는 **데이터 소실**입니다(`package.x.tweets` = 어느 트윗이
