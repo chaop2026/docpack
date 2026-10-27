@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SafeFile guide (LinkedIn document post)</title>
+<!--
+  The LinkedIn "document" post — 1080×1350 portrait, 6–8 pages.
+
+  Rendered by scripts/content/make_episode.mjs: Playwright opens this file,
+  calls window.SF_GUIDE(pages), waits for window.SF_GUIDE_READY, screenshots
+  each .page for guide_en_pages/NN.png, and calls page.pdf() ONCE for
+  guide_en.pdf. Nothing here runs in production.
+
+  Tokens and fonts are carousel.html's, which are /safe/'s (public/safe/index.html
+  :root), so the guide, the carousel and the tool look like the same product.
+  Google Fonts is allowed to FAIL — the renderer waits for document.fonts.ready
+  with a timeout and falls back to a system face, because an offline build that
+  silently produced blank pages would be worse than one in Helvetica.
+
+  ── Why one document rather than N ───────────────────────────────────────────
+
+  page.pdf() paginates a single document, so N page-sized sections with
+  `break-after: page` give an N-page PDF in one call. Driving pdf() once per
+  page and concatenating would need a PDF library; this needs none, and the
+  PNGs come off the same DOM, so a page and its PNG cannot disagree.
+
+  ── English only ─────────────────────────────────────────────────────────────
+
+  This artifact is for LinkedIn, where the audience is the English-reading
+  build-in-public one. The Japanese blog article is the Japanese surface. There
+  is no JA version of this file and nothing derives one.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F7F5EF; --card:#FFFFFF; --ink:#17140F; --sub:#6B655A;
+  --line:#E6E1D4; --marker:#FFE066; --marker-soft:#FFF3BF; --alarm:#A32D2D;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:#DDD8CC}
+/* Exactly the PDF page box. `break-after: page` is what turns these sections
+   into pages; the last one must not add a trailing blank page, hence :last-child. */
+.page{
+  width:1080px;height:1350px;background:var(--paper);color:var(--ink);
+  font-family:'IBM Plex Sans','Helvetica Neue',Arial,sans-serif;
+  display:flex;flex-direction:column;padding:84px 84px 72px;position:relative;
+  overflow:hidden;break-after:page;page-break-after:always;
+}
+.page:last-child{break-after:auto;page-break-after:auto}
+
+.brand{display:flex;align-items:center;gap:14px;font-weight:700;font-size:34px;letter-spacing:-.02em}
+.brand .bar{width:46px;height:23px;background:var(--ink);border-radius:6px}
+.brand .sep{width:2px;height:30px;background:var(--line)}
+.brand .slim{color:var(--sub);font-weight:500}
+
+.pnum{position:absolute;right:84px;bottom:72px;font-family:'IBM Plex Mono',monospace;font-size:26px;color:var(--sub)}
+.kicker{margin-top:16px;font-size:24px;font-weight:600;color:var(--sub);letter-spacing:.06em;text-transform:uppercase}
+.body{flex:1;display:flex;flex-direction:column;justify-content:center;min-height:0;padding:34px 0}
+
+/* cover */
+h1{font-size:72px;font-weight:700;line-height:1.26;letter-spacing:-.025em}
+h1 .hl{background:linear-gradient(transparent 60%, var(--marker) 60%);padding:0 4px}
+.cover-sub{margin-top:44px;font-size:34px;line-height:1.6;color:var(--sub)}
+
+/* a step or explanation page */
+h2{font-size:52px;font-weight:700;line-height:1.3;letter-spacing:-.02em}
+.lede{margin-top:28px;font-size:32px;line-height:1.65;color:var(--sub)}
+.shot{margin-top:40px;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;
+  background:var(--card);border:2px solid var(--line);border-radius:20px;overflow:hidden}
+.shot img{max-width:100%;max-height:100%;display:block}
+
+/* the problem page: a black bar with the text still copyable underneath */
+.demo{margin-top:36px;background:var(--card);border:2px solid var(--line);border-radius:20px;padding:40px 44px}
+.demo .row{display:flex;align-items:center;gap:20px;font-family:'IBM Plex Mono',monospace;font-size:34px;padding:14px 0}
+.demo .label{color:var(--sub);font-size:26px;width:250px;flex:0 0 auto}
+.demo .bar{background:var(--ink);color:transparent;border-radius:3px;padding:2px 10px;user-select:all}
+.demo .leak{margin-top:30px;padding-top:28px;border-top:2px dashed var(--line);font-size:28px;line-height:1.6;color:var(--alarm);font-weight:600}
+.demo .leak code{font-family:'IBM Plex Mono',monospace;background:#FCEBEB;padding:2px 8px;border-radius:4px}
+
+/* a diagram step, used when there is no screen recording (track B) */
+.diagram{margin-top:36px;display:flex;flex-direction:column;gap:22px}
+.diagram .card{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:28px 32px;
+  display:flex;gap:24px;align-items:flex-start}
+.diagram .n{flex:0 0 auto;width:56px;height:56px;border-radius:14px;background:var(--ink);color:#fff;
+  font-weight:700;font-size:30px;display:flex;align-items:center;justify-content:center}
+.diagram .txt{font-size:30px;line-height:1.5}
+.diagram .card.on{border-color:var(--ink);background:var(--marker-soft)}
+
+/* cta */
+.cta-h{font-size:60px;font-weight:700;line-height:1.3;letter-spacing:-.02em}
+.cta-body{margin-top:32px;font-size:32px;line-height:1.6;color:var(--sub)}
+.url{margin-top:48px;background:var(--card);border:2px solid var(--line);border-radius:20px;
+  padding:32px 36px;font-family:'IBM Plex Mono',monospace;font-size:26px;word-break:break-all;line-height:1.5}
+.url .lbl{display:block;font-size:22px;color:var(--sub);margin-bottom:12px;letter-spacing:.06em;text-transform:uppercase;font-family:'IBM Plex Sans',sans-serif;font-weight:600}
+
+.foot{border-top:2px solid var(--line);padding-top:26px;font-size:24px;line-height:1.5;color:var(--sub)}
+.foot b{color:var(--ink);font-weight:600}
+</style>
+</head>
+<body>
+<div id="deck"></div>
+<script>
+window.SF_GUIDE_READY = false;
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+const BRAND = '<div class="brand"><span class="bar"></span>SafeFile<span class="sep"></span><span class="slim">SlimFile</span></div>';
+
+/* The compliance line travels on every page of every artifact — same rule as
+   the carousel: it is chrome, not something the body copy can drop. Phrased for
+   an English reader here because this document has no Japanese version. */
+const FOOT = '<div class="foot"><b>Always check the recipient\'s own instructions.</b> '
+  + 'Rules differ by who you are sending the document to.</div>';
+
+/* Shrink to fit rather than clip — carousel.html's reasoning, same floor. A
+   page that loses the end of a sentence still looks finished, which is the
+   failure that ships. */
+function fitToBox(el, min = 0.56) {
+  let scale = 1;
+  const fits = () => el.scrollHeight <= el.clientHeight + 1;
+  while (!fits() && scale > min) {
+    scale = Math.round((scale - 0.02) * 100) / 100;
+    el.querySelectorAll('h1,h2,.lede,.cover-sub,.cta-h,.cta-body,.url,.diagram .txt,.demo .row,.demo .leak')
+      .forEach((n) => {
+        if (!n.dataset.basePx) n.dataset.basePx = String(parseFloat(getComputedStyle(n).fontSize));
+        n.style.fontSize = (parseFloat(n.dataset.basePx) * scale) + 'px';
+      });
+  }
+  return { scale, overflowed: !fits() };
+}
+
+/*
+ * pages: [{ kind, ... }]
+ *   cover   { title, sub }
+ *   problem { title, lede }
+ *   shot    { title, lede, image }   image = data: URI of a real screenshot
+ *   step    { title, lede, steps:[..], active }
+ *   cta     { title, body, url }
+ *
+ * Returns [{ i, kind, scale, overflowed }] so the build can WARN about a page
+ * that had to shrink and FAIL on one that still overflows — the same contract
+ * the carousel renderer has.
+ */
+window.SF_GUIDE = function (pages) {
+  const deck = document.getElementById('deck');
+  deck.innerHTML = '';
+  const report = [];
+
+  pages.forEach((p, idx) => {
+    const page = document.createElement('div');
+    page.className = 'page';
+    page.dataset.kind = p.kind;
+    page.dataset.index = String(idx + 1);
+
+    let inner = '';
+    if (p.kind === 'cover') {
+      inner = `<div class="kicker">A short guide</div>`
+        + `<div class="body"><h1><span class="hl">${esc(p.title)}</span></h1>`
+        + `<p class="cover-sub">${esc(p.sub)}</p></div>`;
+    } else if (p.kind === 'problem') {
+      inner = `<div class="body"><h2>${esc(p.title)}</h2><p class="lede">${esc(p.lede)}</p>`
+        + `<div class="demo">`
+        + `<div class="row"><span class="label">Insurer number</span><span class="bar">01230567</span></div>`
+        + `<div class="row"><span class="label">Insured number</span><span class="bar">4821 9930</span></div>`
+        + `<div class="leak">Select &rarr; copy &rarr; paste gives you back: `
+        + `<code>01230567</code> <code>4821 9930</code></div>`
+        + `</div></div>`;
+    } else if (p.kind === 'shot') {
+      inner = `<div class="body"><h2>${esc(p.title)}</h2><p class="lede">${esc(p.lede)}</p>`
+        + `<div class="shot"><img src="${p.image}" alt=""></div></div>`;
+    } else if (p.kind === 'step') {
+      inner = `<div class="body"><h2>${esc(p.title)}</h2><p class="lede">${esc(p.lede)}</p>`
+        + `<div class="diagram">`
+        + (p.steps || []).map((s, i) =>
+            `<div class="card${i === p.active ? ' on' : ''}"><span class="n">${i + 1}</span>`
+            + `<span class="txt">${esc(s)}</span></div>`).join('')
+        + `</div></div>`;
+    } else if (p.kind === 'cta') {
+      inner = `<div class="body"><p class="cta-h">${esc(p.title)}</p>`
+        + `<p class="cta-body">${esc(p.body)}</p>`
+        + `<div class="url"><span class="lbl">Try it</span>${esc(p.url)}</div></div>`;
+    }
+
+    page.innerHTML = BRAND + inner + FOOT + `<div class="pnum">${idx + 1} / ${pages.length}</div>`;
+    deck.appendChild(page);
+    const r = fitToBox(page.querySelector('.body'));
+    report.push({ i: idx + 1, kind: p.kind, scale: r.scale, overflowed: r.overflowed });
+  });
+
+  window.SF_GUIDE_READY = true;
+  return report;
+};
+</script>
+</body>
+</html>

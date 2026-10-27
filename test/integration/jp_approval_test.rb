@@ -165,9 +165,22 @@ class JpApprovalTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "[data-jp-package=?]", "42"
-    assert_includes response.body, "承認"
-    assert_includes response.body, post_rec.title_ja
-    assert_includes response.body, "weighted"
+    # Korean UI, Japanese content (S9). Both halves are asserted, because each
+    # one alone passes on a wrong screen: checking only the Korean label passes
+    # on a screen that translated the article too, and checking only the
+    # Japanese title passes on the pre-S9 all-Japanese screen.
+    assert_includes response.body, "승인"
+    assert_includes response.body, post_rec.title_ja,
+                    "the article's own Japanese title must NOT be translated — it is the content"
+
+    # The old labels, by name. A blanket `refute_includes "承認"` was tried first
+    # and was wrong: the fixture's title_ja is 「承認テスト」, so it matched the
+    # CONTENT and failed on a screen that was already fully Korean. These seven
+    # strings only ever appeared as chrome.
+    [ "承認済", "未承認", "差し戻す", "公開予定", "添付なし", "カルーセル", "承認(無効)" ].each do |ja|
+      refute_includes response.body, ja, "#{ja} is a pre-S9 Japanese UI string"
+    end
+    assert_includes response.body, "가중" # the weighted-length label, Korean since S9
     assert_includes response.body, "LinkedIn"
     assert_includes response.body, "P18"
   end
@@ -179,7 +192,10 @@ class JpApprovalTest < ActionDispatch::IntegrationTest
     get admin_jp_package_path(42)
 
     assert_response :success
-    assert_includes response.body, "承認(無効)"
+    assert_includes response.body, "승인(불가)"
+    # The violation text itself stays as the guard wrote it — it names a file
+    # and a Japanese rule, and translating a diagnostic would make it not match
+    # what the build prints.
     assert_includes response.body, "編集上限"
   end
 

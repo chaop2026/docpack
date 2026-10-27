@@ -212,9 +212,21 @@ class JpContentGuardTest < ActiveSupport::TestCase
     assert_empty guard(title: "あ" * 32).violations
   end
 
-  test "linkedin text over 1300 characters is a violation" do
-    v = guard(linkedin_text: "a" * 1301).violations
-    assert v.any? { |x| x.start_with?("linkedin_text:") }, v.inspect
+  # Reads the limit from the rules file rather than hardcoding it (S9). The
+  # number moved from `limits.linkedin_chars` to `linkedin.limits.chars` and
+  # from 1300 to 1500 in the same round; a test with the old literal in it would
+  # have passed for the wrong reason (1301 is now UNDER the limit) and reported
+  # that the length check still worked.
+  test "linkedin text over the character limit is a violation" do
+    over = "a" * (JpContentGuard.linkedin_limits["chars"] + 1)
+    v = guard(linkedin_text: over).violations
+    assert v.any? { |x| x.start_with?("linkedin_en.md:") && x.include?("字以内") }, v.inspect
+  end
+
+  test "linkedin text exactly at the character limit passes" do
+    at = "a" * JpContentGuard.linkedin_limits["chars"]
+    v = guard(linkedin_text: at).violations
+    refute v.any? { |x| x.include?("字以内") }, v.inspect
   end
 
   test "an FAQ with the wrong number of questions is a violation" do

@@ -112,10 +112,12 @@ class JpApprovalLockTest < ActiveSupport::TestCase
                         :meta_description_en, :ep, :topic_row, :landing_path,
                         :x_thread, :x_reply_en, :linkedin_text, :captions, :faq,
                         :utm, :asset_paths, :media_for_first_tweet, :manifest,
-                        :hero_path, :fm_ja, :body_ja_markdown, :body_en_markdown).new(
+                        :hero_path, :fm_ja, :body_ja_markdown, :body_en_markdown,
+                        # S9: JpImport reads both of these off the source now.
+                        :summary_ko, :summary_ko_missing_sections).new(
       "a-different-hash", "<p>インポートの新本文</p>", "別タイトル", nil, nil, nil, nil, nil,
       EP, { "intent" => "手順" }, "/safe/jp/nyusatsu/", [], nil, nil, [], [], {}, [], nil, {}, nil,
-      {}, "", nil
+      {}, "", nil, nil, []
     )
 
     assert_equal :conflict, JpImport.apply!(post: @post, source: source, topic: @topic)

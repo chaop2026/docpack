@@ -66,6 +66,25 @@ Rails.application.routes.draw do
   # Rack 미들웨어(lib/canonical_path_redirect.rb)로 옮겼다.
   post "/api/safe_scan", to: "api/safe_scan#create"
 
+  # /safefile → /safe/ (2026-10-27).
+  #
+  # The product is called SafeFile and the tool lives at /safe/, so the name
+  # people type and the name people are told are different strings. Typing the
+  # product name landed on a 404.
+  #
+  # Only the bare spelling is declared. `get "/safefile/"` would be DEAD CODE
+  # — CanonicalPathRedirect runs in front of the router and strips the trailing
+  # slash first, so the router never sees it — and dead code that looks like a
+  # rule is the trap `get "/safe", to: redirect("/safe/")` fell into for two
+  # years (see the comment above). `/safefile/` therefore arrives here as
+  # `/safefile` after one middleware hop and ends at `/safe/` on the second.
+  # Two 301s, no chain past that, asserted in test/lib/canonical_path_redirect_test.rb.
+  #
+  # NOT added to CanonicalPathRedirect::DIRS: that list means "public/<dir>/
+  # holds an index.html", and public/safefile/ does not exist. Putting an alias
+  # there would move routing knowledge out of routes.rb for no gain.
+  get "/safefile", to: redirect("/safe/")
+
   # SafeFile JP (2026-10-22). Both are POST-only, like safe_scan, and both are
   # under the /api/ prefix that robots.txt already disallows — Googlebot
   # harvests fetch() URL literals out of the rendered page, which is how
@@ -118,6 +137,11 @@ Rails.application.routes.draw do
     # recreated.
     scope "jp", as: :jp do
       get   "packages/:ep",                 to: "jp_packages#show",        as: :package
+      # The article as a reader will see it, rendered in the PUBLIC layout but
+      # reachable only from an admin session (S9). Admin::BaseController makes
+      # it a 404 for anybody else — not a redirect to the login page, which
+      # would confirm the episode exists.
+      get   "packages/:ep/preview",         to: "jp_packages#preview",     as: :package_preview
       post  "packages/:ep/approve",         to: "jp_packages#approve",     as: :package_approve
       post  "packages/:ep/unapprove",       to: "jp_packages#unapprove",   as: :package_unapprove
       post  "packages/:ep/verify",          to: "jp_packages#verify",      as: :package_verify

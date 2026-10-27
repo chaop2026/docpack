@@ -4,36 +4,75 @@ module Admin
   # /admin/jp/packages/:ep — the blog article (rendered), the English version,
   # the three carousel slides, the demo, the X thread with per-tweet weighted
   # lengths, the LinkedIn text, the FAQ, both publish times, the guard result and
-  # the KPI table. One page, because the approval is one decision: 承認 schedules
+  # the KPI table. One page, because the approval is one decision: 「승인」 schedules
   # the blog post AND arms the X thread in a single transaction.
   class JpPackagesController < BaseController
+    include PostShowAssigns
+
+    # ── preview is 404 for anybody else, not a redirect ───────────────────────
+    #
+    # The rest of the admin redirects an unauthenticated visitor to the login
+    # form, which is right for a person who meant to sign in. It is wrong for
+    # THIS route: a redirect confirms that /admin/jp/packages/7/preview is a
+    # real address, and the episode number is guessable. A 404 says nothing.
+    #
+    # Note what this does NOT claim to protect. The same draft is already
+    # readable at /ja/blog/:slug by anyone who knows the slug — PostsController
+    # serves `draft` and `scheduled` with a 200 on purpose (noindex; see
+    # Post#indexable?). So this is about not ADDING a second, enumerable
+    # address, not about making the draft secret.
+    skip_before_action :require_admin, only: :preview
+    before_action :require_admin_or_404, only: :preview
     before_action :set_package
 
     def show
       @kpi = JpWeeklyKpi.new.rows
       @approvable = @post.approvable?(@topic) && @post.published_at.present?
       @blocked_reason = JpApproval.blocked_reason(@post, @topic) unless @post.approvable?(@topic)
+      @preview_path = admin_jp_package_preview_path(@post.content_ep)
+    end
+
+    # The article in the public layout.
+    #
+    # `@url_locale` is the post's own primary locale rather than something read
+    # off this URL: /admin/jp/packages/2/preview carries no locale prefix, and
+    # the document being rendered is Japanese. Passing the default (Korean)
+    # would make the template compute a Korean canonical for a Japanese
+    # article — the admin screen would then be previewing indexing signals that
+    # no public URL emits.
+    #
+    # `@preview` is read by the template for the banner and to force noindex.
+    # The noindex is belt-and-braces: a draft or scheduled post is already
+    # noindex via Post#indexable?, but this URL must never be indexable even
+    # after the post is published and indexable at its real address.
+    def preview
+      @preview = true
+      assign_post_show_ivars(@post, @post.primary_locale_sym)
+      render template: "posts/show", layout: "application"
     end
 
     def approve
       JpApproval.approve!(@post, topic: @topic)
       redirect_to admin_jp_package_path(@post.content_ep),
-                  notice: "承認しました。ブログ #{jst(@post.published_at)} / X #{jst(@post.published_at + JpApproval::X_DELAY)}"
+                  notice: t("jp_admin.flash.approved",
+                            blog: jst(@post.published_at),
+                            x: jst(@post.published_at + JpApproval::X_DELAY))
     rescue ArgumentError => e
-      redirect_to admin_jp_package_path(@post.content_ep), alert: "承認できません: #{e.message}"
+      redirect_to admin_jp_package_path(@post.content_ep),
+                  alert: t("jp_admin.flash.approve_failed", reason: e.message)
     end
 
     def unapprove
       JpApproval.unapprove!(@post)
       redirect_to admin_jp_package_path(@post.content_ep),
-                  notice: "差し戻しました。下書きに戻り、X の予約は取り消されています。"
+                  notice: t("jp_admin.flash.unapproved")
     end
 
     # `verify_before` topics (ep30, ep32). A human asserts the facts have been
     # re-checked; nothing else may set this, and no job ever does.
     def verify
       @topic.update!(verified_at: Time.current)
-      redirect_to admin_jp_package_path(@post.content_ep), notice: "確認済みにしました。"
+      redirect_to admin_jp_package_path(@post.content_ep), notice: t("jp_admin.flash.verified")
     end
 
     # ── the two answers to an 'unknown' tweet ─────────────────────────────────
@@ -49,7 +88,7 @@ module Admin
       tweet_id = params[:tweet_id].to_s.strip
       if tweet_id.blank?
         redirect_to admin_jp_package_path(@post.content_ep),
-                    alert: "タイムラインに出ているツイートの ID を入れてください(URL の末尾の数字)。"
+                    alert: t("jp_admin.flash.tweet_id_required")
         return
       end
 
@@ -58,7 +97,7 @@ module Admin
       resume!(seq, { "state" => "done", "tweet_id" => tweet_id,
                      "error" => nil, "recorded_by_hand_at" => Time.current.iso8601 })
       redirect_to admin_jp_package_path(@post.content_ep),
-                  notice: "#{seq}件目を送信済みとして記録しました。#{seq + 1}件目から再開します。"
+                  notice: t("jp_admin.flash.tweet_marked_sent", seq: seq, next: seq + 1)
     end
 
     # "It is not there." Authorises a re-send of THIS seq, and only this one.
@@ -72,7 +111,7 @@ module Admin
       resume!(seq, { "recorded_by_hand_at" => Time.current.iso8601,
                      "authorised_resend_at" => Time.current.iso8601 }, authorise: seq)
       redirect_to admin_jp_package_path(@post.content_ep),
-                  notice: "#{seq}件目を未送信として、そこから再開します。"
+                  notice: t("jp_admin.flash.tweet_marked_unsent", seq: seq)
     end
 
     # LinkedIn is posted by hand (the official API needs app review). P18 counts
@@ -83,10 +122,18 @@ module Admin
       posted = (@post.package["posted"] || {}).merge("linkedin_url" => url.presence)
       @post.update_column(:package, @post.package.merge("posted" => posted))
       redirect_to admin_jp_package_path(@post.content_ep),
-                  notice: url.present? ? "LinkedIn の URL を記録しました(P18 に反映されます)。" : "LinkedIn の URL を消しました。"
+                  notice: url.present? ? t("jp_admin.flash.linkedin_recorded") : t("jp_admin.flash.linkedin_cleared")
     end
 
     private
+
+    def require_admin_or_404
+      return if session[:admin_authenticated]
+
+      # ActionController::RoutingError, so the request is handled by the same
+      # 404 path as a genuinely unknown URL — identical status, identical body.
+      raise ActionController::RoutingError, "Not Found"
+    end
 
     def set_package
       @post = Post.find_by!(content_track: "jp", content_ep: params[:ep].to_i)
@@ -103,8 +150,9 @@ module Admin
     # indeterminate later and nobody had looked at. Measured against 7cf81ec,
     # that reposted a possibly-live tweet and finished reporting success.
     #
-    # 「送信済みとして記録」 therefore authorises nothing: the seq becomes `done`
-    # and the guard has no reason to stop at it.
+    # 「전송됨으로 기록」 (mark_tweet_sent) therefore authorises nothing: the seq
+    # becomes `done` and the guard has no reason to stop at it. The button
+    # labels are Korean as of S9 — see config/locales/ko.yml jp_admin.show.
     def resume!(seq, tweet_attrs, authorise: nil)
       x = (@post.package["x"] || {}).dup
       x["tweets"] = (x["tweets"] || []).map { |t| t["seq"] == seq ? t.merge(tweet_attrs) : t }

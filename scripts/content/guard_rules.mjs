@@ -43,11 +43,68 @@ export const RULES = {
     confirmedOn: compile({ re: raw.legal_claim.confirmed_on_re, id: 'confirmed_on_re' }, 'legal_claim'),
     why: raw.legal_claim.why
   },
-  faqHeading: raw.required_sections_ja.faq_heading
+  faqHeading: raw.required_sections_ja.faq_heading,
+  // LinkedIn's own rules (S9). Loaded on BOTH sides for the same reason the
+  // rest of this file exists: a rule the Mac pipeline checks and the server
+  // does not — or vice versa — is a rule that exists in one place.
+  linkedin: {
+    forbidden: raw.linkedin.forbidden.map((f) => ({ id: f.id, re: compile(f, 'linkedin'), why: f.why })),
+    limits: raw.linkedin.limits
+  }
 };
 
 if (!RULES.forbidden.length) {
   throw new Error('guard_rules.json carries no forbidden patterns — refusing to run with an empty guard');
+}
+if (!RULES.linkedin.forbidden.length) {
+  throw new Error('guard_rules.json carries no linkedin patterns — refusing to run with an empty LinkedIn guard');
+}
+
+/*
+ * The LinkedIn surface. Mirrors JpContentGuard#linkedin_violations — the
+ * measurements have to agree, so both are written from the same limits and
+ * both exclude hashtag-only and URL-only lines from the sentence average.
+ *
+ * Returns [] for an absent file. The ABSENCE is not this function's business:
+ * make_episode.mjs does not import, and the import refuses on a missing
+ * linkedin_en.md (JpEpisodeSource#validate!). Reporting it here as well would
+ * make the build fail on an episode whose LinkedIn post has not been written
+ * yet, which is a normal state on the day the article is drafted.
+ */
+export function runLinkedIn(text) {
+  if (!text || !text.trim()) return [];
+  const out = [];
+
+  for (const f of RULES.linkedin.forbidden) {
+    const m = String(text).match(f.re);
+    if (m) out.push(`linkedin_en.md: 「${m[0].slice(0, 40)}」 — ${f.why} [${f.id}]`);
+  }
+
+  const lim = RULES.linkedin.limits;
+
+  const sentences = String(text).split(/(?<=[.!?])\s+|\n{2,}/).map((s) => s.trim()).filter(Boolean);
+  const prose = sentences.filter((s) => !/^(?:#[\p{L}\p{N}_]+\s*)+$/u.test(s) && !/^https?:\/\/\S+$/.test(s));
+  if (prose.length && lim.avg_sentence_words) {
+    const avg = prose.reduce((n, s) => n + s.split(/\s+/).length, 0) / prose.length;
+    if (avg > lim.avg_sentence_words) {
+      out.push(`linkedin_en.md: 1文あたり平均 ${avg.toFixed(1)} 語 — 上限 ${lim.avg_sentence_words} 語(쉬운 말로 쓴다)`);
+    }
+  }
+
+  const links = [...new Set(String(text).match(/https?:\/\/\S+/g) || [])];
+  if (lim.links && links.length > lim.links) {
+    out.push(`linkedin_en.md: リンクが ${links.length} 本 — ${lim.links} 本のみ(CTA は1つ): ${links.join(', ')}`);
+  }
+
+  const tags = String(text).match(/(?<![\p{L}\p{N}_#])#[\p{L}\p{N}_]+/gu) || [];
+  if (lim.hashtags && tags.length > lim.hashtags) {
+    out.push(`linkedin_en.md: ハッシュタグ ${tags.length} 個 — 上限 ${lim.hashtags} 個: ${tags.join(' ')}`);
+  }
+
+  if (lim.chars && [...String(text)].length > lim.chars) {
+    out.push(`linkedin_en.md: ${lim.chars}字以内 — 現在 ${[...String(text)].length}字`);
+  }
+  return out;
 }
 
 /*

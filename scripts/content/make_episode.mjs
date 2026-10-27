@@ -6,15 +6,31 @@
  *   node scripts/content/make_episode.mjs 1 --no-demo     # skip the GIF/MP4
  *
  * Input  : content/jp/topics.json  (the plan)
- *          content/jp/epNN/post_ja.md  (frontmatter + body, written by a human
- *          or by Claude Code — this script never writes prose)
+ *          content/jp/epNN/post_ja.md      frontmatter + body, written by a
+ *          content/jp/epNN/linkedin_en.md  human or by Claude Code — this
+ *          content/jp/epNN/summary_ko.md   script never writes prose
  * Output : same folder — x_thread.md, carousel_1..3.png, demo.gif, demo.mp4,
- *          manifest.json
+ *          guide_en.pdf, guide_en_pages/NN.png, manifest.json
  *
- * post_en.md is NOT generated. A machine translation of marketing copy reads
- * like one, and the English half of this project is a parallel rewrite rather
- * than a translation (see the landing pages). If the file is absent this script
- * warns and records it in the manifest; it does not invent one.
+ * post_en.md, linkedin_en.md and summary_ko.md are NOT generated.
+ *
+ * post_en.md: a machine translation of marketing copy reads like one, and the
+ * English half of this project is a parallel rewrite rather than a translation
+ * (see the landing pages).
+ *
+ * linkedin_en.md (S9): the LinkedIn post is a DEV LOG — a first-person account
+ * of what was built and why it was designed that way (strategy v3.1 §3-3, as
+ * revised 2026-10-25). It used to be assembled from post_en.md's hook and
+ * bullets, which produced a competent summary of the ARTICLE; there is no
+ * arrangement of an article's bullet points that becomes a dev log.
+ *
+ * summary_ko.md (S9): the approver reads Korean and the package is Japanese.
+ *
+ * If any of the three is absent this script WARNS and records it; the import
+ * (JpEpisodeSource#validate!) is what refuses. The split is deliberate — the
+ * article is normally drafted before the dev log and the Korean summary are
+ * written, and failing the build would mean no carousel until every file
+ * exists, so the pipeline would get run later and less often.
  *
  * Failure is partial by design: if the demo recording fails, every other
  * artifact is still produced and the manifest says `demo: "failed: <reason>"`.
@@ -36,6 +52,7 @@ const PUBLIC = path.join(REPO, 'public');
 const FIXTURES = path.join(REPO, 'test', 'safe', 'fixtures');
 const CONTENT = path.join(REPO, 'content', 'jp');
 const TEMPLATE = path.join(__dirname, 'templates', 'carousel.html');
+const GUIDE_TEMPLATE = path.join(__dirname, 'templates', 'guide.html');
 
 const BASE_URL = 'https://slimfile.net';
 const LANDING_PATH = { nyusatsu: '/safe/jp/nyusatsu/', honnin: '/safe/jp/honnin-kakunin/', aimae: '/safe/jp/ai-mae/' };
@@ -53,7 +70,7 @@ const FIXTURE_FOR_DOC = {
 // content/jp/guard_rules.json so the server's JpContentGuard enforces the same
 // list on import — a rule that exists in one of the two places is a rule the
 // other half of the project can break without anything saying so.
-const { RULES, weightedLength, runForbidden, runLegalClaim, mustLineViolations } =
+const { RULES, weightedLength, runForbidden, runLegalClaim, mustLineViolations, runLinkedIn } =
   await import(pathToFileURL(path.join(__dirname, 'guard_rules.mjs')).href);
 
 // Our editorial limit, not X's. X's actual cap is RULES.limits.tweet_weighted
@@ -153,6 +170,26 @@ if (topic.track === 'A' && captions.length !== 3 && !noDemo) {
 const enPath = path.join(epDir, 'post_en.md');
 const enBody = fs.existsSync(enPath) ? fs.readFileSync(enPath, 'utf8') : null;
 if (enBody === null) warnings.push('post_en.md is absent — write the English version by hand (it is not generated)');
+
+/* linkedin_en.md and summary_ko.md — written by hand, read here only to CHECK.
+ *
+ * Both are warnings at this stage and refusals at import (JpEpisodeSource#
+ * validate!). The split is deliberate: this script builds assets from the
+ * article, and the article is normally drafted before the dev log and the
+ * Korean summary are written. Failing the build would mean no carousel until
+ * every file exists, so the pipeline would get run later and less often. The
+ * import is the gate, because that is the step that creates something a
+ * reviewer can approve.
+ */
+const liPath = path.join(epDir, 'linkedin_en.md');
+const liBody = fs.existsSync(liPath) ? fs.readFileSync(liPath, 'utf8').trim() : null;
+if (liBody === null) {
+  warnings.push('linkedin_en.md is absent — the dev log is written by hand (strategy v3.1 §3-3, revised 2026-10-25); content:jp_import will REFUSE without it');
+}
+const summaryPath = path.join(epDir, 'summary_ko.md');
+if (!fs.existsSync(summaryPath)) {
+  warnings.push('summary_ko.md is absent — 승인자가 읽을 수 없는 패키지는 만들지 않는다; content:jp_import will REFUSE without it');
+}
 
 /* ── x_thread.md ──────────────────────────────────────────────────────────── */
 /* Five tweets: hook, three bullets, CTA + the UTM URL — plus the required
@@ -267,6 +304,16 @@ if (!tweets.some((t) => t.includes(MUST_LINE))) {
 // have to reach the same reader.
 violations.push(...runLegalClaim('post_ja.md', [fm.title, fm.hook, fm.cta, ...fm.bullets, body].join('\n')));
 if (enBody) violations.push(...runLegalClaim('post_en.md', enBody));
+
+// The LinkedIn dev log, checked on its own rules (S9). A violation here blocks
+// the build the same way a forbidden word in the body does — this text is
+// published as written, so there is no later step that could catch it.
+//
+// NOTE it is deliberately NOT in CORPUS above. The global forbidden list is
+// about unshipped features and legal overstatement, which apply to every
+// surface; the LinkedIn rules are about voice, and 「日本の」 in CORPUS would
+// fail every Japanese article ever written.
+violations.push(...runLinkedIn(liBody));
 
 // Title length, by the same number the server uses.
 if ([...fm.title].length > RULES.limits.title_chars) {
@@ -412,6 +459,19 @@ function startServer() {
   });
 }
 
+/* Screenshots for guide_en.pdf, captured DURING the recording.
+ *
+ * Taken at the four moments the guide describes (drop → pick a purpose → the
+ * bars appear → save) rather than mined out of the GIF frames afterwards. Two
+ * reasons: the frames are deleted on success, and picking frame 17 of 40 as
+ * "the moment the purpose bar appeared" is a guess that silently becomes wrong
+ * the first time OCR is slower.
+ *
+ * The caption bar is hidden for these — the guide carries its own English
+ * captions, and leaving the Japanese one in would put two captions on one page.
+ */
+const guideShots = [];
+
 let demo = 'skipped: track B has no tool demo';
 if (noDemo) demo = 'skipped: --no-demo';
 else if (topic.track !== 'A') demo = 'skipped: track B has no tool demo';
@@ -469,8 +529,37 @@ else {
     });
     const setCap = (upto) => page.evaluate((l) => window.__cap(l), caps.slice(0, upto));
 
+    /* One guide screenshot.
+     *
+     * Taken at a WIDER viewport than the recording, then restored. The GIF is
+     * a 720×1280 phone shape, which is right for the GIF; dropped into the
+     * guide's image box that portrait letterboxes to about 444px inside a
+     * 1080px page, and LinkedIn renders a document page at roughly half size —
+     * so the app's own text came out around 250px wide and unreadable, which
+     * is the whole point of including a screenshot. Measured on the first
+     * build of ep01.
+     *
+     * The caption bar is hidden for the shot: the guide carries its own
+     * English captions and two captions on one page is worse than none.
+     */
+    const GUIDE_VIEWPORT = { width: 1120, height: 1000 };
+    const guideShot = async (name, scrollTo) => {
+      await page.evaluate(() => { const b = document.getElementById('__cap'); if (b) b.style.display = 'none'; });
+      await page.setViewportSize(GUIDE_VIEWPORT);
+      // Re-anchor AFTER the reflow — a wider viewport moves everything, so a
+      // scroll position from before the resize points at the wrong element.
+      if (scrollTo) await page.locator(scrollTo).scrollIntoViewIfNeeded().catch(() => {});
+      await page.waitForTimeout(250);
+      const buf = await page.screenshot();
+      await page.setViewportSize({ width: 720, height: 1280 });
+      if (scrollTo) await page.locator(scrollTo).scrollIntoViewIfNeeded().catch(() => {});
+      await page.evaluate(() => { const b = document.getElementById('__cap'); if (b) b.style.display = ''; });
+      guideShots.push({ name, dataUri: 'data:image/png;base64,' + buf.toString('base64') });
+    };
+
     await setCap(1);
     await shoot(4);
+    await guideShot('drop');
 
     await page.setInputFiles('#fileInput', path.join(FIXTURES, FIXTURE_FOR_DOC[topic.doc]));
     // #docWrap becoming visible is afterLoad()'s last step — `pages.length > 0`
@@ -482,15 +571,18 @@ else {
     await page.waitForTimeout(700);
     await setCap(2);
     await shoot(10);
+    await guideShot('detected', '#docWrap');
 
     await page.locator('#jpBar').scrollIntoViewIfNeeded().catch(() => {});
     await shoot(6);
+    await guideShot('purpose', '#jpBar');
 
     await page.click('#btnMake');
     await page.waitForFunction(() => document.getElementById('result').style.display === 'block', { timeout: 120000 });
     await setCap(3);
     await page.locator('#result').scrollIntoViewIfNeeded().catch(() => {});
     await page.waitForTimeout(500);
+    await guideShot('result', '#result');
     await shoot(MAX_FRAMES - frame);
 
     await page.close();
@@ -525,6 +617,155 @@ else {
     process.stdout.write(`  demo FAILED: ${e.message}\n`);
   } finally {
     if (srv) srv.close();
+  }
+}
+
+/* ── guide_en.pdf — the LinkedIn "document" post ──────────────────────────── */
+/*
+ * 1080×1350 portrait, 6–8 pages (hard ceiling 10), carousel.html's tokens and
+ * fonts. The LinkedIn post is a dev log and this is the thing a reader can
+ * swipe through without leaving the feed.
+ *
+ * Page 1's question is linkedin_en.md's FIRST LINE, de-bolded — not a separate
+ * headline written here. The dev log already opens with the plain-English
+ * question the post is about; writing a second one would give the same artifact
+ * two different openings, and the one nobody edits goes stale.
+ *
+ * Pages 3–6 are the REAL screenshots captured during the recording when there
+ * is one. Track B (and --no-demo, and any episode whose `doc` has no dummy
+ * document) gets diagram pages instead, at the SAME page count — a shorter PDF
+ * for those episodes would read as a less finished product rather than as a
+ * different track.
+ */
+const GUIDE_MIN_PAGES = 6;
+const GUIDE_MAX_PAGES = 10;
+const GUIDE_MAX_BYTES = 5 * 1024 * 1024;
+
+// 𝗔-𝘇 and 𝟬-𝟵 back to ASCII. linkedin_en.md's first line is written in the
+// Unicode mathematical-bold block because LinkedIn has no formatting controls;
+// a PDF has real type, so the cover uses real type. Left alone for anything
+// outside those ranges — there is no bold form of a Japanese character and
+// substituting a lookalike would be worse than leaving it.
+function plainify(text) {
+  return Array.from(String(text)).map((ch) => {
+    const cp = ch.codePointAt(0);
+    if (cp >= 0x1d400 && cp <= 0x1d419) return String.fromCharCode(65 + (cp - 0x1d400)); // bold A-Z
+    if (cp >= 0x1d41a && cp <= 0x1d433) return String.fromCharCode(97 + (cp - 0x1d41a)); // bold a-z
+    if (cp >= 0x1d5d4 && cp <= 0x1d5ed) return String.fromCharCode(65 + (cp - 0x1d5d4)); // sans-bold A-Z
+    if (cp >= 0x1d5ee && cp <= 0x1d607) return String.fromCharCode(97 + (cp - 0x1d5ee)); // sans-bold a-z
+    if (cp >= 0x1d608 && cp <= 0x1d621) return String.fromCharCode(65 + (cp - 0x1d608)); // sans-italic A-Z
+    if (cp >= 0x1d622 && cp <= 0x1d63b) return String.fromCharCode(97 + (cp - 0x1d622)); // sans-italic a-z
+    if (cp >= 0x1d670 && cp <= 0x1d689) return String.fromCharCode(65 + (cp - 0x1d670)); // mono A-Z
+    if (cp >= 0x1d68a && cp <= 0x1d6a3) return String.fromCharCode(97 + (cp - 0x1d68a)); // mono a-z
+    if (cp >= 0x1d7ce && cp <= 0x1d7d7) return String.fromCharCode(48 + (cp - 0x1d7ce)); // bold 0-9
+    if (cp >= 0x1d7e2 && cp <= 0x1d7eb) return String.fromCharCode(48 + (cp - 0x1d7e2)); // sans-bold 0-9
+    return ch;
+  }).join('');
+}
+
+// The tool's flow, in plain English. Fixed rather than per-episode because the
+// four steps ARE the same four steps every week; only the purpose changes.
+// Written at the reading level the LinkedIn rule asks for (short sentences, no
+// jargon) — the same voice as linkedin_en.md.
+const GUIDE_STEPS = [
+  'Drop the file in. A PDF or a photo both work.',
+  `Say where it is going. This one is "${topic.purpose}".`,
+  'The parts to cover are marked for you. You can change any of them.',
+  'Save. The file becomes a flat picture, so nothing is hidden underneath.'
+];
+const GUIDE_SHOT_TITLES = ['Step 1 — drop it in', 'Step 2 — say where it is going',
+                           'Step 3 — check what will be covered', 'Step 4 — save it'];
+const LINKEDIN_UTM = `${BASE_URL}${landing}?utm_source=linkedin&utm_medium=social&utm_campaign=ep${EPP}`;
+
+let guide = 'skipped';
+{
+  const coverQuestion = liBody
+    ? plainify(liBody.split('\n').find((l) => l.trim())).trim()
+    : `What do you cover before you send ${topic.doc || 'a document'}?`;
+
+  const pages = [
+    { kind: 'cover', title: coverQuestion,
+      sub: 'SafeFile covers the personal details in a document. It runs in your browser, so the file never leaves your computer.' },
+    { kind: 'problem', title: 'A black box is not always a redaction.',
+      lede: 'Draw a black rectangle over a number in a PDF and the number is usually still there underneath.' }
+  ];
+
+  // Four step pages: real captures when we have them, diagrams when we do not.
+  const haveShots = guideShots.length === 4;
+  for (let i = 0; i < 4; i++) {
+    pages.push(haveShots
+      ? { kind: 'shot', title: GUIDE_SHOT_TITLES[i], lede: GUIDE_STEPS[i], image: guideShots[i].dataUri }
+      : { kind: 'step', title: GUIDE_SHOT_TITLES[i], lede: GUIDE_STEPS[i], steps: GUIDE_STEPS, active: i });
+  }
+
+  pages.push({
+    kind: 'cta',
+    title: 'It\'s free. Try it and tell me what confused you.',
+    body: 'No account, no upload. If you handle documents like this, the part that felt confusing is the most useful thing you can send me.',
+    url: LINKEDIN_UTM
+  });
+
+  if (pages.length < GUIDE_MIN_PAGES || pages.length > GUIDE_MAX_PAGES) {
+    // Structural, so it is a hard failure rather than a warning: a guide
+    // outside the declared range is the deliverable being wrong, not a partial
+    // success the way a missing recording is.
+    console.error(`\nep${EP}: guide_en.pdf would be ${pages.length} pages, outside ${GUIDE_MIN_PAGES}–${GUIDE_MAX_PAGES}`);
+    await browser.close();
+    process.exit(1);
+  }
+
+  const pageDir = path.join(epDir, 'guide_en_pages');
+  const pdfPath = path.join(epDir, 'guide_en.pdf');
+  try {
+    const gp = await browser.newPage({ viewport: { width: 1080, height: 1350 }, deviceScaleFactor: 1 });
+    await gp.goto(pathToFileURL(GUIDE_TEMPLATE).href);
+    await Promise.race([gp.evaluate(() => document.fonts.ready), gp.waitForTimeout(6000)]);
+
+    const report = await gp.evaluate((pp) => window.SF_GUIDE(pp), pages);
+    report.filter((r) => r.overflowed).forEach((r) =>
+      warnings.push(`guide_en.pdf page ${r.i} (${r.kind}): text still overflows at the ${Math.round(r.scale * 100)}% floor — shorten the copy`));
+    report.filter((r) => !r.overflowed && r.scale < 1).forEach((r) =>
+      warnings.push(`guide_en.pdf page ${r.i} (${r.kind}): text was shrunk to ${Math.round(r.scale * 100)}% to fit`));
+
+    // PNGs first, off the same DOM the PDF is paginated from, so a page and its
+    // PNG cannot disagree about what it says.
+    fs.rmSync(pageDir, { recursive: true, force: true });
+    fs.mkdirSync(pageDir, { recursive: true });
+    for (let i = 0; i < pages.length; i++) {
+      const file = path.join(pageDir, `${String(i + 1).padStart(2, '0')}.png`);
+      await gp.locator(`.page[data-index="${i + 1}"]`).screenshot({ path: file });
+      const size = pngSize(file);
+      if (size.width !== CAROUSEL_SIZE.width || size.height !== CAROUSEL_SIZE.height) {
+        throw new Error(`guide_en_pages/${path.basename(file)} is ${size.width}×${size.height}, not 1080×1350`);
+      }
+    }
+
+    // ONE call. `preferCSSPageSize: false` + explicit px: the CSS page box and
+    // the PDF page box have to be the same number or the pages come out scaled.
+    await gp.pdf({ path: pdfPath, width: '1080px', height: '1350px',
+                   printBackground: true, margin: { top: 0, right: 0, bottom: 0, left: 0 } });
+    await gp.close();
+
+    const bytes = fs.statSync(pdfPath).size;
+    // Counted from the file, not from `pages.length`. The point of recording it
+    // is that the two can disagree — a stray `break-after` or a page that grew
+    // past 1350px would paginate into more pages than we laid out, and the
+    // first place anyone would notice is a LinkedIn upload.
+    const pdfPages = countPdfPages(pdfPath);
+    if (pdfPages !== pages.length) {
+      throw new Error(`guide_en.pdf has ${pdfPages} pages, laid out ${pages.length} — the CSS page box and the PDF page box disagree`);
+    }
+    if (bytes > GUIDE_MAX_BYTES) {
+      throw new Error(`guide_en.pdf is ${Math.round(bytes / 1024)}KB, over the ${GUIDE_MAX_BYTES / 1024 / 1024}MB cap`);
+    }
+    guide = `ok: ${pdfPages} pages, ${Math.round(bytes / 1024)}KB, ${haveShots ? 'real screenshots' : 'diagrams (no recording)'}`;
+    process.stdout.write(`  guide_en.pdf  (${pdfPages} pages, ${Math.round(bytes / 1024)}KB, ${haveShots ? 'screenshots' : 'diagrams'})\n`);
+  } catch (e) {
+    // Partial by design, like the demo: four good files are not thrown away
+    // because the fifth did not render. The manifest says what happened.
+    guide = `failed: ${e.message}`;
+    warnings.push(`guide_en.pdf: ${e.message}`);
+    process.stdout.write(`  guide_en.pdf FAILED: ${e.message}\n`);
   }
 }
 
@@ -567,9 +808,11 @@ const manifest = {
   landing,
   utm_url: utmUrl,
   generated_by: 'scripts/content/make_episode.mjs',
-  files: ['post_ja.md', 'post_en.md', 'x_thread.md', 'carousel_1.png', 'carousel_2.png', 'carousel_3.png', 'demo.gif', 'demo.mp4']
+  files: ['post_ja.md', 'post_en.md', 'linkedin_en.md', 'summary_ko.md', 'x_thread.md',
+          'carousel_1.png', 'carousel_2.png', 'carousel_3.png', 'demo.gif', 'demo.mp4', 'guide_en.pdf']
     .map(fileEntry).filter(Boolean),
   demo: demoForManifest(),
+  guide: guide,
   warnings,
   // Publishing checklist. Justin ticks these by hand after posting, then sets
   // topics.json status to "posted". They start false — a checklist that
@@ -590,6 +833,26 @@ process.stdout.write(`  demo: ${manifest.demo}\n`);
 if (warnings.length) {
   process.stdout.write('\nwarnings:\n');
   warnings.forEach((w) => process.stdout.write('  - ' + w + '\n'));
+}
+
+/* Page count read out of the PDF itself.
+ *
+ * `/Type /Pages … /Count N` is the page tree root. Counting `/Type /Page`
+ * occurrences instead would be wrong in both directions — it matches the
+ * `/Pages` node too (it starts with `/Page`), and a compressed object stream
+ * hides the rest. Chromium writes this file, uncompressed enough that /Count is
+ * in the clear; if a future Chromium changes that, `counted === null` surfaces
+ * as a loud failure rather than as a wrong number.
+ */
+function countPdfPages(file) {
+  const buf = fs.readFileSync(file).toString('latin1');
+  const counts = [...buf.matchAll(/\/Type\s*\/Pages[^>]*?\/Count\s+(\d+)/g)].map((m) => Number(m[1]));
+  if (!counts.length) {
+    const alt = [...buf.matchAll(/\/Count\s+(\d+)/g)].map((m) => Number(m[1]));
+    if (!alt.length) throw new Error('could not read a page count out of the PDF');
+    return Math.max(...alt);
+  }
+  return Math.max(...counts);
 }
 
 function run(bin, args) {

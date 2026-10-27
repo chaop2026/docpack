@@ -172,18 +172,30 @@ class AutoGenerateJpPostJob < ApplicationJob
   end
 
   def fallback_package(topic, data)
+    summary = data["summary_ko"].presence
     guard = JpContentGuard.new(
       surfaces: {
         "generated body_ja" => data["body_ja"].to_s,
         "generated body_en" => data["body_en"].to_s,
-        "generated x_thread" => Array(data["x_thread"]).join("\n")
+        "generated x_thread" => Array(data["x_thread"]).join("\n"),
+        # The generated LinkedIn text is a SURFACE here, same as on the file
+        # path. Named "generated" rather than linkedin_en.md because there is no
+        # such file on this path — a violation that told the reviewer to edit a
+        # file that does not exist would send them looking for it.
+        "generated linkedin_text" => data["linkedin_text"].to_s
       },
       article_ja: data["body_ja"],
       article_en: data["body_en"],
       title: data["title_ja"],
       tweets: Array(data["x_thread"]),
       linkedin_text: data["linkedin_text"],
-      faq: Array(data["faq"])
+      faq: Array(data["faq"]),
+      # Computed from the same constant the file path uses, so "which sections
+      # are missing" means the same thing on both paths. The API is asked for
+      # all seven and may return none; the guard then disables approval, which
+      # is the correct outcome — a fallback package nobody can read is not
+      # approvable just because a machine produced it.
+      summary_ko_missing: missing_summary_sections(summary)
     ).result
 
     {
@@ -192,11 +204,26 @@ class AutoGenerateJpPostJob < ApplicationJob
       "assets_missing" => true,
       "x_thread" => Array(data["x_thread"]),
       "linkedin_text" => data["linkedin_text"],
+      "summary_ko" => summary,
       "faq" => Array(data["faq"]),
       "landing_path" => JpEpisodeSource::LANDING_PATH.fetch(topic.landing, "/safe/jp/nyusatsu/"),
       "guard" => guard,
       "generated_at" => Time.current.iso8601
     }
+  end
+
+  # The same completeness question JpEpisodeSource#summary_ko_missing_sections
+  # answers for a folder, asked of an API response. Deliberately reads
+  # SUMMARY_SECTIONS rather than listing the headings again: a section added
+  # there has to become required on both paths at once, or the fallback quietly
+  # keeps passing on a shape the review screen no longer renders fully.
+  def missing_summary_sections(summary)
+    return JpEpisodeSource::SUMMARY_SECTIONS.keys if summary.blank?
+
+    JpEpisodeSource::SUMMARY_SECTIONS.filter_map do |heading, key|
+      value = summary[key]
+      heading if value.blank? || (value.is_a?(Array) && value.all?(&:blank?))
+    end
   end
 
   def fallback_slug(topic)

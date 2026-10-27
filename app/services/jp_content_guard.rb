@@ -12,7 +12,7 @@
 #
 # It reports. Rewriting an author's sentence to satisfy a regex produces copy
 # nobody chose, and the damage is invisible once it is published. A violation
-# blocks the 「承認」 button and is listed in red at the top of the review email;
+# blocks the 「승인」 button and is listed in red at the top of the review email;
 # the import still happens, so a human can look at the package and decide.
 #
 # ── What a clean result does NOT mean ───────────────────────────────────────
@@ -46,6 +46,14 @@ class JpContentGuard
       rules[:must_line]
     end
 
+    # The LinkedIn limits, by the name the views and tests use. One accessor so
+    # the number has one home: `limits["linkedin_chars"]` was deleted in S9
+    # rather than kept as an alias, because an alias is how the two copies
+    # drifted in the first place.
+    def linkedin_limits
+      rules[:linkedin][:limits]
+    end
+
     private
 
     def load_rules
@@ -59,9 +67,19 @@ class JpContentGuard
         legal_source_url: compile({ "id" => "source_url_re", "re" => raw.dig("legal_claim", "source_url_re") }, "legal_claim"),
         legal_confirmed_on: compile({ "id" => "confirmed_on_re", "re" => raw.dig("legal_claim", "confirmed_on_re") }, "legal_claim"),
         legal_why: raw.dig("legal_claim", "why"),
-        faq_heading: raw.dig("required_sections_ja", "faq_heading")
+        faq_heading: raw.dig("required_sections_ja", "faq_heading"),
+        # LinkedIn's own rules (S9). `fetch` on the section, so a file that has
+        # lost it fails loudly here instead of turning linkedin_violations into
+        # a method that always returns [] — a guard that quietly stopped
+        # guarding looks exactly like a guard that found nothing, which is the
+        # standing lesson of this file.
+        linkedin: {
+          forbidden: raw.fetch("linkedin").fetch("forbidden").map { |f| compile(f, "linkedin") },
+          limits: raw.fetch("linkedin").fetch("limits")
+        }
       }.tap do |r|
         raise RuleFileError, "guard_rules.json carries no forbidden patterns" if r[:forbidden].empty?
+        raise RuleFileError, "guard_rules.json carries no linkedin patterns" if r[:linkedin][:forbidden].empty?
       end
     rescue Errno::ENOENT
       raise RuleFileError, "guard_rules.json is missing at #{RULES_PATH}"
@@ -90,7 +108,7 @@ class JpContentGuard
   # a surface means adding a key — the concatenated version made the scope
   # invisible and the scope was wrong.
   def initialize(surfaces:, article_ja: nil, article_en: nil, title: nil,
-                 tweets: [], linkedin_text: nil, faq: [])
+                 tweets: [], linkedin_text: nil, faq: [], summary_ko_missing: [])
     @surfaces = surfaces
     @article_ja = article_ja
     @article_en = article_en
@@ -98,6 +116,7 @@ class JpContentGuard
     @tweets = Array(tweets)
     @linkedin_text = linkedin_text
     @faq = Array(faq)
+    @summary_ko_missing = Array(summary_ko_missing)
   end
 
   # { "violations" => [...], "checked_at" => iso8601 }
@@ -117,7 +136,9 @@ class JpContentGuard
       must_line_violations,
       legal_claim_violations,
       length_violations,
-      faq_violations
+      faq_violations,
+      linkedin_violations,
+      summary_ko_violations
     ].flatten.compact
   end
 
@@ -214,9 +235,12 @@ class JpContentGuard
       end
     end
 
-    if @linkedin_text.present? && @linkedin_text.to_s.length > lim["linkedin_chars"]
-      out << "linkedin_text: #{lim['linkedin_chars']}字以内 — 現在 #{@linkedin_text.to_s.length}字"
-    end
+    # The LinkedIn character limit used to be checked HERE as well. Removed in
+    # S9 — not relaxed, MOVED: it now lives with the rest of the LinkedIn rules
+    # in `linkedin_violations`, under the surface name of the file a person
+    # actually edits (linkedin_en.md, not "linkedin_text"). Two checks on one
+    # rule produced two lines in the violation list saying the same thing, and
+    # the next person to change the number would have found one of them.
     out
   end
 
@@ -226,6 +250,92 @@ class JpContentGuard
     return [] if @faq.length == want
 
     [ "faq_ja.md: FAQ は #{want}問 — 現在 #{@faq.length}問" ]
+  end
+
+  # ── LinkedIn (S9) ──────────────────────────────────────────────────────────
+  #
+  # Checked separately from `forbidden` because the rules are about THIS surface
+  # and nowhere else. 「sign up」 is fine in a landing page and wrong in a dev
+  # log; a 25-word average sentence is fine in the Japanese article and wrong in
+  # a post whose whole point is plain English. Folding them into the global
+  # forbidden list would either fire everywhere or require a surface condition
+  # on each pattern, and the second is the same thing with more places to be
+  # inconsistent.
+  #
+  # The length/shape limits are measured, not regexed: sentence-length average,
+  # link count, hashtag count. They say what they measured in the message,
+  # because 「문장이 길다」 with no number is not actionable.
+  def linkedin_violations
+    return [] if @linkedin_text.blank?
+
+    text = @linkedin_text.to_s
+    rules = r[:linkedin]
+    return [] if rules.blank?
+
+    out = rules[:forbidden].filter_map do |rule|
+      m = rule.re.match(text)
+      next unless m
+
+      "linkedin_en.md: 「#{m[0].to_s.first(40)}」 — #{rule.why} [#{rule.id}]"
+    end
+
+    lim = rules[:limits]
+
+    avg = average_sentence_words(text)
+    if lim["avg_sentence_words"] && avg > lim["avg_sentence_words"]
+      out << "linkedin_en.md: 1文あたり平均 #{avg.round(1)} 語 — 上限 #{lim['avg_sentence_words']} 語(쉬운 말로 쓴다)"
+    end
+
+    links = text.scan(%r{https?://\S+}).uniq
+    if lim["links"] && links.length > lim["links"]
+      out << "linkedin_en.md: リンクが #{links.length} 本 — #{lim['links']} 本のみ(CTA は1つ): #{links.join(', ')}"
+    end
+
+    tags = text.scan(/(?<![\w#])#[\p{Alnum}_]+/)
+    if lim["hashtags"] && tags.length > lim["hashtags"]
+      out << "linkedin_en.md: ハッシュタグ #{tags.length} 個 — 上限 #{lim['hashtags']} 個: #{tags.join(' ')}"
+    end
+
+    if lim["chars"] && text.length > lim["chars"]
+      out << "linkedin_en.md: #{lim['chars']}字以内 — 現在 #{text.length}字"
+    end
+    out
+  end
+
+  # Words per sentence, averaged.
+  #
+  # Sentence split on . ! ? followed by whitespace-or-end. Deliberately crude,
+  # and the crudeness is in the safe direction: 「Mr. Tanaka」 or a decimal
+  # splits one sentence into two and LOWERS the average, so the measure
+  # under-reports rather than failing an author for punctuation. A URL counts as
+  # one word (it is one token to a reader) and the bold-Unicode first line
+  # counts normally — those characters are letters, not markup.
+  def average_sentence_words(text)
+    sentences = text.split(/(?<=[.!?])\s+|\n{2,}/).map(&:strip).reject(&:empty?)
+    # Hashtag-only and link-only lines are not prose and would drag the average
+    # down to nothing. Excluded so the number describes the sentences a reader
+    # actually reads.
+    prose = sentences.reject { |s| s.match?(/\A(?:#[\p{Alnum}_]+\s*)+\z/) || s.match?(%r{\Ahttps?://\S+\z}) }
+    return 0.0 if prose.empty?
+
+    prose.sum { |s| s.split(/\s+/).length }.to_f / prose.length
+  end
+
+  # ── the reviewer's Korean copy (S9) ────────────────────────────────────────
+  #
+  # Completeness only. There is no way to check that a Korean summary is a true
+  # summary of a Japanese article with a regex, and pretending otherwise would
+  # produce the same false comfort as 「a go.jp URL passed, therefore the claim
+  # is sourced」. What CAN be checked is that the seven sections the review
+  # screen renders are all there — including 「사람이 판단할 한 가지」, which is
+  # the sentence the approver personally stands behind.
+  #
+  # A missing FILE is not reported here; JpEpisodeSource#validate! refuses the
+  # import outright. This fires only on a file that exists and is incomplete.
+  def summary_ko_violations
+    return [] if @summary_ko_missing.empty?
+
+    [ "summary_ko.md: 섹션 누락 #{@summary_ko_missing.length}건 — #{@summary_ko_missing.map { |h| "「## #{h}」" }.join(', ')}" ]
   end
 
   # ── twitter-text weighted length ───────────────────────────────────────────

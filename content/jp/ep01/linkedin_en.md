@@ -1,17 +1,19 @@
-𝗧𝗵𝗶𝘀 𝘄𝗲𝗲𝗸 𝗜 𝘀𝗵𝗶𝗽𝗽𝗲𝗱 𝗽𝘂𝗿𝗽𝗼𝘀𝗲-𝗯𝗮𝘀𝗲𝗱 𝗿𝗲𝗱𝗮𝗰𝘁𝗶𝗼𝗻 𝗳𝗼𝗿 𝗝𝗮𝗽𝗮𝗻𝗲𝘀𝗲 𝗜𝗗 𝗱𝗼𝗰𝘂𝗺𝗲𝗻𝘁𝘀.
+𝗜 𝘀𝗽𝗲𝗻𝘁 𝘁𝗵𝗶𝘀 𝘄𝗲𝗲𝗸 𝗼𝗻 𝗮 𝘀𝗺𝗮𝗹𝗹 𝗾𝘂𝗲𝘀𝘁𝗶𝗼𝗻: 𝘄𝗵𝗲𝗻 𝘆𝗼𝘂 𝗯𝗹𝗮𝗰𝗸 𝗼𝘂𝘁 𝗮 𝗻𝘂𝗺𝗯𝗲𝗿 𝗼𝗻 𝗮 𝗱𝗼𝗰𝘂𝗺𝗲𝗻𝘁, 𝗶𝘀 𝗶𝘁 𝗿𝗲𝗮𝗹𝗹𝘆 𝗴𝗼𝗻𝗲?
 
-SafeFile is a side project: a browser-only tool that finds personal data in a document and covers it with black bars. Nothing is uploaded. I had treated "what to hide" as a per-field choice — for Japanese documents that was the wrong unit.
+Often, no. If you draw a black box over a number in a PDF, the number is usually still there underneath. Select the text, copy, paste — it comes right back. The black box only fools your eyes.
 
-Three things I learned:
+I'm building a small tool called SafeFile. You drop in a document, it finds the personal details, and it covers them. It runs entirely in your browser, so the file never leaves your computer.
 
-— The rule is per recipient, not per field. The same insurance certificate needs different bars for a tender, an ID check, or an AI chat. So the UI now asks "what is this for?" and derives the mask set from that, instead of 12 toggles.
+This week I added support for Japanese ID documents, and I learned three simple things:
 
-— A black rectangle in a PDF is often not a redaction; the text layer underneath copies out fine. The only output I trust is a flattened raster, so that's the only output — EXIF and annotations go with it.
+1. "What to hide" depends on who you're sending it to. The same health insurance card needs different parts covered for a government bid than for a bank. So the tool now asks "where is this going?" first.
 
-— What people miss is never the big number. It's the 2-digit branch code and the QR code, which encode the same identifier. The classifier now treats them as one group.
+2. The safe way to hide something is to turn the whole page into a flat picture. Then there's nothing underneath to copy.
 
-It's live, free and rough. If you handle documents like this, or you've built redaction before and think I got something wrong, ten minutes of feedback beats a share.
+3. People never miss the big number. They miss the tiny 2-digit code and the QR square in the corner — which contain the same information.
+
+It's free, it's early, and I'm sure it has rough edges. If you ever have to send a copy of an ID somewhere, try it and tell me what felt confusing. That helps me more than a like.
 
 https://slimfile.net/en/blog/jp-ep01-how-to-redact-the-numbers-on-a-qualifica?utm_source=linkedin&utm_medium=social&utm_campaign=ep01
 
-#buildinpublic #privacy #rails
+#buildinpublic #privacy #sideproject

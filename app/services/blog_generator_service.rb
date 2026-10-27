@@ -276,6 +276,9 @@ class BlogGeneratorService
     rules = JSON.parse(JpContentGuard::RULES_PATH.read)
     forbidden = rules["forbidden"].map { |f| "- /#{f['re']}/ — #{f['why']}" }.join("\n")
     limits = rules["limits"]
+    li = rules.fetch("linkedin")
+    li_forbidden = li.fetch("forbidden").map { |f| "- /#{f['re']}/ — #{f['why']}" }.join("\n")
+    li_limits = li.fetch("limits")
 
     <<~SYSTEM
       あなたは日本語の実務記事を書くテクニカルライターです。読者は、提出先に書類を出す
@@ -308,7 +311,19 @@ class BlogGeneratorService
 
       X スレッドは5〜6ツイート。1ツイート目=hook、②③④=要点3つ(①②③の絵文字番号)、
       最後=CTA。1ツイートの編集上限は #{limits['tweet_editorial']}字(全角2・半角1換算)。
-      LinkedIn 本文は英語・#{limits['linkedin_chars']}字以内。
+
+      LinkedIn 本文(英語・#{li_limits['chars']}字以内)は **開発日誌** です。宣伝ではありません。
+      Justin 本人の1人称で「今週何を作り、なぜそう設計したか」を書きます。SafeFile は
+      その作業の文脈として出てくるだけです。1文あたり平均 #{li_limits['avg_sentence_words']} 語以内の
+      やさしい英語で、リンクは #{li_limits['links']} 本、ハッシュタグは #{li_limits['hashtags']} 個まで。
+      最後は「使ってみて分かりにくかった所を教えてほしい」の1文で終えます。
+      次の表現は使えません:
+      #{li_forbidden}
+
+      summary_ko は **承認者(韓国語話者)のための要約** です。記事の韓国語版ではありません。
+      7つの節を必ず全部書きます: 제목 / 요지(3〜4文) / 표(本文の表を韓国語に) /
+      근거(法令名・施行日・出典を1行) / 트윗(番号ごとに韓国語。英語の返信も含む) /
+      FAQ(質問ごとに韓国語) / 사람이 판단할 한 가지(この記事で Justin が実際に責任を負う主張1つ)。
 
       必ず JSON のみで応答します。マークダウンのコードブロックは使いません。
     SYSTEM
@@ -333,7 +348,16 @@ class BlogGeneratorService
         "body_en": "英語版本文(HTML。同じ構成の並行リライト。翻訳調にしない)",
         "faq": [{"q": "検索語の形の質問", "a": "回答"}, {"q": "", "a": ""}, {"q": "", "a": ""}],
         "x_thread": ["1ツイート目", "2", "3", "4", "5"],
-        "linkedin_text": "英語の LinkedIn 本文"
+        "linkedin_text": "英語の LinkedIn 開発日誌本文",
+        "summary_ko": {
+          "title": "한국어 제목",
+          "gist": "요지 3~4문장",
+          "table": "본문 표를 한국어로(隠す/残す 등)",
+          "basis": "법령·시행일·출처 1줄",
+          "tweets": ["1번 트윗 한국어", "2번", "3번", "4번", "5번", "영어 답글 한국어"],
+          "faq": ["FAQ 1 한국어", "FAQ 2 한국어", "FAQ 3 한국어"],
+          "judgment": "이 글에서 Justin이 실제로 책임지는 주장 1개"
+        }
       }
     PROMPT
   end
@@ -354,8 +378,13 @@ class BlogGeneratorService
       return nil
     end
 
+    # `summary_ko` is sliced through to the same key the file-based path writes
+    # (JpEpisodeSource::SUMMARY_SECTIONS), so the review screen renders one
+    # shape whichever path produced the package. The fallback is allowed to omit
+    # it — the model may return nothing usable — and the guard then reports the
+    # missing sections rather than this method inventing empty ones.
     data.slice("title_ja", "subtitle_ja", "body_ja", "meta_description_ja",
-               "body_en", "faq", "x_thread", "linkedin_text", "cover_svg")
+               "body_en", "faq", "x_thread", "linkedin_text", "summary_ko", "cover_svg")
   rescue JSON::ParserError => e
     Rails.logger.error("BlogGeneratorService#generate_jp JSON parse error: #{e.message}")
     nil

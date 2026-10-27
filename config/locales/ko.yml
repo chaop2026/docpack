@@ -147,6 +147,197 @@ ko:
   # Scoped to the three validators this app actually uses (presence, uniqueness,
   # inclusion) plus the record_invalid wrapper. There is no rails-i18n gem here;
   # if one is ever added it supersedes this block.
+  # ── SafeFile JP 주간 승인 화면·메일 (S9) ────────────────────────────────────
+  #
+  # 승인자는 한국어로 읽는다. 패키지는 일본어다.
+  #
+  # S8 에서 이 화면과 메일은 전부 일본어였다 — 콘텐츠가 일본어라서 UI 도 일본어로
+  # 쓴 것이고, 그 결과 「승인」 버튼이 2,000자 일본어 법률 산문에 책임지라고 요구했다.
+  # 그 자리에서 사람이 하는 정직한 행동은 그냥 승인하는 것이다.
+  #
+  # 그래서 **UI 문자열은 전부 한국어, 콘텐츠 본문(JA/EN)만 원문**이다. 뷰에는
+  # 하드코딩된 문자열을 두지 않는다(`t()` 만) — 그렇게 해야 「어떤 문장이 승인자에게
+  # 보이는가」를 이 파일 하나에서 전수로 읽을 수 있고, 다음에 화면을 고치는 사람이
+  # 일본어 한 줄을 조용히 되살릴 수 없다.
+  #
+  # 톤은 기존 KO 어드민(/admin/posts)과 맞춘다: 「발행되지 못한 글 N건 — 이유」처럼
+  # 무엇이 일어났는지와 왜인지를 한 줄에 붙여 쓴다.
+  jp_admin:
+    brand: "SafeFile JP"
+    episode: "제%{n}회"
+    unit_count: "%{n}건"
+    none: "—"
+
+    status:
+      approved: "승인됨"
+      unapproved: "미승인"
+
+    # 승인 화면(/admin/jp/packages/:ep)
+    show:
+      weekly_package: "주간 패키지"
+      monday: "(월)"
+      preview_link: "공개 페이지 미리보기"
+      preview_hint: "독자가 보게 될 레이아웃 그대로 — 검색엔진에는 노출되지 않습니다(noindex)"
+      edit_link: "이 글을 편집(AI improve 포함)"
+
+      # 차단 조건
+      guard_title: "콘텐츠 검사 %{n}건 — 승인할 수 없습니다"
+      guard_hint_html: "자동 수정은 하지 않습니다. <code>content/jp/ep%{epp}/</code> 를 고친 뒤 <code>node scripts/content/make_episode.mjs %{ep}</code> → <code>bin/rails content:jp_import[%{ep}]</code>."
+      guard_rules_html: "검사 규칙: <code>content/jp/guard_rules.json</code> (%{version} · %{checked_at})"
+
+      conflict_title: "임포트 충돌 — Mac 의 파일과 이 행은 다른 내용입니다"
+      conflict_body_html: "%{at} 에 재임포트가 거부되었습니다 (디스크 <code>%{disk}</code> / 이 행 <code>%{row}</code>). 승인된 패키지는 덮어쓰지 않습니다. <strong>반려</strong>한 뒤 다시 실행해 주세요."
+
+      verify_title: "사전 확인 필요"
+      verify_body: "이 회차는 사실 재확인이 조건입니다. 확인하기 전에는 공개 예정 시각도 설정되지 않습니다."
+      verify_button: "확인 완료로 표시"
+
+      assets_missing_title: "자산 미생성"
+      assets_missing_body: "서버에서 본문만 생성했습니다. 카루셀과 GIF 가 없습니다."
+
+      # 공개 예정표
+      schedule_heading: "공개 예정"
+      blog_ja: "블로그(일본어)"
+      blog_unset: "— 미설정(주간 잡이 topics.json 의 publish_on 에서 설정합니다)"
+      x_thread: "X 스레드"
+      x_on_approve: "(승인 시 확정)"
+      x_state: "상태"
+      social_skip: "※ 연말/골든위크이므로 X·LinkedIn 은 다음 주 월요일로 이월합니다"
+      dry_run: "※ X_API_DRY_RUN — 실제로 게시하지 않고 로그만 남깁니다"
+      article_url: "기사 주소"
+
+      # 결정
+      approve: "승인"
+      approve_note: "누르면 월요일 09:00 JST 에 블로그가 공개되고 X 스레드가 예약됩니다. 승인 전에는 아무것도 공개되지 않습니다."
+      approve_note_detail: "승인 시점의 본문·파생물·자산·공개 시각의 지문(approved_version)도 함께 저장됩니다. 나중에 내용이 바뀌어 있으면 X 는 게시하지 않고 멈춥니다."
+      approve_disabled: "승인(불가)"
+      approve_blocked_default: "공개 예정 시각이 설정되지 않았습니다"
+      approved_version_html: "승인됨 · approved_version <code>%{version}</code>"
+      unapprove: "반려"
+      unapprove_note: "초안으로 되돌리고 X 예약을 취소합니다. 이미 게시된 트윗의 기록은 지우지 않습니다 — 무엇이 공개됐는지 아는 유일한 곳입니다."
+      approved_warning_html: "승인 후에는 AI <code>improve</code> 를 쓸 수 없습니다(본문이 바뀌면 approved_version 이 맞지 않아 X 가 멈춥니다). 먼저 반려해 주세요."
+
+      judgment_heading: "사람이 판단할 한 가지"
+      judgment_hint: "이 글에서 Justin 이 실제로 책임지는 주장입니다. 아래 「승인」은 이 문장에 대한 동의입니다."
+      judgment_missing: "summary_ko.md 의 「## 사람이 판단할 한 가지」 가 비어 있습니다 — 무엇에 책임지는지 적히지 않은 패키지는 승인 대상이 아닙니다."
+
+      # X 스레드
+      x_heading: "X 스레드"
+      tweet_position: "%{i} / %{total}"
+      chars: "%{n}자"
+      weighted: "가중 %{n}/%{max}"
+      over_x_limit: "X 상한 초과"
+      over_editorial: "편집 상한 %{max}자 초과"
+      unknown_title: "이 트윗은 게시되어 있을 수 있습니다"
+      unknown_body_html: "응답이 도착하지 않았습니다. <a href=\"%{timeline}\" style=\"color:#92400E\">타임라인</a>에서 위 본문을 찾아 주세요. 같은 내용을 자동으로 다시 보내지는 않습니다 — 이중 게시는 취소할 수 없습니다."
+      tweet_id_placeholder: "타임라인 URL 끝의 숫자"
+      mark_sent: "전송됨으로 기록"
+      mark_unsent: "미전송으로 재개"
+
+      # LinkedIn
+      linkedin_heading: "LinkedIn(수동 · 예약 게시 → 화요일 09:00 JST)"
+      linkedin_count: "%{n}/%{max}자"
+      linkedin_guide: "아래 본문을 붙여넣고, 첨부된 PDF 를 「문서」로 추가 → 예약 게시(화요일 09:00 JST)"
+      linkedin_url_placeholder: "게시한 뒤의 LinkedIn URL"
+      linkedin_record: "기록"
+      linkedin_p18_html: "<strong>P18 은 이 URL 이 있는 회차만 셉니다</strong> — 메모가 아니라 계측입니다."
+
+      # 자산
+      assets_heading: "카루셀 / 데모 / 사용설명서"
+      assets_none: "첨부 없음"
+      demo_label: "데모"
+
+      # FAQ
+      faq_heading: "자주 묻는 질문 %{n}문"
+      faq_in_jsonld: "(JSON-LD FAQPage 에도 나갑니다)"
+      faq_missing_html: "자주 묻는 질문이 없습니다 — <code>faq_ja.md</code> 가 없어 FAQPage 구조화 데이터는 출력되지 않습니다(빈 FAQPage 는 페이지에 없는 절을 선언하는 거짓 주장이므로 내지 않습니다)."
+
+      # KPI
+      kpi_heading: "KPI 대조"
+      kpi_id: "#"
+      kpi_metric: "지표"
+      kpi_target: "목표"
+      kpi_current: "현재"
+      kpi_dash_html: "「—」는 <strong>재서 0이었다</strong>는 뜻이 아니라 <strong>잴 원본이 이 DB 에 없다</strong>는 뜻입니다."
+
+      # 본문
+      body_ja_heading: "본문(일본어)"
+      body_en_heading: "본문(영어)"
+      body_bytes: "HTML %{n} bytes"
+      body_en_missing_html: "<code>post_en.md</code> 가 없습니다. 영어판은 기계 번역하지 않고 병행 리라이트하는 방침이므로 파이프라인은 생성하지 않습니다(<code>scripts/content/README.md</code>)."
+      back_to_posts: "← 글 목록으로"
+
+      # 한국어 요약 박스
+      summary_label: "한국어 요약"
+      summary_gist: "요지"
+      summary_table: "표(한국어)"
+      summary_basis: "근거"
+      summary_missing: "summary_ko.md 가 없거나 이 섹션이 비어 있습니다"
+
+    # 승인 메일
+    mail:
+      subject: "[SafeFile JP] 제%{nn}회 승인 요청: %{title}"
+      subject_assets_missing: "[자산 미생성]"
+      subject_awaiting_verification: "[사전 확인 필요]"
+      subject_x_unknown: "[SafeFile JP] 제%{nn}회 X 스레드 %{seq}번째 결과 불명 — 확인이 필요합니다"
+      subject_x_failed: "[SafeFile JP] 제%{nn}회 X 스레드 실패 (%{state})"
+
+      open_and_approve: "패키지를 열어 승인하기"
+      remaining_html: "남은 미발송 jp 주제: <strong>%{n}</strong>건"
+
+      guard_hint_html: "자동 수정은 하지 않습니다. <code>content/jp/ep%{epp}/</code> 를 고친 뒤 <code>node scripts/content/make_episode.mjs %{ep}</code> → <code>bin/rails content:jp_import[%{ep}]</code> 를 다시 실행해 주세요."
+      guard_title: "콘텐츠 검사 %{n}건 — 「승인」 버튼은 비활성입니다"
+      verify_title: "사전 확인 필요 — 공개 예정 시각을 설정하지 않았습니다"
+      verify_body: "이 회차는 사실 재확인이 조건입니다(%{why}). 관리 화면에서 「확인 완료로 표시」를 누르기 전에는 승인할 수 없습니다."
+      verify_why_pre_enforcement: "시행 전 규정을 다룹니다"
+      verify_why_unshipped: "미출시 기능을 다룹니다"
+      conflict_title: "임포트 충돌"
+      conflict_body_html: "%{at} 에 승인된 패키지로의 재임포트가 거부되었습니다 (content_hash <code>%{hash}</code>). Mac 의 파일과 이 행은 다른 내용입니다. 반려한 뒤 다시 실행해 주세요."
+      assets_missing_title: "자산 미생성"
+      assets_missing_body: "월간 배치가 돌지 않아 본문만 서버에서 생성했습니다. 카루셀 3장과 GIF 가 없습니다. X 1번째 트윗에 붙일 이미지도 없습니다."
+
+      thread_heading: "X 스레드 %{n}트윗"
+      thread_with_reply: "%{n}트윗 + 영어 답글 1건"
+      reply_en: "영어 답글"
+      linkedin_heading: "LinkedIn 본문(복사용)"
+      linkedin_manual: "공식 API 는 심사가 필요해 여기는 수동입니다. 게시한 뒤 관리 화면에 URL 을 기록해 주세요 — <strong>P18 은 그 URL 이 있는 회차만 셉니다</strong>."
+      attachments_heading: "첨부"
+      attachments_body: "사용설명서 PDF(LinkedIn 「문서」용)와 데모 영상을 이 메일에 첨부했습니다."
+      kpi_heading: "KPI 대조 (예측 vs 현재)"
+      kpi_dash_html: "「—」는 <strong>재서 0이었다</strong>는 뜻이 아니라 <strong>잴 원본이 이 DB 에 없다</strong>는 뜻입니다(X 인프레션·YouTube 재생수)."
+      open_admin: "관리 화면 열기"
+      decide_in_admin: "관리 화면에서 판단하기"
+
+      # X 결과 불명
+      unknown_title: "%{seq}번째 결과가 불명입니다 — 자동으로는 아무것도 하지 않습니다"
+      unknown_body_html: "전송은 했지만 응답이 도착하지 않았습니다(타임아웃 또는 5xx). <strong>그 트윗은 게시되어 있을 수 있습니다.</strong> 같은 내용을 한 번 더 보내면 이중 게시가 되고 취소할 수 없습니다. 그래서 잡은 여기서 멈추고, 재전송도 재개도 하지 않았습니다."
+      unknown_todo: "할 일"
+      unknown_step1_html: "<a href=\"%{timeline}\" style=\"color:#07596F\">@safefile_jp 타임라인</a>을 열어 <strong>%{seq}번째 본문</strong>(아래 전문)이 나와 있는지 보세요."
+      unknown_step2_html: "나와 있다 → 관리 화면에서 <strong>「전송됨으로 기록」</strong>. 그 트윗의 ID 를 기록하고 %{next}번째부터 재개합니다."
+      unknown_step3_html: "나와 있지 않다 → <strong>「미전송으로 재개」</strong>. %{seq}번째부터 다시 보냅니다."
+      thread_state: "스레드 상태"
+      full_text: "%{seq}번째 전문 (이것을 찾아 주세요)"
+
+      # X 실패
+      failed_title: "X 스레드가 완료되지 않았습니다 (상태 = %{state})"
+      blog_already_public_html: "블로그 기사는 이미 공개되어 있습니다 → <code>/ja/blog/%{slug}</code>"
+      blog_unaffected: "X 의 실패는 블로그 공개를 취소하지 않습니다."
+      blocked_body: "승인한 시점의 본문·파생물·자산·공개 시각 중 하나가 그 뒤에 바뀌었습니다. 승인은 하나의 버전을 고정하는 것이므로, 바뀐 내용을 그대로 게시하지는 않습니다. 관리 화면에서 반려하고 내용을 확인한 뒤 다시 승인해 주세요."
+      partial_failed_html: "일부 트윗은 게시되었습니다(아래 표의 <code>done</code>). <code>bin/rails blog:x_pending</code> 로 <strong>이어서</strong> 재개합니다 — 게시된 것은 재전송되지 않습니다."
+      no_tweets_yet: "아직 1건도 보내지 않았습니다"
+
+    # 컨트롤러 플래시
+    flash:
+      approved: "승인했습니다. 블로그 %{blog} / X %{x}"
+      approve_failed: "승인할 수 없습니다: %{reason}"
+      unapproved: "반려했습니다. 초안으로 되돌아가고 X 예약은 취소되었습니다."
+      verified: "확인 완료로 표시했습니다."
+      tweet_id_required: "타임라인에 나와 있는 트윗의 ID 를 넣어 주세요(URL 끝의 숫자)."
+      tweet_marked_sent: "%{seq}번째를 전송됨으로 기록했습니다. %{next}번째부터 재개합니다."
+      tweet_marked_unsent: "%{seq}번째를 미전송으로 하고, 거기서부터 재개합니다."
+      linkedin_recorded: "LinkedIn URL 을 기록했습니다(P18 에 반영됩니다)."
+      linkedin_cleared: "LinkedIn URL 을 지웠습니다."
+
   errors:
     # No space between attribute and message: Korean particles attach to the
     # noun ("본문(한국어)을(를) …", "카테고리에 …"), so the default

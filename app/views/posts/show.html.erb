@@ -20,7 +20,27 @@
    ) %>
 <%# Not @post_translated: a draft or scheduled post is 200 for preview but must
     never be indexed either. See Post#indexable? for the full signal table. %>
-<% content_for :robots, "noindex,follow" unless @post_indexable %>
+<%# ONE value, computed — not two content_for calls. `content_for` APPENDS, so
+    a draft rendered through the admin preview (both conditions true) would
+    emit the single mangled directive "noindex,follownoindex,nofollow", and a
+    malformed robots value is ignored rather than rejected: the page would be
+    indexable and the tag would look like it was doing its job.
+
+    The admin preview (S9) is never indexable, whatever the post's state is.
+    @post_indexable already covers a draft, but this URL must stay noindex even
+    after the episode is published and its real address becomes indexable —
+    otherwise /admin/jp/packages/2/preview is a second address serving the same
+    article, the duplicate shape this repository has been penalised for twice.
+    `nofollow` as well, because there is no reason to walk an admin page's links.
+
+    E-1 is unaffected: @preview is nil on every public request, so the
+    directive emitted at /blog/:slug and /ja/blog/:slug does not move. %>
+<% robots = if @preview
+              "noindex,nofollow"
+            elsif !@post_indexable
+              "noindex,follow"
+            end %>
+<% content_for :robots, robots if robots %>
 
 <% content_for :head do %>
   <meta property="og:type" content="article">
@@ -43,17 +63,27 @@
     "url": "<%= base_url %><%= canonical_path %>",
     "datePublished": "<%= @post.published_at&.iso8601 %>",
     "dateModified": "<%= @post.updated_at&.iso8601 %>",
-    <%# JP track only. The language of the DOCUMENT at this URL is the locale
-        the canonical above resolves to, not @url_locale: on an untranslated /es
-        URL the page serves the primary-locale text, so claiming inLanguage=es
-        would describe a translation that does not exist.
-        Deliberately NOT emitted for Korean posts. It would be correct there
-        too, but this round's requirement is that the 42 live posts do not move
-        by one character, and a new field in their structured data is a change.
-        Adding it to the Korean track is a separate, auditable step. %>
-    <% if @post.primary_locale == "ja" %>
-    "inLanguage": "<%= canonical_path.start_with?("/en/") ? "en" : "ja" %>",
-    <% end %>
+    <%# The language of the DOCUMENT at this URL is the locale the canonical
+        above resolves to, not @url_locale: on an untranslated /es URL the page
+        serves the primary-locale text, so claiming inLanguage=es would describe
+        a translation that does not exist.
+
+        S8 emitted this for the JP track only, and said why: the requirement
+        that round was that the 42 live Korean posts not move by one character,
+        and a new field in their structured data is a change. S9 is the separate
+        auditable step that was promised — the Korean track now says `ko`.
+
+        Derived from the canonical path rather than from primary_locale, which
+        is what makes one expression cover both tracks: /en/blog/:slug is `en`
+        whichever track the post belongs to, a Japanese post's own address is
+        `ja`, and a Korean post's unprefixed address is `ko`.
+
+        E-1 (test/integration/blog_seo_snapshot_test.rb) captures canonical,
+        robots, hreflang, og:locale and html lang from the rendered HTML — not
+        JSON-LD — so all 38 rows are expected to be byte-identical. That is
+        asserted rather than assumed, and the JSON-LD change has its own test:
+        a snapshot that cannot see a field cannot protect it. %>
+    "inLanguage": "<%= canonical_path.start_with?("/en/") ? "en" : @post.primary_locale %>",
     <% if @post.hero_image.attached? %>
     "image": "<%= url_for(@post.hero_image) %>",
     <% end %>

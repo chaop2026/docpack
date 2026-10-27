@@ -550,11 +550,102 @@ class XPublishJobTest < ActiveSupport::TestCase
     end
 
     assert_equal 1, updates.length, "finish! must be one statement, got:\n#{updates.join("\n")}"
-    assert_match(/jsonb_set\(jsonb_set\(/, updates.first, "both subtrees in the one statement")
     assert_match(/worker_token/, updates.first, "and it carries the token condition")
+
+    # S9: the `posted` subtree is written KEY BY KEY, not replaced wholesale.
+    # The old assertion was /jsonb_set\(jsonb_set\(/ — which the key-wise form
+    # also matches, so it would have passed on either version and proved only
+    # that two calls were nested. These paths are the actual claim.
+    assert_match(/'\{posted,x\}'/, updates.first, "posted.x written as a leaf path")
+    assert_match(/'\{posted,x_url\}'/, updates.first, "posted.x_url written as a leaf path")
+    refute_match(/jsonb_set\([^,]+, '\{posted\}', \?/, updates.first,
+                 "posted must not be replaced from a read-modify-write parameter")
+    # The coalesce seeds `{posted}` so the two leaf writes land even when the
+    # key does not exist yet. Without it jsonb_set returns the document
+    # UNCHANGED (measured) and finish! would report success having written
+    # nothing — the exact half-state S8c fixed, re-entered by another door.
+    assert_match(/coalesce\(package -> 'posted'/, updates.first,
+                 "the missing-parent guard must be in the statement")
+
     post.reload
     assert_equal "done", post.package.dig("x", "state")
     assert_equal true, post.package.dig("posted", "x")
+    assert_equal "https://x.com/safefile_jp/status/id-1", post.package.dig("posted", "x_url")
+  end
+
+  test "finish writes posted.x even when the posted key does not exist yet" do
+    # The first run of any episode is this case, and the naive key-wise form is
+    # a SILENT NO-OP on it: jsonb_set returns the target unchanged when an
+    # earlier step of the path is missing. Measured on this database —
+    #   jsonb_set('{"a":1}', '{posted,x}', 'true')  ->  {"a": 1}
+    #
+    # NOTE this one is NOT a regression guard: it passes on the pre-S9 code too,
+    # because replacing the whole `posted` subtree works fine when the key is
+    # absent. It guards the hazard the S9 implementation introduces, which is a
+    # different and equally real job — the two tests above are what fail on the
+    # old version (measured: 2 of these 3).
+    post = make_post(tweets: %w[a b], reply: nil)
+    run_with(FakeClient.new(fail_at: 2), post)
+    rows = post.package.dig("x", "tweets").map { |t| t.merge("state" => "done", "tweet_id" => "id-#{t['seq']}") }
+    token = post.package.dig("x", "worker_token")
+    pkg = post.package.merge(
+      "x" => post.package["x"].merge("tweets" => rows, "state" => "running", "worker_token" => token)
+    ).except("posted")
+    post.update_column(:package, pkg)
+    post.reload
+    refute post.package.key?("posted"), "the premise: no posted key at all"
+
+    XPublishJob.new.send(:finish!, post, token)
+    post.reload
+    assert_equal true, post.package.dig("posted", "x")
+    assert_equal "https://x.com/safefile_jp/status/id-1", post.package.dig("posted", "x_url")
+  end
+
+  test "finish does not clobber a sibling posted key written concurrently" do
+    # Admin::JpPackagesController#record_linkedin writes posted.linkedin_url,
+    # and P18 counts only episodes that have it. The pre-S9 whole-subtree write
+    # read `posted`, merged, and wrote it back, so a LinkedIn URL recorded
+    # between the read and the write was erased — silently, because the admin
+    # redirects with a success notice either way, and a LinkedIn address is not
+    # reconstructible from anything else.
+    post = make_post(tweets: %w[a b], reply: nil)
+    run_with(FakeClient.new(fail_at: 2), post)
+    rows = post.package.dig("x", "tweets").map { |t| t.merge("state" => "done", "tweet_id" => "id-#{t['seq']}") }
+    token = post.package.dig("x", "worker_token")
+    post.update_column(:package, post.package.merge(
+      "x" => post.package["x"].merge("tweets" => rows, "state" => "running", "worker_token" => token)
+    ))
+    post.reload
+
+    # ── reproducing the ACTUAL window ────────────────────────────────────────
+    #
+    # First attempt wrote the sibling key BEFORE calling finish!, and that test
+    # passed on the old code too — vacuous. `finish!` starts with `post.reload`,
+    # so a write that lands before the call is simply read back in and merged.
+    #
+    # The real window is between that reload and the UPDATE. It is reproduced by
+    # hanging the concurrent write off the reload itself: our in-memory `posted`
+    # is then genuinely older than the row, which is the only state in which a
+    # read-modify-write of the whole subtree loses data.
+    def post.reload(*)
+      result = super
+      unless @sibling_written
+        @sibling_written = true
+        Post.where(id: id).update_all(
+          [ "package = jsonb_set(jsonb_set(package, '{posted}', " \
+            "coalesce(package -> 'posted', '{}'::jsonb)), '{posted,linkedin_url}', ?::jsonb)",
+            "https://linkedin.example/p/9".to_json ]
+        )
+      end
+      result
+    end
+
+    XPublishJob.new.send(:finish!, post, token)
+
+    reloaded = Post.find(post.id)
+    assert_equal "https://linkedin.example/p/9", reloaded.package.dig("posted", "linkedin_url"),
+                 "a sibling key written during the window must survive"
+    assert_equal true, reloaded.package.dig("posted", "x")
   end
 
   test "finish refuses to write under a token that is no longer ours" do

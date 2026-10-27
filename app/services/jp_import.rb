@@ -185,6 +185,11 @@ module JpImport
       "x_thread" => source.x_thread,
       "x_reply_en" => source.x_reply_en,
       "linkedin_text" => source.linkedin_text,
+      # The reviewer's Korean copy (S9). Stored in `package` rather than in
+      # columns because it is review material, not published content: nothing
+      # on slimfile.net renders it, and the JP track's own rule is that no
+      # Korean body is written (strategy v3.1 §3-3).
+      "summary_ko" => source.summary_ko,
       "captions" => source.captions,
       "faq" => source.faq,
       "utm" => source.utm,
@@ -210,7 +215,10 @@ module JpImport
         "post_en.md" => source.body_en_markdown.to_s,
         "x_thread.md (generated)" => source.x_thread.join("\n"),
         "faq_ja.md" => source.faq.map { |e| "#{e['q']}\n#{e['a']}" }.join("\n"),
-        "linkedin_text (assembled)" => source.linkedin_text.to_s
+        # Renamed from "linkedin_text (assembled)" because it is no longer
+        # assembled — it is this file, read verbatim (S9). The surface name is
+        # what a violation quotes, so it has to say where to go and edit.
+        "linkedin_en.md" => source.linkedin_text.to_s
       },
       article_ja: [ source.fm_ja["title"], source.fm_ja["hook"], source.body_ja_markdown,
                     source.faq.map { |e| "#{e['q']}\n#{e['a']}" }.join("\n") ].compact.join("\n"),
@@ -224,7 +232,12 @@ module JpImport
       # defect as the 2026-10-22 one, in a new place.
       tweets: [ *source.x_thread, source.x_reply_en ].compact_blank,
       linkedin_text: source.linkedin_text,
-      faq: source.faq
+      faq: source.faq,
+      # S9: the reviewer's copy is checked for COMPLETENESS, not for prose. A
+      # summary missing 「사람이 판단할 한 가지」 still imports — the article is
+      # fine — but the 「승인」 button is off until the section exists, because
+      # that section is the one thing the approver is personally asserting.
+      summary_ko_missing: source.summary_ko_missing_sections
     )
   end
 
@@ -249,6 +262,10 @@ module JpImport
     when ".gif" then "image/gif"
     when ".mp4" then "video/mp4"
     when ".jpg", ".jpeg" then "image/jpeg"
+    # S9. Not cosmetic: BlogMailer selects attachments BY CONTENT TYPE, and a
+    # .pdf stored as application/octet-stream would be skipped by the mailer
+    # and shown by Gmail as an unopenable blob if it got through.
+    when ".pdf" then "application/pdf"
     else "application/octet-stream"
     end
   end

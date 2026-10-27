@@ -16,7 +16,15 @@
     },
     {
       "name": "post_en.md",
-      "bytes": 3485
+      "bytes": 3629
+    },
+    {
+      "name": "linkedin_en.md",
+      "bytes": 1583
+    },
+    {
+      "name": "summary_ko.md",
+      "bytes": 5240
     },
     {
       "name": "x_thread.md",
@@ -36,9 +44,14 @@
       "name": "carousel_3.png",
       "bytes": 114725,
       "pixels": "1080x1350"
+    },
+    {
+      "name": "guide_en.pdf",
+      "bytes": 217794
     }
   ],
-  "demo": "skipped: --no-demo",
+  "demo": "skipped: track B has no tool demo",
+  "guide": "ok: 7 pages, 213KB, diagrams (no recording)",
   "warnings": [],
   "posted": {
     "x": false,

@@ -327,9 +327,23 @@ class XPublishJob < ApplicationJob
     tweets.select { |t| t["state"] == "done" }.max_by { |t| t["seq"] }&.dig("tweet_id")
   end
 
+  # What X can actually accept on a tweet. The fallback below picks a file when
+  # `media_for_first_tweet` names one that is not attached, and before S9 it
+  # took `package_assets.first` unconditionally — fine while every asset was a
+  # PNG, a GIF or an MP4.
+  #
+  # S9 attaches guide_en.pdf to the same collection (it is the LinkedIn document
+  # post, and the review mail sends it). Today the PDF sorts after the carousel
+  # so `.first` would still be an image, which is exactly the kind of accident
+  # that holds until an episode has no carousel — then the fallback hands a PDF
+  # to the media endpoint, the upload fails, and the whole thread is marked
+  # failed for a reason nothing in the log explains.
+  X_MEDIA_TYPES = %w[image/png image/jpeg image/gif video/mp4].freeze
+
   def upload_media(post, token, client)
     name = post.package["media_for_first_tweet"]
-    asset = post.package_assets.find { |a| a.filename.to_s == name } || post.package_assets.first
+    postable = post.package_assets.select { |a| X_MEDIA_TYPES.include?(a.content_type.to_s) }
+    asset = postable.find { |a| a.filename.to_s == name } || postable.first
     return nil if asset.blank?
 
     file = Tempfile.new([ "x-media", File.extname(asset.filename.to_s) ], binmode: true)
@@ -398,9 +412,43 @@ class XPublishJob < ApplicationJob
   # unconditional `reload.package.merge` could overwrite a sibling key another
   # process had just written.
   #
-  # `jsonb_set(jsonb_set(package,'{x}',…),'{posted}',…)` writes both paths in a
-  # single statement, under the same token condition as every other write in the
-  # send loop. There is no longer an "in between".
+  # One statement, and KEY BY KEY inside `posted` (S9).
+  #
+  # S8c made this a single statement, which closed the crash window. But it
+  # still wrote `'{posted}'` as a WHOLE SUBTREE, read-modify-write:
+  #
+  #     posted = (post.package["posted"] || {}).merge("x" => true, "x_url" => url)
+  #     … jsonb_set(package, '{posted}', ?::jsonb)
+  #
+  # so anything written to a SIBLING key between the `post.reload` above and
+  # this UPDATE was overwritten. (Not "between the caller's read and the write"
+  # — the reload narrows it to exactly that span, which is why the test for this
+  # has to hang its concurrent write off the reload itself to reproduce it.)
+  #
+  # There is a real writer: Admin::JpPackagesController#record_linkedin sets
+  # `posted.linkedin_url`, and P18 counts only episodes that have it — so the
+  # lost write is a lost measurement, and it goes missing silently because the
+  # admin redirects with a success notice either way. The span is short (the
+  # 12:00 JST thread finishing vs. a person pasting a URL) and the data is not
+  # reconstructible: nobody re-reads a LinkedIn post to recover its address.
+  #
+  # Writing `'{posted,x}'` and `'{posted,x_url}'` touches only those two leaves,
+  # so a concurrent `posted.linkedin_url` survives. Same treatment `x` already
+  # got, one level deeper.
+  #
+  # ── Why the coalesce is load-bearing ───────────────────────────────────────
+  #
+  # `jsonb_set` returns the target UNCHANGED when an earlier step of the path is
+  # missing — it does not error. Measured on this database:
+  #
+  #   jsonb_set('{"a":1}', '{posted,x}', 'true')  →  {"a": 1}
+  #
+  # A package whose `posted` key does not exist yet is the NORMAL case for a
+  # first run, so without the guard `finish!` would report success while writing
+  # neither `posted.x` nor `posted.x_url`, and the "done but posted missing"
+  # half-state S8c fixed would be back — reached by a different route and with
+  # no crash needed. Seeding `'{posted}'` from `coalesce(package->'posted','{}')`
+  # in the same statement makes the leaf writes always land.
   def finish!(post, token)
     first = post.package.dig("x", "tweets").find { |t| t["seq"] == 1 }
     url = first && first["tweet_id"] ? "https://x.com/safefile_jp/status/#{first['tweet_id']}" : nil
@@ -411,13 +459,18 @@ class XPublishJob < ApplicationJob
       "dry_run" => XClient.dry_run?, "error" => nil, "resume_seqs" => [],
       "worker_token" => nil
     )
-    posted = (post.package["posted"] || {}).merge("x" => true, "x_url" => url)
 
     updated = Post.where(id: post.id)
                   .where("package -> 'x' ->> 'worker_token' = ?", token)
                   .update_all([
-                    "package = jsonb_set(jsonb_set(package, '{x}', ?::jsonb), '{posted}', ?::jsonb)",
-                    x.to_json, posted.to_json
+                    "package = jsonb_set(" \
+                      "jsonb_set(" \
+                        "jsonb_set(" \
+                          "jsonb_set(package, '{x}', ?::jsonb), " \
+                          "'{posted}', coalesce(package -> 'posted', '{}'::jsonb)), " \
+                        "'{posted,x}', 'true'::jsonb), " \
+                      "'{posted,x_url}', ?::jsonb)",
+                    x.to_json, url.to_json
                   ])
 
     raise ClaimLost, "worker_token no longer matches for post #{post.id}" if updated.zero?

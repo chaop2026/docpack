@@ -46,7 +46,6 @@
     "title_chars": 32,
     "tweet_weighted": 280,
     "tweet_editorial": 140,
-    "linkedin_chars": 1300,
     "faq_questions": 3,
     "body_chars_min": 1500,
     "body_chars_max": 2200,
@@ -56,7 +55,12 @@
       "whole cluster. tweet_editorial (140) is OUR house limit, not the platform's",
       "— v3 called 140 «X's limit», which cross-review Q3 corrected. The guard",
       "fails on tweet_editorial so threads stay readable, and says which number it",
-      "is failing on; a tweet over 280 is impossible to post at all."
+      "is failing on; a tweet over 280 is impossible to post at all.",
+      "",
+      "linkedin_chars lived here until S9 and now lives in linkedin.limits.chars,",
+      "next to the other LinkedIn rules. It was never checked in two places by",
+      "intent — it just ended up that way, and a number with two homes is a number",
+      "that gets changed in one of them."
     ]
   },
 
@@ -138,6 +142,105 @@
     "source_url_re": "https?://([a-zA-Z0-9-]+\\.)*go\\.jp(/|\\b)",
     "confirmed_on_re": "(確認日|Confirmed|confirmed)\\s*[:：]\\s*[0-9]{4}-[0-9]{2}-[0-9]{2}",
     "why": "法的主張があるのに、同じ記事に *.go.jp の原文URLと「確認日: YYYY-MM-DD」がない"
+  },
+
+  "linkedin": {
+    "_note": [
+      "Rules for content/jp/epNN/linkedin_en.md ONLY — the dev log Justin writes by",
+      "hand. Strategy v3.1 §3-3 as revised 2026-10-25: 「전문성을 보여주는 곳이지",
+      "홍보하는 곳이 아님」.",
+      "",
+      "Kept out of the global `forbidden` list on purpose. These are not things",
+      "that are wrong to write; they are things that are wrong HERE. 「sign up」 is",
+      "ordinary copy on a landing page and a sales tell in a dev log, and 「日本の」",
+      "is simply the word for Japanese in an article written for Japanese readers.",
+      "Putting them in the global list would either fire on the article too or",
+      "need a per-pattern surface condition — the same rule with more places to",
+      "disagree with itself.",
+      "",
+      "The limits below are MEASURED rather than matched: average sentence length,",
+      "link count, hashtag count, total characters. A message that says 「문장이",
+      "길다」 without a number cannot be acted on, so each one reports what it",
+      "counted."
+    ],
+    "forbidden": [
+      {
+        "id": "li_brand_voice",
+        "re": "SafeFile (helps|lets|allows) you",
+        "ignorecase": true,
+        "why": "브랜드 화법 — 도구가 독자에게 무엇을 해준다는 문장. 1인칭으로 「내가 무엇을 만들었나」를 쓴다"
+      },
+      {
+        "id": "li_free_for_first",
+        "re": "free for the first",
+        "ignorecase": true,
+        "why": "세일즈 문구(선착순·한정 무료) — 개발 일지가 아니라 광고가 된다"
+      },
+      {
+        "id": "li_japan_targeting",
+        "re": "日本の",
+        "why": "일본인 대상 광고처럼 읽히는 문장 — LinkedIn 글은 일본 독자를 향한 호소가 아니다(블로그가 그 일을 한다)"
+      },
+      {
+        "id": "li_japan_targeting_en",
+        "re": "Japanese (companies|businesses) (can|should)",
+        "ignorecase": true,
+        "why": "같은 타깃 호소의 영어 형태 — 「일본 기업은 ~해야 한다」"
+      },
+      {
+        "id": "li_signup_cta",
+        "re": "sign up",
+        "ignorecase": true,
+        "why": "CTA 는 「써보고 피드백 달라」 하나뿐 — 가입 유도는 두 번째 CTA 다"
+      },
+      {
+        "id": "li_urgency",
+        "re": "limited time",
+        "ignorecase": true,
+        "why": "긴급성 유도 — 세일즈 톤"
+      }
+    ],
+    "limits": {
+      "avg_sentence_words": 18,
+      "links": 1,
+      "hashtags": 3,
+      "chars": 1500,
+      "_chars_note": [
+        "⚠️ CHANGED FROM 1300 IN S9 — a deviation from the S9 instruction, flagged in",
+        "docs/jp/s9_report.md for Justin to accept or revert. One number, one file.",
+        "",
+        "Why: 1,300 came from strategy v3.1 §3-3 written when the LinkedIn post was",
+        "an ASSEMBLED three-bullet summary of the article. §3-3 was revised on",
+        "2026-10-25 to make it a DEV LOG — a first-person account of a design",
+        "decision — which changed the kind of writing without re-deriving the length.",
+        "",
+        "Measured on the three episodes that exist: the format carries 234–269",
+        "characters of fixed overhead before a word of prose (bold Unicode headline",
+        "65–100, UTM-tagged blog URL 132–133, three hashtags 36), leaving ~1,030 for",
+        "the body. Three dev logs written independently to the revised spec — ep01",
+        "by Justin, ep02 and ep03 here — came in at 1,344–1,399. Hitting 1,300",
+        "needed cuts that removed content rather than tightening it.",
+        "",
+        "The alternative was editing ep01's prose, which S9 §D.12 says to save",
+        "verbatim. A limit is a tunable with the evidence written next to it; an",
+        "author's paragraph is not. LinkedIn's own cap is 3,000, so 1,500 is still",
+        "an editorial limit and is still enforced — set it back to 1300 and all three",
+        "posts fail the guard immediately, which is the behaviour to want if the",
+        "shorter limit is the real decision."
+      ],
+      "_note": [
+        "avg_sentence_words 18 is the 「쉬운 말」 rule made countable. It is an",
+        "AVERAGE, not a per-sentence cap: one long sentence among short ones is how",
+        "people write, and failing it would push the author toward uniform staccato.",
+        "Hashtag-only and URL-only lines are excluded from the average — they are not",
+        "sentences, and counting them would let three hashtags pull a wordy post",
+        "under the limit.",
+        "",
+        "links 1 is the same rule as 「CTA 2개 이상 금지」 seen from the output side:",
+        "two links are two asks whatever the sentences say. Counted as UNIQUE URLs,",
+        "so quoting the same address twice is not a violation."
+      ]
+    }
   },
 
   "required_sections_ja": {

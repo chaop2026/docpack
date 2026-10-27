@@ -19,6 +19,14 @@
       "bytes": 3514
     },
     {
+      "name": "linkedin_en.md",
+      "bytes": 1635
+    },
+    {
+      "name": "summary_ko.md",
+      "bytes": 5464
+    },
+    {
       "name": "x_thread.md",
       "bytes": 1212
     },
@@ -39,14 +47,19 @@
     },
     {
       "name": "demo.gif",
-      "bytes": 405893
+      "bytes": 809875
     },
     {
       "name": "demo.mp4",
-      "bytes": 224290
+      "bytes": 341809
+    },
+    {
+      "name": "guide_en.pdf",
+      "bytes": 984932
     }
   ],
-  "demo": "ok: 40 frames, demo.gif 396KB, demo.mp4 219KB (carried over — this run used --no-demo)",
+  "demo": "ok: 40 frames, demo.gif 791KB, demo.mp4 334KB",
+  "guide": "ok: 7 pages, 962KB, real screenshots",
   "warnings": [],
   "posted": {
     "x": true,

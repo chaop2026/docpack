@@ -1,4 +1,4 @@
-# The 「承認」 action, and the fingerprint it freezes.
+# The 「승인」 action, and the fingerprint it freezes.
 #
 # Cross-review Q2: approval has to mean "this text, these derivatives, these
 # assets, at this time — as one version". Without a fingerprint, approval means

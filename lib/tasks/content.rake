@@ -81,8 +81,11 @@ namespace :content do
     # the service, which is the point of cross-review Q2.
     post.reload
     unless JpImport.writable?(post)
-      warn "ep#{ep}: 承認された(または公開段階の)パッケージと衝突 — " \
-           "admin で 差し戻す してから再実行してください " \
+      # Korean, like the admin screen it tells you to go to (S9). It also named
+      # the 「差し戻す」 button, which is now 「반려」 — an instruction that points
+      # at a label the screen no longer has is worse than no instruction.
+      warn "ep#{ep}: 승인된(또는 공개 단계의) 패키지와 충돌 — " \
+           "관리 화면에서 「반려」한 뒤 다시 실행해 주세요 " \
            "(status=#{post.status}, approved_at=#{post.package['approved_at'].inspect}, " \
            "content_hash=#{source.content_hash})"
       JpImport.record_conflict!(post, source)
@@ -95,7 +98,7 @@ namespace :content do
     if outcome == :conflict
       # The race the early check cannot see: approved between the check above
       # and the lock inside the service.
-      warn "ep#{ep}: 直前に承認されました — 何も書いていません " \
+      warn "ep#{ep}: 바로 직전에 승인되었습니다 — 아무것도 쓰지 않았습니다 " \
            "(status=#{post.status}, approved_at=#{post.package['approved_at'].inspect})"
       exit 2
     end
@@ -115,11 +118,14 @@ namespace :content do
     puts "  assets    : #{post.package_assets.map { |a| a.filename.to_s }.join(', ').presence || '(none)'}"
     puts "  x_thread  : #{post.package_x_thread.length} tweets"
     puts "  faq       : #{post.package_faq.length} entries"
-    puts "  linkedin  : #{post.package['linkedin_text'].to_s.length} chars"
+    puts "  linkedin  : #{post.package['linkedin_text'].to_s.length} chars (linkedin_en.md)"
+    sk = post.package["summary_ko"] || {}
+    puts "  summary_ko: #{sk.keys.length}/#{JpEpisodeSource::SUMMARY_SECTIONS.size} sections " \
+         "#{sk.empty? ? '(MISSING)' : "(#{JpEpisodeSource::SUMMARY_SECTIONS.values.reject { |k| sk[k].present? }.join(', ').presence || 'all present'})"}"
     puts "  publish_on: #{topic.publish_on} (blog 09:00 JST)"
     violations = post.guard_violations
     if violations.any?
-      puts "  guard     : #{violations.length} VIOLATION(S) — 承認ボタンは無効です"
+      puts "  guard     : #{violations.length} VIOLATION(S) — 「승인」 버튼은 비활성입니다"
       violations.each { |v| puts "    - #{v}" }
     else
       puts "  guard     : clean"

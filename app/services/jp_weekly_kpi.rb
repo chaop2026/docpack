@@ -47,7 +47,7 @@ class JpWeeklyKpi
     {
       id: "P18",
       due: P18_DUE.iso8601,
-      statement: "ブログ・X・LinkedIn のチャネル別実績が累計 #{P18_TARGET} 件以上",
+      statement: "블로그·X·LinkedIn 채널별 실적이 누적 #{P18_TARGET}건 이상",
       target: P18_TARGET,
       current: c[:total],
       detail: "blog #{c[:blog]} + X #{c[:x]} + LinkedIn #{c[:linkedin]}"
@@ -79,7 +79,7 @@ class JpWeeklyKpi
   # honest answer is 「—」 rather than 0: zero would read as "measured and found
   # nothing".
   def p17
-    { current: nil, note: "YouTube 実測のみ。チャネル未開設 — 計測元がない" }
+    { current: nil, note: "YouTube 실측만. 채널 미개설 — 계측 원본이 없다" }
   end
 
   # `from` is the landing page's own slug (nyusatsu | honnin | aimae | direct) —
@@ -94,20 +94,34 @@ class JpWeeklyKpi
   # [{id:, statement:, target:, current:, detail:}] — the table the approval
   # screen and the review mail render. Plain strings and integers only: it
   # crosses an ActiveJob serialization boundary on its way into the mail.
+  #
+  # ── Korean, since S9 ────────────────────────────────────────────────────────
+  #
+  # These were Japanese, which made the KPI table the one part of the Korean
+  # approval screen the approver could not read. `rows` has exactly two
+  # consumers — that screen and the review mail — and both are now Korean, so
+  # there was no third reader the Japanese was serving.
+  #
+  # The P-NUMBER is what ties a row to docs/jp/jp_forecast_report_2026-10-22.md,
+  # not the sentence, so translating the sentence does not detach it from the
+  # prediction. Targets, channel sets and `current` values are untouched:
+  # strategy §6 forbids revising a predicted value, and that is what P15's
+  # 「원문 그대로」 marker is about — the channel set is still X·YouTube·Instagram,
+  # which is precisely why this table cannot compute it.
   def rows
     p16v = p16
     [
-      { "id" => "P1", "statement" => "ランディング3ページの週次閲覧", "target" => "≥300/月",
-        "current" => p1_p10[:total].to_s, "detail" => "landing_view イベント(この期間)" },
-      { "id" => "P10", "statement" => "入札ランディングの閲覧", "target" => "≥1,500/月",
+      { "id" => "P1", "statement" => "랜딩 3페이지의 주간 열람", "target" => "≥300/월",
+        "current" => p1_p10[:total].to_s, "detail" => "landing_view 이벤트(이 기간)" },
+      { "id" => "P10", "statement" => "입찰 랜딩의 열람", "target" => "≥1,500/월",
         "current" => p1_p10[:nyusatsu].to_s, "detail" => "from=nyusatsu" },
-      { "id" => "P15", "statement" => "X・YouTube・Instagram 累計 ≥24(原文のまま)", "target" => "24",
+      { "id" => "P15", "statement" => "X·YouTube·Instagram 누적 ≥24 (예측 보고서 원문 그대로)", "target" => "24",
         "current" => "—", "detail" => "Instagram 보류·YouTube 미개설 — 이 표로는 셀 수 없다. P18 을 볼 것" },
-      { "id" => "P16", "statement" => "ランディング流入のうちソーシャル経由", "target" => "≥10%",
+      { "id" => "P16", "statement" => "랜딩 유입 중 소셜 경유", "target" => "≥10%",
         "current" => p16v[:share] ? "#{p16v[:share]}%" : "—",
         "detail" => "x+linkedin+youtube #{p16v[:social]} / #{p16v[:total]} " \
-                    "(utm_source=blog #{p16v[:blog_excluded]}件は分母にのみ含め分子から除外)" },
-      { "id" => "P17", "statement" => "YouTube 累計再生", "target" => "≥3,000",
+                    "(utm_source=blog #{p16v[:blog_excluded]}건은 분모에만 넣고 분자에서 제외)" },
+      { "id" => "P17", "statement" => "YouTube 누적 재생", "target" => "≥3,000",
         "current" => "—", "detail" => p17[:note] },
       { "id" => "P18", "statement" => p18_row[:statement], "target" => P18_TARGET.to_s,
         "current" => p18_row[:current].to_s, "detail" => p18_row[:detail] }
@@ -116,13 +130,13 @@ class JpWeeklyKpi
 
   def lines
     out = []
-    out << "## コンテンツ・チャネル実績 (S8)"
+    out << "## 콘텐츠·채널 실적 (S8)"
     out << ""
-    out << "| # | 指標 | 目標 | 現在 | 内訳 |"
+    out << "| # | 지표 | 목표 | 현재 | 내역 |"
     out << "| --- | --- | --- | --- | --- |"
     rows.each { |r| out << "| #{r['id']} | #{r['statement']} | #{r['target']} | **#{r['current']}** | #{r['detail']} |" }
     out << ""
-    out << "### ja ブログ"
+    out << "### ja 블로그"
     out << ""
     out << "| ep | slug | status | published (JST) | PV | X | LinkedIn |"
     out << "| --- | --- | --- | --- | --- | --- | --- |"

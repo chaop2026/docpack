@@ -1,4 +1,8 @@
 class PostsController < ApplicationController
+  # The show template's inputs, shared with Admin::JpPackagesController#preview
+  # (S9). See the concern for what deliberately stayed here.
+  include PostShowAssigns
+
   def index
     # Scoped by track, not just by publication state. The two tracks are
     # different publications that happen to share a table: a Japanese episode
@@ -39,48 +43,13 @@ class PostsController < ApplicationController
     end
 
     @post.increment!(:view_count)
-    # Related posts stay inside one track for the same reason the listing does.
-    @related_posts = Post.published
-                         .where(category: @post.category, primary_locale: @post.primary_locale)
-                         .where.not(id: @post.id).recent.limit(3)
 
-    # Empty body or a locale we haven't actually translated into → don't index
-    # this URL; point its canonical at the post's primary-locale original
-    # (see show.html.erb).
-    # NOTE: page/meta tags are emitted from the view via content_for — content_for
-    # set from a controller's `helpers` proxy does not reach the rendered layout.
-    # Instance variables DO reach it, which is why @hreflang_locales is set here.
-    @post_translated = @post.translated?(@url_locale)
-
-    # The robots gate. Post#indexable? folds in publication state, which the old
-    # gate never looked at: a draft or scheduled post with a Korean body came
-    # back 200 with no noindex, so an unpublished article was an indexable
-    # public page. The 200 stays — preview still works — and only the directive
-    # changes. The signal table lives on Post#indexable?.
-    @post_indexable = @post.indexable?(@url_locale)
-
-    # Only advertise the locales this post can actually be indexed under. The
-    # default set (all four) pointed at /en|ja|es/blog/:slug — URLs that carry
-    # noindex and canonicalise back here, which is both self-contradictory and
-    # the route by which Google discovered 126 no-index URLs. Unpublished posts
-    # advertise nothing at all: [] is a real answer, not "unspecified".
-    @hreflang_locales = @post.indexable_locales
-
-    # x-default must name the post's own primary-locale URL. The layout's
-    # default — the unprefixed path — is the Korean address, which for a
-    # Japanese post is a 301 and therefore can never be an hreflang target.
-    @xdefault_url = "#{helpers.base_url}#{@post.canonical_path_for(@post.primary_locale_sym)}"
-
-    # The language switcher offers only the locales this post has text in.
-    # Korean posts keep the full set (they fall back to Korean under every
-    # shell, which is the behaviour the 42 live posts have always had); a
-    # Japanese post has no Korean or Spanish version at all, and the bare
-    # /blog/:slug its 「한국어」 entry pointed at is a 301 straight back here.
-    @switcher_locales = [ :ja, :en ] if @post.primary_locale == "ja"
-
-    # FAQ for the JSON-LD FAQPage block. Only present on JP packages, and only
-    # emitted when it actually has entries — an empty FAQPage is a structured
-    # claim about a section the page does not have.
-    @faq = @post.package_faq
+    # Everything else the template reads — related posts, the robots gate, the
+    # hreflang set, x-default, the language switcher, the FAQ — is assigned by
+    # PostShowAssigns so the admin preview renders the same document from the
+    # same code. The reasoning for each assignment lives there; the two that
+    # stayed in this method (the 301 above and the view counter) are properties
+    # of a public request rather than of the article.
+    assign_post_show_ivars(@post, @url_locale)
   end
 end

@@ -34,6 +34,23 @@ env:
     DB_USERNAME: docpack
     RAILS_SERVE_STATIC_FILES: true
     WEB_CONCURRENCY: 2
+    # X posting stays OFF in production, and it is declared HERE rather than in
+    # .env.production.local on purpose.
+    #
+    # Kamal builds the container env from this file: a `clear` value is written
+    # into the env Kamal hands the container, so it is what the process sees
+    # regardless of what any dotenv on the host says. Before this line the
+    # variable reached the container from nowhere at all — `XClient.dry_run?`
+    # was true only because the four X credentials were absent, so the moment
+    # somebody added the credentials the very next deploy would have started
+    # posting to a public account with nothing having been decided.
+    #
+    # Turning real posting on therefore has to be a DELIBERATE COMMIT that
+    # deletes this line, reviewable in the diff, rather than a dotenv edit on
+    # the server that leaves no trace. Do not delete it until the plan tier,
+    # the monthly write cap and media-upload permission have been confirmed on
+    # the real account (see lib/x_client.rb).
+    X_API_DRY_RUN: "1"
 
 aliases:
   console: app exec --interactive --reuse "bin/rails console"

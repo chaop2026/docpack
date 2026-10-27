@@ -14,7 +14,29 @@ class AutoGenerateJpPostJobTest < ActiveSupport::TestCase
   # cache. Without it, two tests in this file share one real path across
   # parallel workers and one silently changes the other's behaviour — measured:
   # the reuse test's file made the generate-from-scratch test skip its API call.
+  # ── why the clock is pinned (found 2026-10-27) ──────────────────────────────
+  #
+  # `BlogTopic.next_jp` only offers topics whose `publish_on` is within nine
+  # days, and "the queue advances past an episode nobody approved" builds its
+  # second topic at `next_monday + 7`. How far away that is depends on what day
+  # it is: on a Sunday the next Monday is tomorrow and the +7 topic lands eight
+  # days out (inside the window); on a Tuesday the next Monday is six days away
+  # and the +7 topic lands thirteen days out (outside it, so `next_jp` is empty
+  # and the assertion gets nil).
+  #
+  # So the test passed on Sat/Sun/Mon and failed Tue–Fri. It was written and
+  # last verified on Sunday 2026-10-25, which is why the suite was green then
+  # and had one failure when this session opened on Tuesday 2026-10-27. The
+  # 9-day window is correct and the test's intent is correct; what was wrong was
+  # leaving the gap between them to the calendar.
+  #
+  # Pinned to a SATURDAY because that is when the job really runs (00:00 KST
+  # Saturday, `config/recurring.yml`) — the deterministic choice and the
+  # realistic one are the same date.
+  PINNED_NOW = Time.utc(2026, 11, 7, 15, 0) # Sat 2026-11-07 00:00 JST
+
   setup do
+    travel_to PINNED_NOW
     @save_dir = Dir.mktmpdir("jp_generated")
     AutoGenerateJpPostJob.save_dir = @save_dir
   end
@@ -91,6 +113,15 @@ class AutoGenerateJpPostJobTest < ActiveSupport::TestCase
 
     nxt = make_topic(ep: 6, publish_on: next_monday + 7, title_en: "Episode six")
     make_draft(nxt, slug: "jp-ep06-episode-six")
+
+    # The premise, asserted rather than assumed: `next_jp` only offers topics
+    # inside a nine-day window, and on the pinned Saturday this topic sits
+    # exactly at that edge (publish_on 2026-11-16, window end 2026-11-16).
+    # Without this line, narrowing the window turns the assertion below into an
+    # unexplained `expected <BlogTopic> got nil` — which is what this test
+    # actually produced for four days of every week before the clock was pinned.
+    assert_operator nxt.publish_on, :<=, 9.days.from_now.to_date,
+                    "the follow-up episode must be inside next_jp's window or this test cannot test anything"
 
     assert_equal nxt, BlogTopic.next_jp.first
     assert_enqueued_emails 1 do

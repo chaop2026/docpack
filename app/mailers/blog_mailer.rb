@@ -48,9 +48,26 @@ class BlogMailer < ApplicationMailer
     @x_due_at = @post.published_at ? @post.published_at + JpApproval::X_DELAY : nil
     @preview_url = "#{base}/admin/jp/packages/#{@post.content_ep}"
 
-    subject = "[SafeFile JP] 第#{format('%02d', @post.content_ep)}回 承認依頼: #{@post.title_ja}"
-    subject = "#{subject.sub('] ', '] [アセット未生成] ')}" if @assets_missing
-    subject = subject.sub("] ", "] [要事前確認] ") if @awaiting_verification
+    @summary = @post.package["summary_ko"] || {}
+
+    # Korean subject and Korean body chrome; the article, the thread and the
+    # LinkedIn post stay in their published language. The approver reads this
+    # mail on a phone on a Saturday — the part that has to be instantly legible
+    # is what is being asked of them, not the copy itself.
+    subject = t("jp_admin.mail.subject",
+                nn: format("%02d", @post.content_ep), title: @post.title_ja)
+    subject = subject.sub("] ", "] #{t('jp_admin.mail.subject_assets_missing')} ") if @assets_missing
+    subject = subject.sub("] ", "] #{t('jp_admin.mail.subject_awaiting_verification')} ") if @awaiting_verification
+
+    # The guide PDF and the demo video, ATTACHED (S9). The LinkedIn post is
+    # published by hand from a phone or a laptop, and 「open the admin, find the
+    # asset list, download the PDF, then go to LinkedIn」 is three steps that
+    # each have to succeed. An attachment is already there.
+    #
+    # Attached by content type rather than by filename so a renamed asset still
+    # travels, and guarded by `attached?` because the fallback generator
+    # produces a package with no assets at all.
+    attach_package_files(@post) if @post.package_assets.attached?
 
     mail(to: "chaop2@gmail.com", subject: subject)
   end
@@ -65,7 +82,8 @@ class BlogMailer < ApplicationMailer
     @preview_url = "#{base}/admin/jp/packages/#{@post.content_ep}"
 
     mail(to: "chaop2@gmail.com",
-         subject: "[SafeFile JP] 第#{format('%02d', @post.content_ep)}回 Xスレッド #{seq}件目の結果が不明 — 確認が必要です")
+         subject: t("jp_admin.mail.subject_x_unknown",
+                    nn: format("%02d", @post.content_ep), seq: seq))
   end
 
   def jp_x_failed(post_id, reason)
@@ -76,7 +94,8 @@ class BlogMailer < ApplicationMailer
     @preview_url = "#{base}/admin/jp/packages/#{@post.content_ep}"
 
     mail(to: "chaop2@gmail.com",
-         subject: "[SafeFile JP] 第#{format('%02d', @post.content_ep)}回 Xスレッド失敗 (#{@state})")
+         subject: t("jp_admin.mail.subject_x_failed",
+                    nn: format("%02d", @post.content_ep), state: @state))
   end
 
   def review_requested(post)
@@ -90,6 +109,42 @@ class BlogMailer < ApplicationMailer
   end
 
   private
+
+  # PDF + MP4 from package_assets. Images are deliberately left out: the three
+  # carousel slides are ~1MB each and the mail already renders what matters
+  # about them, while the PDF is the thing the approver has to upload to
+  # LinkedIn and the MP4 is the thing they would otherwise have to go and find.
+  #
+  # `attachments[name] = { mime_type:, content: }` rather than letting Mail
+  # guess from the extension — a .pdf served as application/octet-stream shows
+  # up in Gmail as an unopenable blob.
+  ATTACH_TYPES = { "application/pdf" => true, "video/mp4" => true }.freeze
+  ATTACH_MAX_BYTES = 20.megabytes
+
+  def attach_package_files(post)
+    total = 0
+    post.package_assets.each do |asset|
+      next unless ATTACH_TYPES[asset.content_type.to_s]
+
+      # Gmail rejects the whole message over 25MB, and a rejected mail is a
+      # silent loss of the ONE thing this mail exists to deliver. Skipping an
+      # oversized attachment keeps the rest of the mail — and says so in the
+      # log, because an attachment that quietly did not travel is worse than
+      # one that is missing for a stated reason.
+      if total + asset.byte_size > ATTACH_MAX_BYTES
+        Rails.logger.warn("BlogMailer: skipped #{asset.filename} (#{asset.byte_size}B) — " \
+                          "would push attachments past #{ATTACH_MAX_BYTES}B")
+        next
+      end
+
+      total += asset.byte_size
+      attachments[asset.filename.to_s] = {
+        mime_type: asset.content_type,
+        content: asset.download
+      }
+    end
+    @attached_names = attachments.map { |a| a.filename }
+  end
 
   def base
     ENV.fetch("BASE_URL", "https://slimfile.net")

@@ -1,0 +1,28 @@
+########## ep02 ##########
+ep02: updated Post #26 slug=jp-ep02-reading-a-tender-s-masking-instructions status=draft
+  title_ja  : 入札添付の資格確認書、「マスキング指示」の読み方
+  body_ja   : 1558 chars of HTML
+  body_en   : 3220 chars
+  hero      : carousel_1.png
+  assets    : carousel_1.png, carousel_2.png, carousel_3.png, guide_en.pdf
+  x_thread  : 5 tweets
+  faq       : 3 entries
+  linkedin  : 1367 chars (linkedin_en.md)
+  summary_ko: 7/7 sections (all present)
+  publish_on: 2026-11-02 (blog 09:00 JST)
+  guard     : clean
+EXIT=0
+########## ep03 ##########
+ep03: updated Post #27 slug=jp-ep03-redact-the-personal-data-before-you-past status=draft
+  title_ja  : ChatGPTに契約書を貼る前に個人情報だけ黒塗りする方法
+  body_ja   : 1201 chars of HTML
+  body_en   : 2653 chars
+  hero      : carousel_1.png
+  assets    : carousel_1.png, carousel_2.png, carousel_3.png, guide_en.pdf
+  x_thread  : 5 tweets
+  faq       : 3 entries
+  linkedin  : 1333 chars (linkedin_en.md)
+  summary_ko: 7/7 sections (all present)
+  publish_on: 2026-11-09 (blog 09:00 JST)
+  guard     : clean
+EXIT=0

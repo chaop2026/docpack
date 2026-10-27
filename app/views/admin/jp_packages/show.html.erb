@@ -1,189 +1,322 @@
-<%# The weekly approval screen. `data-jp-package` is the marker the screenshot
-    harness waits on — a harness that photographs whatever came back produces a
-    report that looks like evidence. %>
+<%#
+  The weekly approval screen. `data-jp-package` is the marker the screenshot
+  harness waits on — a harness that photographs whatever came back produces a
+  report that looks like evidence.
+
+  ── Korean UI, Japanese content (S9) ──────────────────────────────────────────
+
+  Every label, button and explanatory line is `t("jp_admin.…")` and nothing is
+  hardcoded. The approver reads Korean; the article, the thread and the LinkedIn
+  post are shown in their published language because those are the bytes that
+  go out, and a translated preview of them would be a preview of something else.
+
+  No literal strings here on purpose: it makes "what sentences does the approver
+  see" a list you can read in config/locales/ko.yml, and it means the next
+  person to edit this screen cannot quietly reintroduce a Japanese line.
+
+  ── The Korean summary boxes ──────────────────────────────────────────────────
+
+  package.summary_ko is rendered directly BELOW the Japanese it summarises: the
+  gist above the body, each tweet's Korean under that tweet, each FAQ answer
+  under that question. Grouping them into one "Korean section" would be easier
+  to build and would put the reviewer in the position of holding a translation
+  in their head while scrolling through the original.
+%>
+<style>
+  /* Scoped to the Korean summary boxes. JpMarkdown emits bare table/th/td, and
+     the admin layout styles neither — without this the table renders as
+     unaligned text, which is how it looked before S9 printed it raw. */
+  .jp-ko-summary table { border-collapse: collapse; width: 100%; margin: 6px 0; }
+  .jp-ko-summary th, .jp-ko-summary td {
+    border: 0.5px solid #E5E3DC; padding: 5px 8px; text-align: left; vertical-align: top;
+  }
+  .jp-ko-summary th { background: #F8F7F4; font-weight: 600; }
+  .jp-ko-summary p { margin: 0 0 8px; }
+  .jp-ko-summary p:last-child { margin-bottom: 0; }
+  .jp-ko-summary a { color: #07596F; word-break: break-all; }
+</style>
+<% epp = format("%02d", @post.content_ep) %>
+<% summary = @post.package["summary_ko"] || {} %>
+<% approve_form = capture do %>
+  <%= button_to t("jp_admin.show.approve"), admin_jp_package_approve_path(@post.content_ep),
+        style: "background:#0A6E8A;color:#fff;border:0;border-radius:12px;padding:11px 26px;font-size:15px;font-weight:600;cursor:pointer" %>
+  <p style="font-size:12.5px;color:#1A1918;margin:10px 0 0;max-width:620px">
+    <%= t("jp_admin.show.approve_note") %>
+  </p>
+  <p style="font-size:12px;color:#6B6963;margin:6px 0 0;max-width:620px">
+    <%= t("jp_admin.show.approve_note_detail") %>
+  </p>
+<% end %>
+
+<%# The 「사람이 판단할 한 가지」 box, rendered immediately above whichever
+    approve button it belongs to. It is the one sentence the approver is
+    personally asserting, so it sits where the hand is already going rather
+    than somewhere they would have to scroll back to. %>
+<% judgment_box = capture do %>
+  <div style="border:1px solid #F59E0B;background:#FEF3C7;border-radius:14px;padding:14px 16px;margin-bottom:14px">
+    <strong style="color:#92400E;font-size:13px"><%= t("jp_admin.show.judgment_heading") %></strong>
+    <% if summary["judgment"].present? %>
+      <%# Through JpMarkdown, like the other summary blocks — the authors write
+          **bold** around the claim itself, and printing it raw put literal
+          asterisks around the one sentence on this screen that matters most. %>
+      <div class="jp-ko-summary" style="font-size:13.5px;color:#1A1918;margin:8px 0 0;line-height:1.75">
+        <%= JpMarkdown.render(summary["judgment"]).html_safe %>
+      </div>
+      <p style="font-size:11.5px;color:#92400E;margin:8px 0 0"><%= t("jp_admin.show.judgment_hint") %></p>
+    <% else %>
+      <p style="font-size:13px;color:#991B1B;margin:8px 0 0"><%= t("jp_admin.show.judgment_missing") %></p>
+    <% end %>
+  </div>
+<% end %>
+
 <div data-jp-package="<%= @post.content_ep %>" style="max-width:900px">
 
   <p style="font-size:12px;color:#6B6963;margin:0 0 4px">
-    SafeFile JP · 第<%= format("%02d", @post.content_ep) %>回 ·
+    <%= t("jp_admin.brand") %> ·
+    <%= t("jp_admin.episode", n: epp) %> ·
     <%= @post.package["intent"] %> ·
-    <%= @topic&.publish_on %> (月)
+    <%= @topic&.publish_on %> <%= t("jp_admin.show.monday") %>
   </p>
   <h1 style="font-size:22px;font-weight:600;letter-spacing:-0.02em;margin:0 0 4px"><%= @post.title_ja %></h1>
   <p style="font-size:13px;color:#6B6963;margin:0 0 6px"><%= @post.subtitle_ja %></p>
-  <p style="font-size:12px;color:#6B6963;margin:0 0 20px">
+  <p style="font-size:12px;color:#6B6963;margin:0 0 12px">
     <code>/ja/blog/<%= @post.slug %></code> ·
-    status <strong><%= @post.status %></strong> ·
-    <% if @post.approved?  %>
-      承認済 <%= @post.package["approved_at"] %>
+    <%= @post.status %> ·
+    <% if @post.approved? %>
+      <%= t("jp_admin.status.approved") %> <%= @post.package["approved_at"] %>
     <% else %>
-      未承認
+      <%= t("jp_admin.status.unapproved") %>
     <% end %>
+  </p>
+
+  <%# The article as a reader will see it. Placed up here, next to the address,
+      because it answers the first question a reviewer has ("what does this
+      actually look like?") and because the rest of this page is deliberately
+      not a reading experience. %>
+  <p style="margin:0 0 20px">
+    <%= link_to t("jp_admin.show.preview_link"), @preview_path, target: "_blank", rel: "noopener",
+          style: "display:inline-block;background:#fff;color:#07596F;border:1px solid #0A6E8A;border-radius:12px;padding:9px 16px;font-size:13px;font-weight:600;text-decoration:none" %>
+    <span style="font-size:11.5px;color:#6B6963;margin-left:8px"><%= t("jp_admin.show.preview_hint") %></span>
   </p>
 
   <%# ── blocking conditions first ─────────────────────────────────────────── %>
   <% if @post.guard_violations.any? %>
     <div style="border:1px solid #dc2626;background:#FEE2E2;border-radius:14px;padding:14px 16px;margin-bottom:16px">
-      <strong style="color:#991B1B">🛑 コンテンツ検査 <%= @post.guard_violations.size %>件 — 承認できません</strong>
+      <strong style="color:#991B1B">🛑 <%= t("jp_admin.show.guard_title", n: @post.guard_violations.size) %></strong>
       <ul style="margin:10px 0 0;padding-left:20px;color:#991B1B;font-size:13px">
         <% @post.guard_violations.each do |v| %><li style="margin-bottom:4px"><%= v %></li><% end %>
       </ul>
       <p style="font-size:12px;color:#991B1B;margin:10px 0 0">
-        自動修正はしません。<code>content/jp/ep<%= format("%02d", @post.content_ep) %>/</code> を直して
-        <code>make_episode.mjs <%= @post.content_ep %></code> → <code>content:jp_import[<%= @post.content_ep %>]</code>。
-        検査規則は <code>content/jp/guard_rules.json</code>
-        (<%= @post.package.dig("guard", "rules_version") %> · <%= @post.package.dig("guard", "checked_at") %>)。
+        <%= t("jp_admin.show.guard_hint_html", epp: epp, ep: @post.content_ep) %>
+      </p>
+      <p style="font-size:12px;color:#991B1B;margin:6px 0 0">
+        <%= t("jp_admin.show.guard_rules_html",
+               version: @post.package.dig("guard", "rules_version"),
+               checked_at: @post.package.dig("guard", "checked_at")) %>
       </p>
     </div>
   <% end %>
 
   <% if @post.import_conflict.present? %>
     <div style="border:1px solid #dc2626;background:#FEE2E2;border-radius:14px;padding:14px 16px;margin-bottom:16px">
-      <strong style="color:#991B1B">🛑 インポート衝突 — Mac のファイルとこの行は別の内容です</strong>
+      <strong style="color:#991B1B">🛑 <%= t("jp_admin.show.conflict_title") %></strong>
       <p style="font-size:13px;color:#991B1B;margin:8px 0 0">
-        <%= @post.import_conflict["at"] %> に再インポートが拒否されました
-        (disk content_hash <code><%= @post.import_conflict["content_hash"].to_s.first(16) %></code> /
-         この行 <code><%= @post.package["content_hash"].to_s.first(16) %></code>)。
-        承認済みのパッケージは上書きしません。<strong>差し戻して</strong>から再実行してください。
+        <%= t("jp_admin.show.conflict_body_html",
+               at: @post.import_conflict["at"],
+               disk: @post.import_conflict["content_hash"].to_s.first(16),
+               row: @post.package["content_hash"].to_s.first(16)) %>
       </p>
     </div>
   <% end %>
 
   <% if @topic&.awaiting_verification? %>
     <div style="border:1px solid #F59E0B;background:#FEF3C7;border-radius:14px;padding:14px 16px;margin-bottom:16px">
-      <strong style="color:#92400E">⚠️ 要事前確認</strong>
+      <strong style="color:#92400E">⚠️ <%= t("jp_admin.show.verify_title") %></strong>
       <p style="font-size:13px;color:#92400E;margin:8px 0 10px">
-        この回は事実の再確認が条件です。確認するまで公開予定時刻も設定されません。
+        <%= t("jp_admin.show.verify_body") %>
       </p>
-      <%= button_to "確認済みにする", admin_jp_package_verify_path(@post.content_ep),
+      <%= button_to t("jp_admin.show.verify_button"), admin_jp_package_verify_path(@post.content_ep),
             style: "background:#F59E0B;color:#fff;border:0;border-radius:12px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer" %>
     </div>
   <% end %>
 
   <% if @post.package["assets_missing"].present? %>
     <div style="border:1px solid #F59E0B;background:#FEF3C7;border-radius:14px;padding:14px 16px;margin-bottom:16px">
-      <strong style="color:#92400E">⚠️ アセット未生成</strong> —
-      <span style="font-size:13px;color:#92400E">サーバー側で本文のみ生成しました。カルーセルと GIF がありません。</span>
+      <strong style="color:#92400E">⚠️ <%= t("jp_admin.show.assets_missing_title") %></strong> —
+      <span style="font-size:13px;color:#92400E"><%= t("jp_admin.show.assets_missing_body") %></span>
     </div>
   <% end %>
 
   <%# ── the decision ─────────────────────────────────────────────────────── %>
   <div style="border:0.5px solid #E5E3DC;background:#fff;border-radius:20px;padding:18px 20px;margin-bottom:22px">
+    <h2 style="font-size:14px;font-weight:600;margin:0 0 10px"><%= t("jp_admin.show.schedule_heading") %></h2>
     <table style="border-collapse:collapse;font-size:13px;width:100%;margin-bottom:14px">
       <tr>
-        <td style="padding:6px 10px;border:0.5px solid #E5E3DC;background:#F8F7F4;width:150px">ブログ (ja)</td>
+        <td style="padding:6px 10px;border:0.5px solid #E5E3DC;background:#F8F7F4;width:190px"><%= t("jp_admin.show.blog_ja") %></td>
         <td style="padding:6px 10px;border:0.5px solid #E5E3DC">
-          <%= @post.published_at ? "#{@post.published_at.in_time_zone('Asia/Tokyo').strftime('%Y-%m-%d (%a) %H:%M')} JST" : "— 未設定(週次ジョブが topics.json の publish_on から設定します)" %>
+          <%= @post.published_at ? "#{@post.published_at.in_time_zone('Asia/Tokyo').strftime('%Y-%m-%d (%a) %H:%M')} JST" : t("jp_admin.show.blog_unset") %>
         </td>
       </tr>
       <tr>
-        <td style="padding:6px 10px;border:0.5px solid #E5E3DC;background:#F8F7F4">X スレッド</td>
+        <td style="padding:6px 10px;border:0.5px solid #E5E3DC;background:#F8F7F4"><%= t("jp_admin.show.x_thread") %></td>
         <td style="padding:6px 10px;border:0.5px solid #E5E3DC">
           <% if (due = @post.package.dig("x", "due_at")).present? %>
             <%= Time.zone.parse(due).in_time_zone("Asia/Tokyo").strftime("%Y-%m-%d (%a) %H:%M") %> JST ·
-            state <strong><%= @post.package.dig("x", "state") %></strong>
+            <%= t("jp_admin.show.x_state") %> <strong><%= @post.package.dig("x", "state") %></strong>
           <% elsif @post.published_at %>
-            <%= (@post.published_at + JpApproval::X_DELAY).in_time_zone("Asia/Tokyo").strftime("%Y-%m-%d (%a) %H:%M") %> JST (承認時に確定)
+            <%= (@post.published_at + JpApproval::X_DELAY).in_time_zone("Asia/Tokyo").strftime("%Y-%m-%d (%a) %H:%M") %> JST
+            <%= t("jp_admin.show.x_on_approve") %>
           <% else %>
-            —
+            <%= t("jp_admin.none") %>
           <% end %>
           <% if @topic&.social_skip? %>
-            <br><span style="color:#92400E;font-size:12px">※ 年末/GW のため X・LinkedIn は翌週の月曜に繰り越します</span>
+            <br><span style="color:#92400E;font-size:12px"><%= t("jp_admin.show.social_skip") %></span>
           <% end %>
           <% if XClient.dry_run? %>
-            <br><strong style="color:#92400E;font-size:12px">※ X_API_DRY_RUN — 実際には投稿せずログだけ出します</strong>
+            <br><strong style="color:#92400E;font-size:12px"><%= t("jp_admin.show.dry_run") %></strong>
           <% end %>
         </td>
       </tr>
+      <tr>
+        <td style="padding:6px 10px;border:0.5px solid #E5E3DC;background:#F8F7F4"><%= t("jp_admin.show.linkedin_heading") %></td>
+        <td style="padding:6px 10px;border:0.5px solid #E5E3DC"><%= t("jp_admin.show.linkedin_guide") %></td>
+      </tr>
     </table>
 
+    <%# ── 승인 버튼 ①: 최상단(공개 예정표 바로 아래) ─────────────────────────
+        Two identical forms, top and bottom (S9). The screen is long enough that
+        a reviewer who reads it through ends up far from the only button, and the
+        reviewer who does not read it through should still meet the decision
+        where they start. Both post to the same path. %>
     <% if @approvable && !@post.approved? %>
-      <%= button_to "承認", admin_jp_package_approve_path(@post.content_ep),
-            style: "background:#0A6E8A;color:#fff;border:0;border-radius:12px;padding:11px 26px;font-size:15px;font-weight:600;cursor:pointer" %>
-      <p style="font-size:12px;color:#6B6963;margin:10px 0 0">
-        押すと、ブログの予約と X スレッドの予約が<strong>同じトランザクションで</strong>確定します。
-        そのときの本文・派生物・資産・公開時刻の指紋(approved_version)も保存され、
-        あとで変わっていれば X は投稿せず止まります。
-      </p>
+      <%= judgment_box %>
+      <%= approve_form %>
     <% elsif @post.approved? %>
       <p style="font-size:13px;margin:0 0 10px">
-        ✅ 承認済み · approved_version <code><%= @post.package["approved_version"].to_s.first(16) %></code>
+        ✅ <%= t("jp_admin.show.approved_version_html", version: @post.package["approved_version"].to_s.first(16)) %>
       </p>
-      <%= button_to "差し戻す", admin_jp_package_unapprove_path(@post.content_ep),
+      <%= button_to t("jp_admin.show.unapprove"), admin_jp_package_unapprove_path(@post.content_ep),
             style: "background:#fff;color:#991B1B;border:1px solid #dc2626;border-radius:12px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer" %>
       <p style="font-size:12px;color:#6B6963;margin:10px 0 0">
-        下書きに戻し、X の予約を取り消します。すでに投稿されたツイートの記録は消しません
-        — それが何が公開済みかを知る唯一の場所です。
+        <%= t("jp_admin.show.unapprove_note") %>
       </p>
     <% else %>
       <button disabled
         style="background:#E5E3DC;color:#6B6963;border:0;border-radius:12px;padding:11px 26px;font-size:15px;font-weight:600;cursor:not-allowed">
-        承認(無効)
+        <%= t("jp_admin.show.approve_disabled") %>
       </button>
       <p style="font-size:12px;color:#991B1B;margin:10px 0 0">
-        <%= @blocked_reason.presence || "公開予定時刻が未設定です" %>
+        <%= @blocked_reason.presence || t("jp_admin.show.approve_blocked_default") %>
       </p>
     <% end %>
 
     <% if @post.approved? && !@post.guard_violations.any? %>
       <p style="font-size:12px;color:#6B6963;margin:14px 0 0;padding-top:10px;border-top:0.5px solid #E5E3DC">
-        ⚠️ 承認後は AI の <code>improve</code> を使えません(本文が変われば approved_version が合わなくなり
-        X が止まります)。先に差し戻してください。
+        ⚠️ <%= t("jp_admin.show.approved_warning_html") %>
       </p>
     <% else %>
       <p style="font-size:12px;color:#6B6963;margin:14px 0 0;padding-top:10px;border-top:0.5px solid #E5E3DC">
-        <%= link_to "この記事を編集する(AI improve を含む)", edit_admin_post_path(@post), style: "color:#07596F" %>
+        <%= link_to t("jp_admin.show.edit_link"), edit_admin_post_path(@post), style: "color:#07596F" %>
       </p>
     <% end %>
   </div>
 
+  <%# ── the gist, in Korean, above the Japanese it summarises ─────────────── %>
+  <% if summary["gist"].present? %>
+    <div style="background:#F3F3F1;border:0.5px solid #E5E3DC;border-radius:14px;padding:14px 16px;margin-bottom:22px">
+      <p style="font-size:11px;color:#6B6963;margin:0 0 6px;font-weight:600;letter-spacing:0.04em">
+        <%= t("jp_admin.show.summary_label") %> · <%= t("jp_admin.show.summary_gist") %>
+      </p>
+      <% if summary["title"].present? %>
+        <p style="font-size:15px;font-weight:600;margin:0 0 8px;color:#1A1918"><%= summary["title"] %></p>
+      <% end %>
+      <%# Rendered through JpMarkdown, the same converter the article body uses.
+          summary_ko.md is markdown — 「## 표」 is a GFM pipe table and the prose
+          carries **bold**. Printed raw, the table came out as a column of pipe
+          characters and the emphasis as literal asterisks, which is a worse
+          reading experience than the Japanese it is supposed to make easier.
+          The subset is small and known (lib/jp_markdown.rb), so there is no
+          general-markdown surface being opened here. %>
+      <div class="jp-ko-summary" style="font-size:13.5px;color:#1A1918;line-height:1.8">
+        <%= JpMarkdown.render(summary["gist"]).html_safe %>
+      </div>
+      <% if summary["table"].present? %>
+        <p style="font-size:11px;color:#6B6963;margin:14px 0 4px;font-weight:600"><%= t("jp_admin.show.summary_table") %></p>
+        <div class="jp-ko-summary" style="font-size:12.5px;color:#1A1918;overflow-x:auto">
+          <%= JpMarkdown.render(summary["table"]).html_safe %>
+        </div>
+      <% end %>
+      <% if summary["basis"].present? %>
+        <p style="font-size:11px;color:#6B6963;margin:14px 0 4px;font-weight:600"><%= t("jp_admin.show.summary_basis") %></p>
+        <div class="jp-ko-summary" style="font-size:12.5px;color:#1A1918;line-height:1.75;word-break:break-word">
+          <%= JpMarkdown.render(summary["basis"]).html_safe %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
   <%# ── X thread ─────────────────────────────────────────────────────────── %>
   <h2 style="font-size:15px;font-weight:600;margin:26px 0 10px;padding-top:14px;border-top:0.5px solid #E5E3DC">
-    🐦 X スレッド
+    🐦 <%= t("jp_admin.show.x_heading") %>
   </h2>
   <% rows = @post.package.dig("x", "tweets") %>
   <% display = rows.presence || (@post.package_x_thread + [@post.package["x_reply_en"]]).compact_blank.each_with_index.map { |t, i| { "seq" => i + 1, "text" => t, "state" => "pending", "tweet_id" => nil } } %>
-  <% display.each do |t| %>
-    <% w = JpContentGuard.weighted_length(t["text"]) %>
-    <% chars = t["text"].to_s.length %>
+  <% ko_tweets = Array(summary["tweets"]) %>
+  <%# `tweet`, not `t` — see the mail template: a local named `t` sitting next to
+      t("…") calls reads as a shadowed helper even though Ruby resolves it. %>
+  <% display.each do |tweet| %>
+    <% w = JpContentGuard.weighted_length(tweet["text"]) %>
+    <% chars = tweet["text"].to_s.length %>
     <div style="border:0.5px solid #E5E3DC;background:#fff;border-radius:14px;padding:12px 14px;margin-bottom:8px">
       <div style="font-size:11px;color:#6B6963;margin-bottom:6px">
-        <%= t["seq"] %> / <%= display.size %> ·
-        <%= chars %>字 · <strong>weighted <%= w %></strong>/<%= JpContentGuard.limits["tweet_weighted"] %>
+        <%= t("jp_admin.show.tweet_position", i: tweet["seq"], total: display.size) %> ·
+        <%= t("jp_admin.show.chars", n: chars) %> ·
+        <strong><%= t("jp_admin.show.weighted", n: w, max: JpContentGuard.limits["tweet_weighted"]) %></strong>
         <% if w > JpContentGuard.limits["tweet_weighted"] %>
-          · <strong style="color:#991B1B">🛑 X上限超過</strong>
-        <% elsif chars > JpContentGuard.limits["tweet_editorial"] %>
-          · <strong style="color:#92400E">⚠️ 編集上限 <%= JpContentGuard.limits["tweet_editorial"] %>字 超過</strong>
+          · <strong style="color:#991B1B">🛑 <%= t("jp_admin.show.over_x_limit") %></strong>
+        <% elsif w > JpContentGuard.limits["tweet_editorial"] %>
+          · <strong style="color:#92400E">⚠️ <%= t("jp_admin.show.over_editorial", max: JpContentGuard.limits["tweet_editorial"]) %></strong>
         <% end %>
-        · state <strong><%= t["state"] %></strong>
-        <% if t["tweet_id"].present? %>
-          · <a href="https://x.com/safefile_jp/status/<%= t["tweet_id"] %>" style="color:#07596F"><%= t["tweet_id"] %></a>
+        · <%= t("jp_admin.show.x_state") %> <strong><%= tweet["state"] %></strong>
+        <% if tweet["tweet_id"].present? %>
+          · <a href="https://x.com/safefile_jp/status/<%= tweet["tweet_id"] %>" style="color:#07596F"><%= tweet["tweet_id"] %></a>
         <% end %>
-        <% if t["seq"] == 1 && @post.package["media_for_first_tweet"].present? %>
+        <% if tweet["seq"] == 1 && @post.package["media_for_first_tweet"].present? %>
           · 📎 <%= @post.package["media_for_first_tweet"] %>
         <% end %>
       </div>
-      <pre style="white-space:pre-wrap;font-family:inherit;font-size:13.5px;margin:0"><%= t["text"] %></pre>
+      <pre style="white-space:pre-wrap;font-family:inherit;font-size:13.5px;margin:0"><%= tweet["text"] %></pre>
+
+      <%# This tweet's Korean, under this tweet. Indexed by position, which is
+          why JpEpisodeSource keeps the numbered items in file order rather than
+          sorting them: a renumbered list would pair Korean text with the wrong
+          Japanese tweet, and both would look fine. %>
+      <% if (ko = ko_tweets[tweet["seq"].to_i - 1]).present? %>
+        <div style="background:#F3F3F1;border-radius:10px;padding:9px 11px;margin-top:8px">
+          <span style="font-size:10px;color:#6B6963;font-weight:600"><%= t("jp_admin.show.summary_label") %></span>
+          <p style="font-size:12.5px;color:#1A1918;margin:4px 0 0;line-height:1.7"><%= ko %></p>
+        </div>
+      <% end %>
 
       <%# The two answers to an indeterminate response. Both are offered only on
           the tweet that is actually `unknown`: offering them everywhere would
           invite someone to "fix" a tweet whose state is not in doubt. %>
-      <% if t["state"] == "unknown" %>
-        <div style="margin-top:10px;padding-top:10px;border-top:0.5px solid #E5E3DC;background:#FEF3C7;border-radius:10px;padding:12px">
+      <% if tweet["state"] == "unknown" %>
+        <div style="margin-top:10px;padding:12px;background:#FEF3C7;border-radius:10px">
           <p style="font-size:12.5px;color:#92400E;margin:0 0 10px">
-            このツイートは<strong>投稿されている可能性があります</strong>(応答が届きませんでした)。
-            <a href="https://x.com/safefile_jp" style="color:#92400E">タイムライン</a>で上の本文を探してください。
-            同じ内容を自動で送り直すことはしません — 二重投稿は取り消せません。
+            <strong><%= t("jp_admin.show.unknown_title") %></strong><br>
+            <%= t("jp_admin.show.unknown_body_html", timeline: "https://x.com/safefile_jp") %>
           </p>
           <%= form_with url: admin_jp_package_tweet_sent_path(@post.content_ep), method: :post,
                         style: "display:inline-block;margin-right:8px" do |f| %>
-            <%= f.hidden_field :seq, value: t["seq"] %>
-            <%= f.text_field :tweet_id, placeholder: "タイムラインの URL 末尾の数字",
+            <%= f.hidden_field :seq, value: tweet["seq"] %>
+            <%= f.text_field :tweet_id, placeholder: t("jp_admin.show.tweet_id_placeholder"),
                   style: "border:0.5px solid #E5E3DC;border-radius:8px;padding:7px 10px;font-size:12.5px;width:230px" %>
-            <%= f.submit "送信済みとして記録",
+            <%= f.submit t("jp_admin.show.mark_sent"),
                   style: "background:#0A6E8A;color:#fff;border:0;border-radius:10px;padding:8px 14px;font-size:12.5px;font-weight:600;cursor:pointer" %>
           <% end %>
-          <%= button_to "未送信として再開", admin_jp_package_tweet_unsent_path(@post.content_ep),
-                params: { seq: t["seq"] },
+          <%= button_to t("jp_admin.show.mark_unsent"), admin_jp_package_tweet_unsent_path(@post.content_ep),
+                params: { seq: tweet["seq"] },
                 style: "background:#fff;color:#991B1B;border:1px solid #dc2626;border-radius:10px;padding:8px 14px;font-size:12.5px;font-weight:600;cursor:pointer" %>
         </div>
       <% end %>
@@ -197,25 +330,31 @@
 
   <%# ── LinkedIn ─────────────────────────────────────────────────────────── %>
   <h2 style="font-size:15px;font-weight:600;margin:26px 0 10px;padding-top:14px;border-top:0.5px solid #E5E3DC">
-    💼 LinkedIn (手動 · <%= @post.package["linkedin_text"].to_s.length %>/<%= JpContentGuard.limits["linkedin_chars"] %>字)
+    💼 <%= t("jp_admin.show.linkedin_heading") %> ·
+    <span style="font-weight:400;color:#6B6963;font-size:13px">
+      <%= t("jp_admin.show.linkedin_count",
+             n: @post.package["linkedin_text"].to_s.length,
+             max: JpContentGuard.linkedin_limits["chars"]) %>
+    </span>
   </h2>
+  <p style="font-size:12px;color:#6B6963;margin:0 0 8px"><%= t("jp_admin.show.linkedin_guide") %></p>
   <pre style="white-space:pre-wrap;font-family:inherit;font-size:13.5px;background:#F8F7F4;border:0.5px solid #E5E3DC;border-radius:14px;padding:14px;margin:0 0 10px"><%= @post.package["linkedin_text"] %></pre>
   <%= form_with url: admin_jp_package_linkedin_path(@post.content_ep), method: :post do |f| %>
     <%= f.text_field :linkedin_url, value: @post.package.dig("posted", "linkedin_url"),
-          placeholder: "投稿後の LinkedIn URL",
+          placeholder: t("jp_admin.show.linkedin_url_placeholder"),
           style: "border:0.5px solid #E5E3DC;border-radius:8px;padding:8px 10px;font-size:12.5px;width:380px" %>
-    <%= f.submit "記録",
+    <%= f.submit t("jp_admin.show.linkedin_record"),
           style: "background:#0A6E8A;color:#fff;border:0;border-radius:10px;padding:8px 16px;font-size:12.5px;font-weight:600;cursor:pointer" %>
   <% end %>
   <p style="font-size:12px;color:#6B6963;margin:8px 0 0">
-    <strong>P18 はこの URL がある回だけを数えます</strong> — これはメモではなく計測です。
+    <%= t("jp_admin.show.linkedin_p18_html") %>
   </p>
 
   <%# ── assets ───────────────────────────────────────────────────────────── %>
   <h2 style="font-size:15px;font-weight:600;margin:26px 0 10px;padding-top:14px;border-top:0.5px solid #E5E3DC">
-    🖼 カルーセル / デモ
+    🖼 <%= t("jp_admin.show.assets_heading") %>
   </h2>
-  <p style="font-size:12px;color:#6B6963;margin:0 0 10px">demo: <%= @post.package["demo"] || "—" %></p>
+  <p style="font-size:12px;color:#6B6963;margin:0 0 10px"><%= t("jp_admin.show.demo_label") %>: <%= @post.package["demo"] || t("jp_admin.none") %></p>
   <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
     <% @post.package_assets.each do |a| %>
       <div style="width:180px">
@@ -223,38 +362,72 @@
           <%= image_tag a, style: "width:100%;height:auto;border:0.5px solid #E5E3DC;border-radius:10px;display:block" %>
         <% elsif a.content_type == "video/mp4" %>
           <video src="<%= url_for(a) %>" controls style="width:100%;border:0.5px solid #E5E3DC;border-radius:10px"></video>
+        <% elsif a.content_type == "application/pdf" %>
+          <%= link_to a.filename.to_s, url_for(a), target: "_blank", rel: "noopener",
+                style: "display:block;border:0.5px solid #E5E3DC;border-radius:10px;padding:28px 10px;text-align:center;color:#07596F;font-size:12.5px;font-weight:600;text-decoration:none;background:#F8F7F4" %>
         <% end %>
         <p style="font-size:11px;color:#6B6963;margin:4px 0 0"><%= a.filename %> · <%= number_to_human_size(a.byte_size) %></p>
       </div>
     <% end %>
     <% if @post.package_assets.none? %>
-      <p style="font-size:13px;color:#6B6963">添付なし</p>
+      <p style="font-size:13px;color:#6B6963"><%= t("jp_admin.show.assets_none") %></p>
     <% end %>
   </div>
 
   <%# ── FAQ ──────────────────────────────────────────────────────────────── %>
   <% if @post.package_faq.any? %>
     <h2 style="font-size:15px;font-weight:600;margin:26px 0 10px;padding-top:14px;border-top:0.5px solid #E5E3DC">
-      ❓ FAQ <%= @post.package_faq.size %>問 (JSON-LD FAQPage にも出ます)
+      ❓ <%= t("jp_admin.show.faq_heading", n: @post.package_faq.size) %>
+      <span style="font-weight:400;color:#6B6963;font-size:12px"><%= t("jp_admin.show.faq_in_jsonld") %></span>
     </h2>
-    <% @post.package_faq.each do |e| %>
-      <p style="font-size:13.5px;margin:0 0 10px"><strong><%= e["q"] %></strong><br><%= e["a"] %></p>
+    <% ko_faq = Array(summary["faq"]) %>
+    <% @post.package_faq.each_with_index do |e, i| %>
+      <div style="margin:0 0 12px">
+        <p style="font-size:13.5px;margin:0"><strong><%= e["q"] %></strong><br><%= e["a"] %></p>
+        <% if (ko = ko_faq[i]).present? %>
+          <div style="background:#F3F3F1;border-radius:10px;padding:9px 11px;margin-top:6px">
+            <span style="font-size:10px;color:#6B6963;font-weight:600"><%= t("jp_admin.show.summary_label") %></span>
+            <p style="font-size:12.5px;color:#1A1918;margin:4px 0 0;line-height:1.7"><%= ko %></p>
+          </div>
+        <% end %>
+      </div>
     <% end %>
   <% else %>
     <p style="font-size:13px;color:#92400E;margin:20px 0 0">
-      ⚠️ FAQ がありません — <code>faq_ja.md</code> がないため FAQPage の構造化データは出力されません
-      (空の FAQPage は、ページに無い節を宣言する偽の主張になるので出しません)。
+      ⚠️ <%= t("jp_admin.show.faq_missing_html") %>
     </p>
   <% end %>
 
+  <%# ── the article itself ────────────────────────────────────────────────── %>
+  <h2 style="font-size:15px;font-weight:600;margin:26px 0 10px;padding-top:14px;border-top:0.5px solid #E5E3DC">
+    📄 <%= t("jp_admin.show.body_ja_heading") %> — <%= t("jp_admin.show.body_bytes", n: @post.body_ja.to_s.length) %>
+  </h2>
+  <div style="border:0.5px solid #E5E3DC;background:#fff;border-radius:14px;padding:18px;font-size:14px;line-height:1.85">
+    <%= @post.body_ja.to_s.html_safe %>
+  </div>
+
+  <h2 style="font-size:15px;font-weight:600;margin:26px 0 10px;padding-top:14px;border-top:0.5px solid #E5E3DC">
+    📄 <%= t("jp_admin.show.body_en_heading") %> —
+    <%= @post.body_en.present? ? t("jp_admin.show.body_bytes", n: @post.body_en.length) : t("jp_admin.none") %>
+  </h2>
+  <% if @post.body_en.present? %>
+    <div style="border:0.5px solid #E5E3DC;background:#fff;border-radius:14px;padding:18px;font-size:14px;line-height:1.85">
+      <%= @post.body_en.to_s.html_safe %>
+    </div>
+  <% else %>
+    <p style="font-size:13px;color:#6B6963"><%= t("jp_admin.show.body_en_missing_html") %></p>
+  <% end %>
+
   <%# ── KPI ──────────────────────────────────────────────────────────────── %>
-  <h2 style="font-size:15px;font-weight:600;margin:26px 0 10px;padding-top:14px;border-top:0.5px solid #E5E3DC">📊 KPI 対照</h2>
+  <h2 style="font-size:15px;font-weight:600;margin:26px 0 10px;padding-top:14px;border-top:0.5px solid #E5E3DC">
+    📊 <%= t("jp_admin.show.kpi_heading") %>
+  </h2>
   <table style="border-collapse:collapse;font-size:12.5px;width:100%">
     <tr style="background:#F8F7F4">
-      <th style="padding:6px 8px;border:0.5px solid #E5E3DC;text-align:left">#</th>
-      <th style="padding:6px 8px;border:0.5px solid #E5E3DC;text-align:left">指標</th>
-      <th style="padding:6px 8px;border:0.5px solid #E5E3DC;text-align:left">目標</th>
-      <th style="padding:6px 8px;border:0.5px solid #E5E3DC;text-align:left">現在</th>
+      <th style="padding:6px 8px;border:0.5px solid #E5E3DC;text-align:left"><%= t("jp_admin.show.kpi_id") %></th>
+      <th style="padding:6px 8px;border:0.5px solid #E5E3DC;text-align:left"><%= t("jp_admin.show.kpi_metric") %></th>
+      <th style="padding:6px 8px;border:0.5px solid #E5E3DC;text-align:left"><%= t("jp_admin.show.kpi_target") %></th>
+      <th style="padding:6px 8px;border:0.5px solid #E5E3DC;text-align:left"><%= t("jp_admin.show.kpi_current") %></th>
     </tr>
     <% @kpi.each do |row| %>
       <tr>
@@ -267,32 +440,18 @@
     <% end %>
   </table>
   <p style="font-size:12px;color:#6B6963;margin:8px 0 0">
-    「—」は<strong>測って0だった</strong>のではなく<strong>測る元がこの DB にない</strong>という意味です。
+    <%= t("jp_admin.show.kpi_dash_html") %>
   </p>
 
-  <%# ── the article itself, last ──────────────────────────────────────────── %>
-  <h2 style="font-size:15px;font-weight:600;margin:26px 0 10px;padding-top:14px;border-top:0.5px solid #E5E3DC">
-    📄 本文 (ja) — <%= @post.body_ja.to_s.length %> bytes of HTML
-  </h2>
-  <div style="border:0.5px solid #E5E3DC;background:#fff;border-radius:14px;padding:18px;font-size:14px;line-height:1.85">
-    <%= @post.body_ja.to_s.html_safe %>
-  </div>
-
-  <h2 style="font-size:15px;font-weight:600;margin:26px 0 10px;padding-top:14px;border-top:0.5px solid #E5E3DC">
-    📄 本文 (en) — <%= @post.body_en.present? ? "#{@post.body_en.length} bytes" : "なし" %>
-  </h2>
-  <% if @post.body_en.present? %>
-    <div style="border:0.5px solid #E5E3DC;background:#fff;border-radius:14px;padding:18px;font-size:14px;line-height:1.85">
-      <%= @post.body_en.to_s.html_safe %>
+  <%# ── 승인 버튼 ②: 최하단(KPI 표 아래) — 상단과 같은 폼 ─────────────────── %>
+  <% if @approvable && !@post.approved? %>
+    <div style="border:0.5px solid #E5E3DC;background:#fff;border-radius:20px;padding:18px 20px;margin-top:26px">
+      <%= judgment_box %>
+      <%= approve_form %>
     </div>
-  <% else %>
-    <p style="font-size:13px;color:#6B6963">
-      <code>post_en.md</code> がありません。英語版は機械翻訳せず並行リライトする方針なので、
-      パイプラインは生成しません(<code>scripts/content/README.md</code>)。
-    </p>
   <% end %>
 
   <p style="margin:26px 0 0;font-size:12px;color:#6B6963">
-    <%= link_to "← /admin/posts", admin_posts_path(primary_locale: "ja"), style: "color:#6B6963" %>
+    <%= link_to t("jp_admin.show.back_to_posts"), admin_posts_path(primary_locale: "ja"), style: "color:#6B6963" %>
   </p>
 </div>
