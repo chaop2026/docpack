@@ -46,19 +46,27 @@
       "pixels": "1080x1350"
     },
     {
+      "name": "demo.gif",
+      "bytes": 677036
+    },
+    {
+      "name": "demo.mp4",
+      "bytes": 263906
+    },
+    {
       "name": "guide_en.pdf",
-      "bytes": 215176
+      "bytes": 901929
     },
     {
       "name": "shorts.mp4",
-      "bytes": 357964
+      "bytes": 356020
     }
   ],
-  "demo": "failed: no dummy document exists for doc=\"契約書\" (only shikaku_kakuninsho, unten_menkyo, mynumber_card, juminhyo have fixtures)",
-  "guide": "ok: 7 pages, 210KB, diagrams (no recording)",
-  "shorts": "ok: 30.0s, 1080x1920, 350KB, cards only",
+  "demo": "ok: 40 frames, demo.gif 661KB, demo.mp4 258KB",
+  "guide": "ok: 7 pages, 881KB, real screenshots",
+  "shorts": "ok: 30.0s, 1080x1920, 348KB, cards only",
   "warnings": [
-    "shorts: no fix footage and no comparison card — held the why card for the middle 15s"
+    "shorts: screen recording failed (the tool located only 1 region(s) on this document (floor 3) — a Short showing a half-redacted page advertises the opposite of the product) — using comparison cards instead"
   ],
   "posted": {
     "x": false,

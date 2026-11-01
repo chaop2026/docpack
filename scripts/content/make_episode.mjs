@@ -58,13 +58,38 @@ const SHORTS_TEMPLATE = path.join(__dirname, 'templates', 'shorts_card.html');
 const BASE_URL = 'https://slimfile.net';
 const LANDING_PATH = { nyusatsu: '/safe/jp/nyusatsu/', honnin: '/safe/jp/honnin-kakunin/', aimae: '/safe/jp/ai-mae/' };
 
-// A dummy document exists only for the four alpha document types. Anything else
-// in topics.json is a plain Japanese label and gets no demo — stated, not faked.
+/* Which dummy document stands in for each `doc` in topics.json.
+ *
+ * Two families, and the difference matters when you watch the recording:
+ *
+ *   the four ALPHA types — the tool CLASSIFIES these and applies the JP rules,
+ *   so the demo shows automatic bars appearing in the right places. They have
+ *   golden specs (test/safe/fixtures/jp/*.specs.json) and gen.py owns them.
+ *
+ *   the eight DEMO props (S10, gen_demo_docs.py) — the tool does not classify
+ *   these, so the recording shows generic PII detection plus manual region
+ *   select. That is the honest demo for them and exactly what the marketing
+ *   plan (§0-5) specifies: "탐지 규칙은 기존 4종 외는 수동 영역 선택으로 데모".
+ *   They have NO specs and are not part of the golden harness.
+ *
+ * `学生証` (ep26) has no dummy — stated, not faked. It falls through and the
+ * manifest says so.
+ */
 const FIXTURE_FOR_DOC = {
+  // alpha — classified, golden-backed
   shikaku_kakuninsho: 'jp/shikaku_kakuninsho/kenpo.jpg',
   unten_menkyo: 'jp/unten_menkyo/front.jpg',
   mynumber_card: 'jp/mynumber_card/front.jpg',
-  juminhyo: 'jp/juminhyo/ichibu_plain.jpg'
+  juminhyo: 'jp/juminhyo/ichibu_plain.jpg',
+  // demo props — not classified, manual region select
+  '契約書': 'jp/keiyakusho/chintai.jpg',
+  '源泉徴収票': 'jp/gensen_choshuhyo/mynumber_on.jpg',
+  '履歴書': 'jp/rirekisho/plain.jpg',
+  '給与明細': 'jp/kyuyo_meisai/plain.jpg',
+  '通帳': 'jp/tsucho/spread.jpg',
+  '在留カード': 'jp/zairyu_card/front.jpg',
+  'パスポート': 'jp/passport/data_page.jpg',
+  '職務経歴書': 'jp/shokumu_keirekisho/plain.jpg'
 };
 
 // The writing rules are NOT defined here any more. They live in
@@ -374,6 +399,54 @@ if (violations.length) {
 
 fs.writeFileSync(path.join(epDir, 'x_thread.md'), threadMd);
 
+
+/* The four alpha types classify and auto-mask, so #btnMake enables itself.
+ * The S10 demo props do not classify — nothing is marked, #btnMake stays
+ * disabled, and the recording used to die on a 30s click timeout.
+ *
+ * Pressing 「すべて非公開」 is not a workaround: for an unclassified document
+ * that IS the flow (marketing plan §0-5, "manual region select"), and it is
+ * what the article tells the reader to do. Clicked only when the button is
+ * actually disabled, so the alpha recordings are unchanged. */
+async function ensureMaskable(page) {
+  const enabled = await page.$eval('#btnMake', (b) => !b.disabled).catch(() => false);
+  if (enabled) return 'auto';
+  await page.click('#bulkBtns button[data-mode="no"]').catch(() => {});
+  await page.waitForFunction(() => !document.getElementById('btnMake').disabled, { timeout: 15000 });
+  return 'bulk';
+}
+
+/* How many regions the tool actually covered.
+ *
+ * Counted from the page's own state, not from the success banner: the banner
+ * is localised prose and parsing it would break the first time the wording
+ * changes. `entities` is the array the tool masks from — the same predicate
+ * updateMake() uses to enable the button.
+ */
+async function maskedCount(page) {
+  return page.evaluate(() => {
+    try {
+      return entities.filter((e) => isOn(e) && e.mode !== 'ok' && located(e)).length;
+    } catch (e) { return -1; }
+  });
+}
+
+/* A recording is only worth shipping if the tool visibly did its job.
+ *
+ * Measured on ep03's 契約書 prop: generic detection found seven items but
+ * located only one, so the finished frame showed a document with the names,
+ * the address, the phone number and the account number still readable and a
+ * banner saying 「1か所を隠しました」. That is an advertisement for the tool
+ * failing, and on a muted autoplaying Short nobody reads the caption
+ * explaining why.
+ *
+ * So the recording has to clear a bar, and when it does not the build falls
+ * back to cards AND SAYS WHY in the manifest. The four alpha types classify
+ * and mask every rule field, so they are nowhere near this floor; it only
+ * fires on the unclassified demo props.
+ */
+const SHORTS_MIN_MASKED = 3;
+
 /* ── playwright ───────────────────────────────────────────────────────────── */
 async function loadPlaywright() {
   // Playwright is a CommonJS package, so a dynamic import of its entry file
@@ -614,6 +687,7 @@ else {
     await shoot(6);
     await guideShot('purpose', '#jpBar');
 
+    await ensureMaskable(page);
     await page.click('#btnMake');
     await page.waitForFunction(() => document.getElementById('result').style.display === 'block', { timeout: 120000 });
     await setCap(3);
@@ -854,21 +928,23 @@ let shorts = 'skipped';
       ['why', { text: '黒い四角を重ねただけでは、\n下の文字が残ることがあります。',
                 note: 'PDFの文字層はコピーできてしまいます。' }]
     ];
-    if (topic.track === 'A') {
-      cards.push(['done', { text: '画像に平坦化されるので、\n黒塗りの下に原文は残りません。',
-                            note: 'ファイルはブラウザの中だけで処理されます。',
-                            url: viaUrl('youtube') }]);
-    } else {
-      // Track B: the middle 15s is comparison cards instead of a recording.
-      cards.splice(2, 0, ['compare', { text: '隠し方で結果が変わります', items: [
-        { ok: false, txt: '付箋を貼って撮影 — 光で透けることがある' },
-        { ok: false, txt: '画像編集アプリで黒い四角 — 文字層が残る' },
-        { ok: true, txt: '画像に平坦化 — 下に原文が残らない' }
-      ] }]);
-      cards.push(['done', { text: '提出先の指示に合わせて\n隠す範囲を選べます。',
-                            note: 'ファイルはブラウザの中だけで処理されます。',
-                            url: viaUrl('youtube') }]);
-    }
+    /* The comparison card is built for EVERY episode, not just track B.
+     *
+     * It is track B's middle 15 seconds by design, and it is also what track A
+     * falls back to when the recording does not clear SHORTS_MIN_MASKED or the
+     * document has no dummy. The first version only built it for track B, so a
+     * track A fallback held the "why" card for fifteen seconds — a Short that
+     * says nothing for half its length. The card costs one screenshot. */
+    cards.splice(2, 0, ['compare', { text: '隠し方で結果が変わります', items: [
+      { ok: false, txt: '付箋を貼って撮影 — 光で透けることがある' },
+      { ok: false, txt: '画像編集アプリで黒い四角 — 文字層が残る' },
+      { ok: true, txt: '画像に平坦化 — 下に原文が残らない' }
+    ] }]);
+    cards.push(['done', topic.track === 'A'
+      ? { text: '画像に平坦化されるので、\n黒塗りの下に原文は残りません。',
+          note: 'ファイルはブラウザの中だけで処理されます。', url: viaUrl('youtube') }
+      : { text: '提出先の指示に合わせて\n隠す範囲を選べます。',
+          note: 'ファイルはブラウザの中だけで処理されます。', url: viaUrl('youtube') }]);
 
     const cardFiles = [];
     for (let i = 0; i < cards.length; i++) {
@@ -942,6 +1018,12 @@ let shorts = 'skipped';
         await setCap(caps[1]);
         await vp.locator('#jpBar').scrollIntoViewIfNeeded().catch(() => {});
         await grab(5);
+        await ensureMaskable(vp);
+        const masked = await maskedCount(vp);
+        if (masked < SHORTS_MIN_MASKED) {
+          throw new Error(`the tool located only ${masked} region(s) on this document `
+            + `(floor ${SHORTS_MIN_MASKED}) — a Short showing a half-redacted page advertises the opposite of the product`);
+        }
         await vp.click('#btnMake');
         await vp.waitForFunction(() => document.getElementById('result').style.display === 'block', { timeout: 120000 });
         await setCap(caps[2]);
@@ -990,13 +1072,8 @@ let shorts = 'skipped';
         '-vf', `scale=${SHORTS.w}:${SHORTS.h}:force_original_aspect_ratio=decrease,pad=${SHORTS.w}:${SHORTS.h}:(ow-iw)/2:(oh-ih)/2:color=0x111111`,
         out]);
       segs.push(out);
-    } else if (cmpCard) {
-      seg(cmpCard.file, SHORTS_SEGMENTS.fix);
     } else {
-      // Track A whose recording failed and which has no comparison card: hold
-      // the why card. Stated in the manifest rather than silently shortened.
-      seg(whyCard.file, SHORTS_SEGMENTS.fix);
-      warnings.push('shorts: no fix footage and no comparison card — held the why card for the middle 15s');
+      seg(cmpCard.file, SHORTS_SEGMENTS.fix);
     }
     seg(doneCard.file, SHORTS_SEGMENTS.done);
 
