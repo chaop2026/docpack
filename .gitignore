@@ -57,3 +57,7 @@
 # to internal test use until a Japanese lawyer has reviewed them.
 docs/jp/*.zip
 docs/jp/private/
+
+# Python bytecode (gen_demo_docs.py is imported by probes)
+__pycache__/
+*.pyc

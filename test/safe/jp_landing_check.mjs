@@ -244,19 +244,39 @@ for (const p of PAGES) {
    *      `utm_source` checks already cover, and would turn a legitimate new
    *      category into a failure.
    *
-   * `utm_source` was added 2026-10-25: P16 ("share of landing visits arriving
-   * from social") had no dimension to compute from, and would have reported a
-   * confident 0 forever. `none` here means the URL carried no utm_source, which
-   * is what a direct visit to the page looks like. */
-  const VIEW_KEYS = ['from', 'locale', 'utm_source'];
+   * A source dimension was added 2026-10-25: P16 ("share of landing visits
+   * arriving from social") had no dimension to compute from, and would have
+   * reported a confident 0 forever.
+   *
+   * ── S10: the key is OMITTED on a direct visit, not sent as 'none' ─────────
+   *
+   * It used to send `utm_source: 'none'`. S10 replaced `?utm_*` with `?via=`
+   * (blocking extensions strip `utm_*` before the request is made) and made
+   * jp.js send only the dimensions the visit actually has — sending
+   * `via:'none'` AND `utm_source:'none'` would write the same non-fact into
+   * two columns of the weekly table.
+   *
+   * So a direct visit carries `from` and `locale` and nothing else, and the
+   * absent key is the assertion. P16's denominator counts these visits from
+   * the event rows rather than from the groupings, which is what makes
+   * omitting the key safe (JpWeeklyKpi#p16, and the test that pins it).
+   *
+   * ⚠️ This expectation was stale for the length of S10: jp.js changed and
+   * this harness was not re-run in that session. Caught in S10b. */
+  const VIEW_KEYS = ['from', 'locale'];
+  const SOURCE_KEYS = ['via', 'utm_source'];
   const props = views.length === 1 ? views[0].props : {};
-  ok(`${p.slug}: landing_view carries exactly ${VIEW_KEYS.join('/')}`,
+  ok(`${p.slug}: landing_view carries exactly ${VIEW_KEYS.join('/')} on a direct visit`,
      JSON.stringify(Object.keys(props).sort()) === JSON.stringify([...VIEW_KEYS].sort()),
      JSON.stringify(props));
   ok(`${p.slug}: landing_view props are categories only`,
      Object.values(props).length > 0 && Object.values(props).every((v) => /^[a-z_]{1,24}$/.test(String(v))),
      JSON.stringify(props));
-  ok(`${p.slug}: landing_view utm_source=none on a direct visit`, props.utm_source === 'none', props.utm_source);
+  // The point of the change, asserted directly: no source key at all, and
+  // never both of them (SafeEvent rejects the pair outright — S10b).
+  ok(`${p.slug}: landing_view carries NO source key on a direct visit`,
+     SOURCE_KEYS.every((k) => !(k in props)),
+     JSON.stringify(props));
   // 204 = the server's own whitelist accepted it. A 422 here would mean the
   // page is sending something SafeEvent refuses — silently, because sendBeacon
   // never reads the response.

@@ -88,6 +88,64 @@ class JpAttributionTest < ActionDispatch::IntegrationTest
     refute_includes SafeEvent::VALUES["ep"], "ep34"
   end
 
+  # ── one visit has one source (S10b, cross-review Q1) ───────────────────────
+
+  test "an event carrying BOTH via and utm_source is not stored at all" do
+    # Not a style rule. JpWeeklyKpi#attributed_landing_views ADDS the two
+    # groupings together, so a row with both would be counted twice — in the
+    # one metric (P16) whose whole job is a ratio.
+    assert_nil SafeEvent.sanitize("landing_view",
+                                  { "from" => "nyusatsu", "via" => "x", "utm_source" => "x" })
+    assert_nil SafeEvent.sanitize("cta_click",
+                                  { "from" => "nyusatsu", "via" => "x", "utm_source" => "linkedin" })
+
+    assert_no_difference -> { SafeEvent.count } do
+      post "/api/safe_events",
+           params: { name: "landing_view",
+                     props: { from: "nyusatsu", via: "x", utm_source: "x" } }.to_json,
+           headers: { "CONTENT_TYPE" => "application/json" }
+      assert_response :unprocessable_entity
+    end
+  end
+
+  test "either key ALONE is still accepted — the rejection is about the pair" do
+    # The inverse. Without it, a sanitize that rejected everything would pass
+    # the test above and nothing would ever be measured again.
+    %w[via utm_source].each do |key|
+      assert_difference -> { SafeEvent.count }, 1 do
+        post "/api/safe_events",
+             params: { name: "landing_view", props: { from: "nyusatsu", key => "x" } }.to_json,
+             headers: { "CONTENT_TYPE" => "application/json" }
+        assert_response :no_content
+      end
+      assert_equal "x", SafeEvent.last.props.fetch(key)
+    end
+  end
+
+  test "the exclusion is declared, not hardcoded in the loop" do
+    # So a future third spelling of "which channel" joins the group rather than
+    # being added to KEYS and silently double-counted.
+    assert_includes SafeEvent::MUTUALLY_EXCLUSIVE_KEYS, %w[via utm_source]
+    SafeEvent::MUTUALLY_EXCLUSIVE_KEYS.flatten.each do |k|
+      assert SafeEvent::VALUES.key?(k), "#{k} is declared exclusive but is not a real key"
+    end
+  end
+
+  test "a double-counted pair cannot reach P16 through the endpoint" do
+    # End to end: the metric this protects, exercised through the real route.
+    SafeEvent.delete_all
+    post "/api/safe_events",
+         params: { name: "landing_view", props: { from: "nyusatsu", via: "x", utm_source: "x" } }.to_json,
+         headers: { "CONTENT_TYPE" => "application/json" }
+    post "/api/safe_events",
+         params: { name: "landing_view", props: { from: "nyusatsu", via: "x" } }.to_json,
+         headers: { "CONTENT_TYPE" => "application/json" }
+
+    k = JpWeeklyKpi.new.p16
+    assert_equal 1, k[:total], "only the single-source visit was stored"
+    assert_equal 1, k[:social], "and it is counted once, not twice"
+  end
+
   # ── the weekly numbers ─────────────────────────────────────────────────────
 
   test "P16 sums via and utm_source instead of reading only one of them" do

@@ -37,7 +37,7 @@ SafeFile JP — デモ用ダミー書類ジェネレータ(S10, 2026-11-01)
 ⚠️ この저장소は **公開** である(CLAUDE.md JP-1 이슈 로그 2026-10-21 の決定)。
 「오용 가치 0」とは書かない — 低いが 0 ではない。**日本の弁護士レビューは依然として無い。**
 """
-import json, os, random, sys
+import hashlib, json, os, random, re, sys
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -113,6 +113,36 @@ def wareki():
 
 def digits(n):
     return "".join(str(random.randint(0, 9)) for _ in range(n))
+
+
+# ── numbers that cannot be somebody's (S10b, cross-review Q5) ──────────────
+#
+# Random digits in a real format eventually ARE a real value. 7 random digits
+# is one account in ten million, and these images are in a public repository
+# forever — "unlikely" is the wrong standard when the fix costs nothing.
+#
+# So the identifier-shaped fields are pinned to blocks that cannot be issued:
+#
+#   phone    090-0000-NNNN  — Japanese mobile numbers are 090/080/070 followed
+#                             by a four-digit subscriber block; 0000 is not
+#                             allocated as a block, so the whole range is dead.
+#   account  0000NNN        — bank account numbers are not issued with a
+#                             leading run of zeros.
+#
+# Only the last three digits vary, which is enough to keep the documents
+# visibly different from each other while keeping every value unusable.
+def fake_phone():
+    return f"090-0000-{random.randint(0, 9999):04d}"
+
+
+def fake_account():
+    return f"0000{random.randint(0, 999):03d}"
+
+
+# The 旅券/在留 numbers are left to `digits()` on purpose: they already carry a
+# "ZZ" prefix and a trailing digit where the real formats do not allow one, so
+# the string cannot be a valid number of either kind whatever the middle says.
+# Phone and account had no such structural break, which is why they needed one.
 
 
 def mynumber_invalid():
@@ -197,7 +227,7 @@ def keiyakusho(_v):
     y = row(d, 60, y, "貸主住所", addr(), boxed=True)
     y = row(d, 60, y, "借主（乙）", name(), boxed=True)
     y = row(d, 60, y, "連帯保証人", name(), boxed=True)
-    y = row(d, 60, y, "保証人電話", f"090-{digits(4)}-{digits(4)}", boxed=True)
+    y = row(d, 60, y, "保証人電話", fake_phone(), boxed=True)
     y += 18
     d.line([(60, y), (W - 60, y)], fill=LINE, width=2)
     y += 26
@@ -214,7 +244,7 @@ def keiyakusho(_v):
     d.line([(60, y), (W - 60, y)], fill=LINE, width=2)
     y += 26
     y = row(d, 60, y, "振込先", "架空銀行 見本支店", boxed=True)
-    y = row(d, 60, y, "口座番号", digits(7), boxed=True)
+    y = row(d, 60, y, "口座番号", fake_account(), boxed=True)
     mihon(img)
     return save(img, "keiyakusho", "chintai")
 
@@ -237,7 +267,9 @@ def gensen(_v):
     d.line([(60, y), (W - 60, y)], fill=LINE, width=2)
     y += 26
     y = row(d, 60, y, "支払者 名称", "架空株式会社", lw=250)
-    y = row(d, 60, y, "支払者 法人番号", digits(13), lw=250, boxed=True)
+    # 法人番号 is a published 13-digit number with a check digit. A leading 0
+    # is not issued, so this shape cannot collide with a real company.
+    y = row(d, 60, y, "支払者 法人番号", f"0000000{random.randint(0, 999999):06d}", lw=250, boxed=True)
     mihon(img)
     return save(img, "gensen_choshuhyo", "mynumber_on")
 
@@ -251,7 +283,7 @@ def rirekisho(_v):
     y = row(d, 60, y, "氏名", name(), boxed=True)
     y = row(d, 60, y, "生年月日", wareki(), boxed=True)
     y = row(d, 60, y, "現住所", addr(), boxed=True)
-    y = row(d, 60, y, "電話", f"090-{digits(4)}-{digits(4)}", boxed=True)
+    y = row(d, 60, y, "電話", fake_phone(), boxed=True)
     y = row(d, 60, y, "メール", "mihon@example.invalid", boxed=True)
     # 顔写真は灰色の空パネル(戦略 v2 §4: 写真を置かない)
     d.rectangle([W - 300, 120, W - 80, 420], outline=LINE, width=3, fill=(224, 220, 211))
@@ -275,7 +307,7 @@ def kyuyo(_v):
     img, d = frame(W, H, "給与支払明細書 令和7年10月分（架空・見本）")
     y = 120
     y = row(d, 60, y, "氏名", name(), lw=220, boxed=True)
-    y = row(d, 60, y, "社員番号", digits(6), lw=220, boxed=True)
+    y = row(d, 60, y, "社員番号", f"0000{random.randint(0, 99):02d}", lw=220, boxed=True)
     y = row(d, 60, y, "所属", "架空株式会社 開発部", lw=220)
     y += 16
     d.line([(60, y), (W - 60, y)], fill=LINE, width=2)
@@ -290,7 +322,7 @@ def kyuyo(_v):
     d.line([(60, y), (W - 60, y)], fill=LINE, width=2)
     y += 26
     y = row(d, 60, y, "差引支給額", "320,700 円", lw=220)
-    y = row(d, 60, y, "振込口座", f"架空銀行 見本支店 普通 {digits(7)}", lw=220, boxed=True)
+    y = row(d, 60, y, "振込口座", f"架空銀行 見本支店 普通 {fake_account()}", lw=220, boxed=True)
     mihon(img)
     return save(img, "kyuyo_meisai", "plain")
 
@@ -300,8 +332,8 @@ def tsucho(_v):
     W, H = 1400, 760
     img, d = frame(W, H, "普通預金通帳（架空・見本）")
     y = 118
-    y = row(d, 60, y, "店番", digits(3), lw=180, boxed=True)
-    y = row(d, 60, y, "口座番号", digits(7), lw=180, boxed=True)
+    y = row(d, 60, y, "店番", "000", lw=180, boxed=True)
+    y = row(d, 60, y, "口座番号", fake_account(), lw=180, boxed=True)
     y = row(d, 60, y, "お名前", name() + " 様", lw=180, boxed=True)
     y += 14
     d.line([(60, y), (W - 60, y)], fill=LINE, width=2)
@@ -411,26 +443,90 @@ DOCS = {
 PROTECTED = {"shikaku_kakuninsho", "unten_menkyo", "mynumber_card", "juminhyo"}
 
 
+def protected_digest():
+    """既存 4 種の **中身** のハッシュ。ファイル名ではない。
+
+    S10b(교차검증 Q5): 最初の版は `os.listdir` の結果、つまりファイル名の一覧を
+    比べていた。名前が同じまま中身が書き換わっても通ってしまう — そしてこの
+    チェックが守ろうとしているのはまさにそれである。`*.specs.json` の座標が
+    1px 動けばゴールデン 557 が全部壊れ、しかも壊れ方は「名前は全部そこにある」
+    なので、名前の比較は守りたいものをちょうど見逃す。
+    """
+    out = {}
+    for doc in sorted(PROTECTED):
+        d = os.path.join(HERE, doc)
+        if not os.path.isdir(d):
+            continue
+        for fn in sorted(os.listdir(d)):
+            fp = os.path.join(d, fn)
+            if not os.path.isfile(fp):
+                continue
+            with open(fp, "rb") as fh:
+                out[f"{doc}/{fn}"] = hashlib.sha256(fh.read()).hexdigest()
+    return out
+
+
+# 生成した画像が「誰かの番号」になっていないことを、書いたあとに確認する。
+# 規則そのもの(fake_phone / fake_account)と、それが実際に使われたかの確認は別物で、
+# 後者が無いと `digits(7)` に戻した一行が黙って通る。
+PHONE_RE = re.compile(r"090-\d{4}-\d{4}")
+ACCOUNT_RE = re.compile(r"\b\d{7}\b")
+
+
+def assert_number_rules():
+    bad = []
+    # 画像に焼かれた文字は読み戻せないので、規則は **値を作る関数** の側で確認し、
+    # その関数が実際に使われているかはソースの側で確認する(下)。
+    for _ in range(200):
+        ph = fake_phone()
+        if not ph.startswith("090-0000-") or not PHONE_RE.fullmatch(ph):
+            bad.append(f"fake_phone produced {ph!r}")
+        ac = fake_account()
+        if not ac.startswith("0000") or len(ac) != 7:
+            bad.append(f"fake_account produced {ac!r}")
+    if bad:
+        raise SystemExit("REFUSING: number rules violated\n  " + "\n  ".join(sorted(set(bad))[:5]))
+
+    # そして、ソースが本当にその関数を使っているか。規則があることと規則が効いて
+    # いることは別で、ここが無いと生成側を digits() に戻しても気づけない。
+    src = open(os.path.abspath(__file__), encoding="utf-8").read()
+    body = src.split("# ── 8 種 ───")[1] if "# ── 8 種 ───" in src else src
+    for pattern, why in [
+        (r'f"090-\{digits', "a phone built from raw digits()"),
+        (r'"口座番号", digits\(', "an account number built from raw digits()"),
+    ]:
+        if re.search(pattern, body):
+            raise SystemExit(f"REFUSING: {why} — use fake_phone() / fake_account()")
+
+
 def main():
     want = sys.argv[1:] or list(DOCS)
     unknown = [w for w in want if w not in DOCS]
     if unknown:
         raise SystemExit(f"unknown doc(s): {', '.join(unknown)}\nknown: {', '.join(DOCS)}")
 
-    before = {p: sorted(os.listdir(os.path.join(HERE, p))) for p in PROTECTED
-              if os.path.isdir(os.path.join(HERE, p))}
+    before = protected_digest()
+    if not before:
+        raise SystemExit("REFUSING: found none of the protected alpha fixtures — "
+                         "running from the wrong directory would make the check below vacuous")
 
     print(f"font: {REG[0]}")
+    print(f"protected alpha fixtures: {len(before)} files hashed")
     made = [DOCS[w](None) for w in want]
 
-    # 既存 4 種に一文字も触っていないことを確認してから終わる。specs の座標が動くと
+    assert_number_rules()
+
+    # 既存 4 種に一バイトも触っていないことを確認してから終わる。specs の座標が動くと
     # ゴールデン 557 が全部壊れる — それが gen.py と分けてある理由そのものである。
-    after = {p: sorted(os.listdir(os.path.join(HERE, p))) for p in before}
+    after = protected_digest()
     if before != after:
-        raise SystemExit("REFUSING: the protected alpha fixtures changed. "
-                         f"before={before} after={after}")
+        changed = sorted(set(before) ^ set(after)) or \
+                  sorted(k for k in before if before[k] != after.get(k))
+        raise SystemExit("REFUSING: the protected alpha fixtures changed:\n  "
+                         + "\n  ".join(changed[:10]))
     print(f"\n{len(made)} demo document(s) written. "
           "No specs.json — these are props, not detection fixtures.")
+    print(f"protected fixtures verified unchanged by content hash ({len(after)} files).")
 
 
 if __name__ == "__main__":

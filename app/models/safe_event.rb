@@ -97,14 +97,34 @@ class SafeEvent < ApplicationRecord
 
   scope :since, ->(time) { where(created_at: time..) }
 
+  # Keys that describe the SAME fact and must never arrive together (S10b).
+  #
+  # `via` and `utm_source` both answer "which channel sent this visit" — the
+  # first on links published from 2026-11-01, the second on everything already
+  # out there. KEYS allows both because a visit may arrive on either, but one
+  # visit has exactly one source, and JpWeeklyKpi#attributed_landing_views ADDS
+  # the two groupings together. An event carrying both would therefore be
+  # counted twice, in the one metric (P16) whose whole job is a ratio.
+  #
+  # jp.js does not send both — it sends whichever it found. That is a property
+  # of today's client, not a property of the endpoint, and this endpoint is
+  # reachable by anything that can POST JSON. Cross-review Q1 is exactly right
+  # that "the client does not do it" is not an answer.
+  MUTUALLY_EXCLUSIVE_KEYS = [ %w[via utm_source] ].freeze
+
   # Returns the props hash reduced to whitelisted (key, value) pairs, or nil if
-  # the event name is unknown or ANY key/value is not allowed.
+  # the event name is unknown, ANY key/value is not allowed, or two keys that
+  # describe one fact arrive together.
   #
   # Rejecting the whole event rather than dropping the offending pair is
   # deliberate. A partially-stored event is a row that looks like data but
   # describes something that did not happen, and `beacon` responses are never
   # read by the browser, so a silent drop would be invisible from both ends. A
   # rejection is at least a 422 in the logs and a red test.
+  #
+  # The same reasoning decides the mutual-exclusion case: dropping one of the
+  # two and keeping the other would be GUESSING which channel the visit came
+  # from, and the guess would be stored as though it had been measured.
   def self.sanitize(name, props)
     allowed = KEYS[name.to_s]
     return nil unless allowed
@@ -119,6 +139,11 @@ class SafeEvent < ApplicationRecord
 
       out[key] = value
     end
+
+    MUTUALLY_EXCLUSIVE_KEYS.each do |group|
+      return nil if (out.keys & group).length > 1
+    end
+
     out
   end
 
