@@ -1,0 +1,67 @@
+{
+  "ep": 8,
+  "week": 8,
+  "track": "B",
+  "title_ja": "家族の書類を代理で出すときの確認",
+  "title_en": "Submitting a family member's documents on their behalf",
+  "doc": "shikaku_kakuninsho",
+  "purpose": "identity_submit",
+  "landing": "/safe/jp/honnin-kakunin/",
+  "utm_url": "https://slimfile.net/safe/jp/honnin-kakunin/?via=x&ep=ep08",
+  "generated_by": "scripts/content/make_episode.mjs",
+  "files": [
+    {
+      "name": "post_ja.md",
+      "bytes": 2994
+    },
+    {
+      "name": "post_en.md",
+      "bytes": 2281
+    },
+    {
+      "name": "linkedin_en.md",
+      "bytes": 1525
+    },
+    {
+      "name": "summary_ko.md",
+      "bytes": 4123
+    },
+    {
+      "name": "x_thread.md",
+      "bytes": 1070
+    },
+    {
+      "name": "carousel_1.png",
+      "bytes": 87158,
+      "pixels": "1080x1350"
+    },
+    {
+      "name": "carousel_2.png",
+      "bytes": 119314,
+      "pixels": "1080x1350"
+    },
+    {
+      "name": "carousel_3.png",
+      "bytes": 111348,
+      "pixels": "1080x1350"
+    },
+    {
+      "name": "guide_en.pdf",
+      "bytes": 223753
+    },
+    {
+      "name": "shorts.mp4",
+      "bytes": 351126
+    }
+  ],
+  "demo": "skipped: track B has no tool demo",
+  "guide": "ok: 7 pages, 219KB, diagrams (no recording)",
+  "shorts": "ok: 30.0s, 1080x1920, 343KB, cards only",
+  "warnings": [],
+  "posted": {
+    "x": false,
+    "youtube_shorts": false,
+    "instagram": false,
+    "blog": false
+  }
+}

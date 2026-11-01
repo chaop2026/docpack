@@ -1,0 +1,70 @@
+{
+  "ep": 7,
+  "week": 7,
+  "track": "A",
+  "title_ja": "源泉徴収票に個人番号があるとき",
+  "title_en": "Withholding slips: when a My Number is printed on them, and when it is not",
+  "doc": "源泉徴収票",
+  "purpose": "identity_submit",
+  "landing": "/safe/jp/nyusatsu/",
+  "utm_url": "https://slimfile.net/safe/jp/nyusatsu/?via=x&ep=ep07",
+  "generated_by": "scripts/content/make_episode.mjs",
+  "files": [
+    {
+      "name": "post_ja.md",
+      "bytes": 3327
+    },
+    {
+      "name": "post_en.md",
+      "bytes": 2529
+    },
+    {
+      "name": "linkedin_en.md",
+      "bytes": 1459
+    },
+    {
+      "name": "summary_ko.md",
+      "bytes": 4482
+    },
+    {
+      "name": "x_thread.md",
+      "bytes": 1024
+    },
+    {
+      "name": "carousel_1.png",
+      "bytes": 83042,
+      "pixels": "1080x1350"
+    },
+    {
+      "name": "carousel_2.png",
+      "bytes": 111874,
+      "pixels": "1080x1350"
+    },
+    {
+      "name": "carousel_3.png",
+      "bytes": 102791,
+      "pixels": "1080x1350"
+    },
+    {
+      "name": "guide_en.pdf",
+      "bytes": 223292
+    },
+    {
+      "name": "shorts.mp4",
+      "bytes": 349778
+    }
+  ],
+  "demo": "failed: the tool detected nothing maskable on this document (bulk control is disabled)",
+  "guide": "ok: 7 pages, 218KB, diagrams (no recording)",
+  "shorts": "ok: 30.0s, 1080x1920, 342KB, cards only",
+  "warnings": [
+    "demo: the tool detected nothing maskable on this document (bulk control is disabled)",
+    "shorts: screen recording failed (the tool detected nothing maskable on this document (bulk control is disabled)) — using comparison cards instead"
+  ],
+  "posted": {
+    "x": false,
+    "youtube_shorts": false,
+    "instagram": false,
+    "blog": false
+  }
+}

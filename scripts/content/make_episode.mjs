@@ -411,6 +411,13 @@ fs.writeFileSync(path.join(epDir, 'x_thread.md'), threadMd);
 async function ensureMaskable(page) {
   const enabled = await page.$eval('#btnMake', (b) => !b.disabled).catch(() => false);
   if (enabled) return 'auto';
+  // If the bulk control is disabled too, the tool found nothing it can mask on
+  // this document and no amount of waiting changes that. Say so, rather than
+  // letting a 30s waitForFunction time out with Playwright's generic message —
+  // measured on ep07, whose 源泉徴収票 prop OCRs poorly under the watermark.
+  const bulkReady = await page.$eval('#bulkBtns button[data-mode="no"]', (b) => !b.disabled).catch(() => false);
+  if (!bulkReady) throw new Error('the tool detected nothing maskable on this document (bulk control is disabled)');
+
   await page.click('#bulkBtns button[data-mode="no"]').catch(() => {});
   await page.waitForFunction(() => !document.getElementById('btnMake').disabled, { timeout: 15000 });
   return 'bulk';

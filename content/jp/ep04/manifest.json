@@ -1,0 +1,77 @@
+{
+  "ep": 4,
+  "week": 4,
+  "track": "A",
+  "title_ja": "専門家に相談する前の契約書の匿名化",
+  "title_en": "Anonymising a lease before you ask a professional about it",
+  "doc": "契約書",
+  "purpose": "consult_share",
+  "landing": "/safe/jp/ai-mae/",
+  "utm_url": "https://slimfile.net/safe/jp/ai-mae/?via=x&ep=ep04",
+  "generated_by": "scripts/content/make_episode.mjs",
+  "files": [
+    {
+      "name": "post_ja.md",
+      "bytes": 3680
+    },
+    {
+      "name": "post_en.md",
+      "bytes": 2919
+    },
+    {
+      "name": "linkedin_en.md",
+      "bytes": 1404
+    },
+    {
+      "name": "summary_ko.md",
+      "bytes": 4226
+    },
+    {
+      "name": "x_thread.md",
+      "bytes": 1051
+    },
+    {
+      "name": "carousel_1.png",
+      "bytes": 86128,
+      "pixels": "1080x1350"
+    },
+    {
+      "name": "carousel_2.png",
+      "bytes": 111063,
+      "pixels": "1080x1350"
+    },
+    {
+      "name": "carousel_3.png",
+      "bytes": 102743,
+      "pixels": "1080x1350"
+    },
+    {
+      "name": "demo.gif",
+      "bytes": 675767
+    },
+    {
+      "name": "demo.mp4",
+      "bytes": 262059
+    },
+    {
+      "name": "guide_en.pdf",
+      "bytes": 909711
+    },
+    {
+      "name": "shorts.mp4",
+      "bytes": 357206
+    }
+  ],
+  "demo": "ok: 40 frames, demo.gif 660KB, demo.mp4 256KB",
+  "guide": "ok: 7 pages, 888KB, real screenshots",
+  "shorts": "ok: 30.0s, 1080x1920, 349KB, cards only",
+  "warnings": [
+    "shorts: screen recording failed (the tool located only 1 region(s) on this document (floor 3) — a Short showing a half-redacted page advertises the opposite of the product) — using comparison cards instead"
+  ],
+  "posted": {
+    "x": false,
+    "youtube_shorts": false,
+    "instagram": false,
+    "blog": false
+  }
+}

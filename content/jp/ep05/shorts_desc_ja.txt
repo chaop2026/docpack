@@ -1,0 +1,12 @@
+提出直前にファイルが重すぎて弾かれ、やり直しになった。
+
+①容量の上限は発注者ごとに違い、5MB・10MB・50MBのいずれもあります
+②黒塗りを画像に平坦化すると、容量は増えることも減ることもあります
+③先に黒塗り、最後に容量調整の順にすると作業のやり直しが減ります
+
+提出先の指示を必ず確認してください。
+
+くわしく: https://slimfile.net/ja/blog/jp-ep05-handling-e-tender-pdf-size-limits-and-re?via=youtube&ep=ep05
+試す: https://slimfile.net/safe/jp/nyusatsu/?via=youtube&ep=ep05
+
+#電子入札 #PDF #黒塗り

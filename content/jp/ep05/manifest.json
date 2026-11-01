@@ -1,0 +1,75 @@
+{
+  "ep": 5,
+  "week": 5,
+  "track": "A",
+  "title_ja": "電子入札の容量制限と黒塗りの順番",
+  "title_en": "Handling e-tender PDF size limits and redaction in one pass",
+  "doc": "shikaku_kakuninsho",
+  "purpose": "bid_attachment",
+  "landing": "/safe/jp/nyusatsu/",
+  "utm_url": "https://slimfile.net/safe/jp/nyusatsu/?via=x&ep=ep05",
+  "generated_by": "scripts/content/make_episode.mjs",
+  "files": [
+    {
+      "name": "post_ja.md",
+      "bytes": 3893
+    },
+    {
+      "name": "post_en.md",
+      "bytes": 2801
+    },
+    {
+      "name": "linkedin_en.md",
+      "bytes": 1479
+    },
+    {
+      "name": "summary_ko.md",
+      "bytes": 4458
+    },
+    {
+      "name": "x_thread.md",
+      "bytes": 1043
+    },
+    {
+      "name": "carousel_1.png",
+      "bytes": 77706,
+      "pixels": "1080x1350"
+    },
+    {
+      "name": "carousel_2.png",
+      "bytes": 116862,
+      "pixels": "1080x1350"
+    },
+    {
+      "name": "carousel_3.png",
+      "bytes": 102199,
+      "pixels": "1080x1350"
+    },
+    {
+      "name": "demo.gif",
+      "bytes": 810512
+    },
+    {
+      "name": "demo.mp4",
+      "bytes": 335889
+    },
+    {
+      "name": "guide_en.pdf",
+      "bytes": 989265
+    },
+    {
+      "name": "shorts.mp4",
+      "bytes": 533850
+    }
+  ],
+  "demo": "ok: 40 frames, demo.gif 792KB, demo.mp4 328KB",
+  "guide": "ok: 7 pages, 966KB, real screenshots",
+  "shorts": "ok: 30.0s, 1080x1920, 521KB, 15 recorded frames",
+  "warnings": [],
+  "posted": {
+    "x": false,
+    "youtube_shorts": false,
+    "instagram": false,
+    "blog": false
+  }
+}

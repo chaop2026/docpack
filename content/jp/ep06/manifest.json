@@ -1,0 +1,77 @@
+{
+  "ep": 6,
+  "week": 6,
+  "track": "A",
+  "title_ja": "補助金精算の添付書類、どこまで隠すか",
+  "title_en": "Subsidy settlement attachments: how much to redact",
+  "doc": "shikaku_kakuninsho",
+  "purpose": "bid_attachment",
+  "landing": "/safe/jp/nyusatsu/",
+  "utm_url": "https://slimfile.net/safe/jp/nyusatsu/?via=x&ep=ep06",
+  "generated_by": "scripts/content/make_episode.mjs",
+  "files": [
+    {
+      "name": "post_ja.md",
+      "bytes": 3740
+    },
+    {
+      "name": "post_en.md",
+      "bytes": 2883
+    },
+    {
+      "name": "linkedin_en.md",
+      "bytes": 1565
+    },
+    {
+      "name": "summary_ko.md",
+      "bytes": 4806
+    },
+    {
+      "name": "x_thread.md",
+      "bytes": 1074
+    },
+    {
+      "name": "carousel_1.png",
+      "bytes": 82203,
+      "pixels": "1080x1350"
+    },
+    {
+      "name": "carousel_2.png",
+      "bytes": 115335,
+      "pixels": "1080x1350"
+    },
+    {
+      "name": "carousel_3.png",
+      "bytes": 109300,
+      "pixels": "1080x1350"
+    },
+    {
+      "name": "demo.gif",
+      "bytes": 808631
+    },
+    {
+      "name": "demo.mp4",
+      "bytes": 332493
+    },
+    {
+      "name": "guide_en.pdf",
+      "bytes": 989032
+    },
+    {
+      "name": "shorts.mp4",
+      "bytes": 526815
+    }
+  ],
+  "demo": "ok: 40 frames, demo.gif 790KB, demo.mp4 325KB",
+  "guide": "ok: 7 pages, 966KB, real screenshots",
+  "shorts": "ok: 30.0s, 1080x1920, 514KB, 15 recorded frames",
+  "warnings": [
+    "captions: track A wants 3 caption lines for the demo; falling back to generic ones"
+  ],
+  "posted": {
+    "x": false,
+    "youtube_shorts": false,
+    "instagram": false,
+    "blog": false
+  }
+}
