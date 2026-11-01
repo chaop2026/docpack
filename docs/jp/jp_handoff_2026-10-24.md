@@ -162,3 +162,11 @@ docs/jp/jp_handoff_2026-10-24.md 를 먼저 읽고(프로젝트 문서 claude/20
 - 주의: `X_API_DRY_RUN`이 `deploy.yml` env에 없어 컨테이너에 안 들어감(키 없어 자동 드라이런). **X 키 넣기 전 S9-1 필수.**
 - 다음: `docs/jp/s9_todo.md`(한국어 승인 화면·LinkedIn 개발 일지·PDF 설명서·deploy.yml) → 파일럿 메일 5통 발송. 스킬 `weekly-osmu-pipeline` 저장됨(§6에 적용·변경법).
 - 미커밋: codex_review_s8c·s8b_report(-U docpack 수정)·s9_todo·linkedin_en.md·전략 §3-3·이 절 → 다음 Claude Code 세션에서 커밋.
+
+## 9. 2026-10-27 22:05 — 남은 일 (이 절이 §8보다 최신)
+- S9 배포 완료(afc8fa7, 20:50). 드라이런 컨테이너 적용·미리보기 404·/safefile 301 실측 통과. 고정 트윗 교체(2115055040432083148, 고통→원인→해결, utm 없음), 10-24 트윗 삭제.
+- 파이프라인 운영은 「SNS 계정 운영」 프로젝트로 이관(인계: `osmu_pipeline_handoff_2026-10-27.md`). schooljob 주간 브리핑 결정 메모는 `teachermatch/docs/osmu/`. HelloKorean·Rolli·currencyrate·slotbook 제외.
+- 미커밋 4건(manifest·s9_todo·codex_review_s9·osmu_pipeline_handoff) → 다음 Claude Code 세션(S10) 첫 커밋.
+- **Justin**: ① LinkedIn ep01 개발 일지 게시(`content/jp/ep01/linkedin_en.md` + 카루셀 3장) ② 10-31(토) ep02 승인 메일 — X 첫 줄이 고통으로 시작하지 않으면 반려 ③ **파일럿 메일 5통(P2: 11-22까지 40통, 현재 0통)** — `docs/jp/private/pilot_targets.md` §3 폼 붙여넣기. 매출 축이며 콘텐츠와 무관하게 즉시 ④ `public/safe/작업물/` 정체 확인.
+- **월간 배치 기한**: ep04 publish_on 11-16 → 주간 잡이 11-07(토)에 찾음 → **11-06까지 ep04~08 원고 생성·import** 필요(없으면 API 폴백으로 텍스트만 생성됨).
+- S10: utm→via 교체, X 문안 규칙(고통 첫 줄) guard·전략 반영 + ep02~03 x_thread 재작성, finish! 키 단위(완료됨, S9 F-17), X 실제 게시 ON은 요금제 확인 후.

@@ -7,3 +7,8 @@
 5. KO 글 Article JSON-LD `inLanguage`(S8 보류 항목).
 6. `finish!`의 `posted` 서브트리 통째 교체 → 키 단위 `jsonb_set`(S8c 재검증 잔여 AMBER).
 7. 랜딩 OG 미리보기 LinkedIn·X 실물 확인(Justin, 배포 후).
+
+## 2026-10-27 저녁 추가 (S10)
+8. **utm_ 파라미터 폐기** — Justin의 Chrome(차단 확장)에서 `?utm_*` 붙은 주소가 브라우저 단계에서 차단됨(서버는 정상 200). 공유 링크는 깨끗한 주소로 통일하고, 계측은 `?via=x|linkedin|blog|youtube&ep=NN` 로 교체(jp.js 매핑·safe_events 허용값·make_episode UTM 생성·jp_episode_source#utm_url·KPI P16 분모/분자). 기존 utm 이벤트는 그대로 두고 새 키로 합산.
+9. **X 문안 규칙 개정** — 고통(差し戻し·締切前日やり直し) → 원인 → 해결 순. 기술적 신기함("검은 상자 밑 글자")을 첫 줄로 쓰지 말 것. 영어 답글은 본 트윗의 1:1 영어판. 전략 §3-3 X 행에 반영.
+10. 고정 트윗 교체 완료(2115055040432083148). 외부 확인은 항상 실제 공유 주소(파라미터 포함)로.
