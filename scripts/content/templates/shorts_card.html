@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>SafeFile JP Shorts card</title>
+<!--
+  YouTube Shorts cards, 1080×1920.
+
+  Rendered by scripts/content/make_episode.mjs: Playwright opens this file,
+  calls window.SF_CARD(kind, data), waits for window.SF_CARD_READY, and
+  screenshots #card. ffmpeg then stitches the PNGs and the screen recording
+  into shorts.mp4. Nothing here runs in production.
+
+  ── Everything is burned in ────────────────────────────────────────────────
+
+  There is no subtitle track. Shorts autoplay MUTED and the platform does not
+  reliably render soft subtitles, so text that is not in the pixels is text
+  nobody reads. That is also why the type is this large: the card is watched at
+  phone size, one-handed, while scrolling.
+
+  Tokens are /safe/'s (public/safe/index.html :root) — same product, same face
+  as the carousel and the guide. Fonts are allowed to FAIL to Hiragino: an
+  offline build should produce a readable card, not a blank one.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=IBM+Plex+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F7F5EF; --card:#FFFFFF; --ink:#17140F; --sub:#6B655A;
+  --line:#E6E1D4; --marker:#FFE066; --alarm:#A32D2D; --ok:#3B6D11;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:#111}
+#card{
+  width:1080px;height:1920px;background:var(--paper);color:var(--ink);
+  font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',sans-serif;
+  display:flex;flex-direction:column;padding:120px 90px 110px;position:relative;overflow:hidden;
+}
+/* A Shorts frame is cropped differently on every device. Nothing that has to
+   be read goes in the outer 8% — the padding above is that margin, not taste. */
+.brand{display:flex;align-items:center;gap:18px;font-family:'IBM Plex Sans',sans-serif;
+  font-weight:700;font-size:42px;letter-spacing:-.02em}
+.brand .bar{width:58px;height:29px;background:var(--ink);border-radius:8px}
+.brand .slim{color:var(--sub);font-weight:500}
+
+.mid{flex:1;display:flex;flex-direction:column;justify-content:center;min-height:0}
+
+/* 0–5s: the pain. One sentence, as big as it will go. */
+.pain{font-size:108px;font-weight:900;line-height:1.3;letter-spacing:-.03em}
+.pain .hl{background:linear-gradient(transparent 56%, var(--marker) 56%);padding:0 6px}
+.pain-tag{font-size:40px;font-weight:700;color:var(--alarm);margin-bottom:40px;letter-spacing:.02em}
+
+/* 5–10s: why. */
+.why{font-size:76px;font-weight:700;line-height:1.4;letter-spacing:-.02em}
+.why-note{margin-top:52px;font-size:46px;line-height:1.6;color:var(--sub)}
+.proof{margin-top:64px;background:var(--card);border:4px solid var(--line);border-radius:28px;padding:56px 52px}
+.proof .row{display:flex;align-items:center;gap:28px;font-family:'IBM Plex Sans',monospace;font-size:46px;padding:16px 0}
+.proof .lbl{color:var(--sub);font-size:36px;width:300px;flex:0 0 auto}
+.proof .bar{background:var(--ink);color:transparent;border-radius:4px;padding:4px 14px}
+.proof .leak{margin-top:40px;padding-top:36px;border-top:4px dashed var(--line);
+  font-size:42px;line-height:1.5;color:var(--alarm);font-weight:700}
+
+/* 25–30s: the result and where to go. */
+.done{font-size:84px;font-weight:900;line-height:1.35;letter-spacing:-.02em}
+.done .ok{color:var(--ok)}
+.done-note{margin-top:48px;font-size:46px;line-height:1.6;color:var(--sub)}
+.url{margin-top:72px;background:var(--ink);color:#fff;border-radius:28px;padding:48px 44px;
+  font-family:'IBM Plex Sans',sans-serif;font-size:44px;font-weight:600;text-align:center;
+  word-break:break-all;line-height:1.4}
+.url .lbl{display:block;font-size:34px;color:#C9C4B8;margin-bottom:18px;font-weight:500}
+
+/* Comparison cards — track B has no tool to record, so the middle 15s is three
+   of these instead (marketing plan §1). */
+.cmp{display:flex;flex-direction:column;gap:36px}
+.cmp .item{background:var(--card);border:4px solid var(--line);border-radius:26px;padding:44px 46px;
+  display:flex;gap:32px;align-items:flex-start}
+.cmp .item.bad{border-color:var(--alarm)}
+.cmp .item.good{border-color:var(--ok);background:#F2F7EC}
+.cmp .mark{flex:0 0 auto;font-size:56px;font-weight:900;line-height:1}
+.cmp .item.bad .mark{color:var(--alarm)}
+.cmp .item.good .mark{color:var(--ok)}
+.cmp .txt{font-size:46px;line-height:1.45;font-weight:500}
+
+.foot{font-size:34px;line-height:1.5;color:var(--sub);font-weight:500}
+</style>
+</head>
+<body>
+<div id="card"></div>
+<script>
+window.SF_CARD_READY = false;
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+/* Shrink to fit rather than clip — same reasoning as the carousel and the
+   guide. A card that lost the end of its sentence still looks finished, which
+   is the failure that ships. Floor is lower here (0.5) because the type starts
+   enormous: half of 108px is still readable on a phone. */
+function fitToBox(el, min = 0.5) {
+  let scale = 1;
+  const fits = () => el.scrollHeight <= el.clientHeight + 1;
+  while (!fits() && scale > min) {
+    scale = Math.round((scale - 0.02) * 100) / 100;
+    el.querySelectorAll('.pain,.why,.why-note,.done,.done-note,.url,.cmp .txt,.proof .row,.proof .leak,.pain-tag')
+      .forEach((n) => {
+        if (!n.dataset.basePx) n.dataset.basePx = String(parseFloat(getComputedStyle(n).fontSize));
+        n.style.fontSize = (parseFloat(n.dataset.basePx) * scale) + 'px';
+      });
+  }
+  return { scale, overflowed: !fits() };
+}
+
+const BRAND = '<div class="brand"><span class="bar"></span>SafeFile<span class="slim">／SlimFile</span></div>';
+const FOOT = '<div class="foot">提出先の指示を必ず確認してください。</div>';
+
+/*
+ * kind: 'pain' | 'why' | 'compare' | 'done'
+ * data: { tag, text, note, items:[{ok,txt}], url }
+ */
+window.SF_CARD = function (kind, d) {
+  const card = document.getElementById('card');
+  let mid = '';
+
+  if (kind === 'pain') {
+    mid = `<div class="mid">`
+      + (d.tag ? `<div class="pain-tag">${esc(d.tag)}</div>` : '')
+      + `<p class="pain"><span class="hl">${esc(d.text)}</span></p></div>`;
+  } else if (kind === 'why') {
+    mid = `<div class="mid"><p class="why">${esc(d.text)}</p>`
+      + (d.note ? `<p class="why-note">${esc(d.note)}</p>` : '')
+      + `<div class="proof">`
+      + `<div class="row"><span class="lbl">保険者番号</span><span class="bar">01230567</span></div>`
+      + `<div class="row"><span class="lbl">記号・番号</span><span class="bar">4821 9930</span></div>`
+      + `<div class="leak">コピーすると<br>01230567 / 4821 9930</div>`
+      + `</div></div>`;
+  } else if (kind === 'compare') {
+    mid = `<div class="mid"><p class="why">${esc(d.text)}</p><div class="cmp">`
+      + (d.items || []).map((it) =>
+          `<div class="item ${it.ok ? 'good' : 'bad'}"><span class="mark">${it.ok ? '○' : '×'}</span>`
+          + `<span class="txt">${esc(it.txt)}</span></div>`).join('')
+      + `</div></div>`;
+  } else {
+    mid = `<div class="mid"><p class="done">${esc(d.text)}</p>`
+      + (d.note ? `<p class="done-note">${esc(d.note)}</p>` : '')
+      + `<div class="url"><span class="lbl">ブラウザだけで試す</span>${esc(d.url)}</div></div>`;
+  }
+
+  card.innerHTML = BRAND + mid + FOOT;
+  const r = fitToBox(card.querySelector('.mid'));
+  window.SF_CARD_READY = true;
+  return r;
+};
+</script>
+</body>
+</html>

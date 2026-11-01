@@ -1,0 +1,12 @@
+黒塗りが一箇所だけ残っていて、入札書類が差し戻された。
+
+①隠すのは保険者番号・記号・番号・枝番・二次元コード。氏名と事業所名は残します
+②画像編集アプリの黒塗りはPDFの文字層が残ることがあり、提出前に確認が必要です
+③出力を画像に平坦化すれば、黒塗りの下に原文は残りません
+
+提出先の指示を必ず確認してください。
+
+くわしく: https://slimfile.net/ja/blog/jp-ep01-how-to-redact-the-numbers-on-a-qualifica?via=youtube&ep=ep01
+試す: https://slimfile.net/safe/jp/nyusatsu/?via=youtube&ep=ep01
+
+#入札 #黒塗り #資格確認書

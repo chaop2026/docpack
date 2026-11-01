@@ -48,10 +48,15 @@
     {
       "name": "guide_en.pdf",
       "bytes": 217434
+    },
+    {
+      "name": "shorts.mp4",
+      "bytes": 354060
     }
   ],
   "demo": "skipped: track B has no tool demo",
   "guide": "ok: 7 pages, 212KB, diagrams (no recording)",
+  "shorts": "ok: 30.0s, 1080x1920, 346KB, cards only",
   "warnings": [],
   "posted": {
     "x": false,

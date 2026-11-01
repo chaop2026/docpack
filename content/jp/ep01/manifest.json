@@ -47,19 +47,24 @@
     },
     {
       "name": "demo.gif",
-      "bytes": 807942
+      "bytes": 810675
     },
     {
       "name": "demo.mp4",
-      "bytes": 341477
+      "bytes": 344381
     },
     {
       "name": "guide_en.pdf",
-      "bytes": 984929
+      "bytes": 985785
+    },
+    {
+      "name": "shorts.mp4",
+      "bytes": 551794
     }
   ],
-  "demo": "ok: 40 frames, demo.gif 789KB, demo.mp4 333KB",
-  "guide": "ok: 7 pages, 962KB, real screenshots",
+  "demo": "ok: 40 frames, demo.gif 792KB, demo.mp4 336KB",
+  "guide": "ok: 7 pages, 963KB, real screenshots",
+  "shorts": "ok: 30.0s, 1080x1920, 539KB, 15 recorded frames",
   "warnings": [],
   "posted": {
     "x": true,

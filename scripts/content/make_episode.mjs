@@ -53,6 +53,7 @@ const FIXTURES = path.join(REPO, 'test', 'safe', 'fixtures');
 const CONTENT = path.join(REPO, 'content', 'jp');
 const TEMPLATE = path.join(__dirname, 'templates', 'carousel.html');
 const GUIDE_TEMPLATE = path.join(__dirname, 'templates', 'guide.html');
+const SHORTS_TEMPLATE = path.join(__dirname, 'templates', 'shorts_card.html');
 
 const BASE_URL = 'https://slimfile.net';
 const LANDING_PATH = { nyusatsu: '/safe/jp/nyusatsu/', honnin: '/safe/jp/honnin-kakunin/', aimae: '/safe/jp/ai-mae/' };
@@ -155,6 +156,28 @@ function parseFrontmatter(text) {
   return { data, body };
 }
 const unquote = (s) => s.replace(/^["'](.*)["']$/, '$1').trim();
+
+/* The published blog slug, mirroring JpEpisodeSource#slug.
+ *
+ * Duplicated across the Ruby/JS boundary because the Shorts description has to
+ * contain the article URL and this script never talks to the database. A
+ * mirrored implementation can drift, so test/integration/jp_shorts_test.rb
+ * compares the two for every episode in topics.json rather than trusting this
+ * comment. ActiveSupport's `parameterize` is transliterate + downcase +
+ * non-alphanumeric to '-' + squeeze + trim; `title_en` is already ASCII, so
+ * transliteration is a no-op here and the rest is this regex chain. */
+function slugFor(t) {
+  const epp = String(t.ep).padStart(2, '0');
+  let base = String(t.title_en || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\-_]+/g, '-')
+    .replace(/-{2,}/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 40)
+    .replace(/-$/, '');
+  if (!base) base = `ep${epp}`;
+  return `jp-ep${epp}-${base}`;
+}
 
 const postPath = path.join(epDir, 'post_ja.md');
 if (!fs.existsSync(postPath)) {
@@ -783,6 +806,256 @@ let guide = 'skipped';
   }
 }
 
+/* ── shorts.mp4 — the YouTube Shorts cut ──────────────────────────────────── */
+/*
+ * 1080×1920, 30 seconds, structure from the marketing plan §1:
+ *
+ *   0– 5s  the pain, one sentence, as big as it will go
+ *   5–10s  why it happens
+ *  10–25s  the fix — real screen recording (track A) or three comparison
+ *          cards (track B, which has no tool flow to record)
+ *  25–30s  the result + the landing URL
+ *
+ * ── Why this is not the GIF with a different aspect ratio ──────────────────
+ *
+ * demo.gif is a 720×1280 screen recording for X: it shows the tool working to
+ * someone who already clicked. Shorts has to stop a thumb, so the first five
+ * seconds are not the tool at all — they are the reader's problem. The two
+ * are different films and both are kept.
+ *
+ * ── Everything is burned in ────────────────────────────────────────────────
+ *
+ * No subtitle track. Shorts autoplay muted and the platform does not reliably
+ * render soft subtitles, so text that is not in the pixels is text nobody
+ * reads. The cards carry their own text; the screen section gets a caption bar
+ * injected into the PAGE before capture, which also keeps the Japanese font
+ * inside the browser instead of hardcoding a font path into an ffmpeg filter.
+ */
+const SHORTS = { w: 1080, h: 1920, fps: 30, maxSeconds: 30 };
+const SHORTS_SEGMENTS = { pain: 5, why: 5, fix: 15, done: 5 };
+
+let shorts = 'skipped';
+{
+  const outDir = path.join(epDir, '.shorts');
+  const mp4 = path.join(epDir, 'shorts.mp4');
+  try {
+    fs.rmSync(outDir, { recursive: true, force: true });
+    fs.mkdirSync(outDir, { recursive: true });
+
+    /* ── the three cards ───────────────────────────────────────────────── */
+    const cardPage = await browser.newPage({ viewport: { width: SHORTS.w, height: SHORTS.h }, deviceScaleFactor: 1 });
+    await cardPage.goto(pathToFileURL(SHORTS_TEMPLATE).href);
+    await Promise.race([cardPage.evaluate(() => document.fonts.ready), cardPage.waitForTimeout(6000)]);
+
+    // The pain line is fm.hook — the same sentence that opens the X thread,
+    // which S10 made a rule about. One opener per episode, written once.
+    const cards = [
+      ['pain', { tag: 'よくある差し戻し', text: fm.hook }],
+      ['why', { text: '黒い四角を重ねただけでは、\n下の文字が残ることがあります。',
+                note: 'PDFの文字層はコピーできてしまいます。' }]
+    ];
+    if (topic.track === 'A') {
+      cards.push(['done', { text: '画像に平坦化されるので、\n黒塗りの下に原文は残りません。',
+                            note: 'ファイルはブラウザの中だけで処理されます。',
+                            url: viaUrl('youtube') }]);
+    } else {
+      // Track B: the middle 15s is comparison cards instead of a recording.
+      cards.splice(2, 0, ['compare', { text: '隠し方で結果が変わります', items: [
+        { ok: false, txt: '付箋を貼って撮影 — 光で透けることがある' },
+        { ok: false, txt: '画像編集アプリで黒い四角 — 文字層が残る' },
+        { ok: true, txt: '画像に平坦化 — 下に原文が残らない' }
+      ] }]);
+      cards.push(['done', { text: '提出先の指示に合わせて\n隠す範囲を選べます。',
+                            note: 'ファイルはブラウザの中だけで処理されます。',
+                            url: viaUrl('youtube') }]);
+    }
+
+    const cardFiles = [];
+    for (let i = 0; i < cards.length; i++) {
+      const [kind, data] = cards[i];
+      const fit = await cardPage.evaluate(([k, d]) => window.SF_CARD(k, d), [kind, data]);
+      if (fit.overflowed) warnings.push(`shorts card ${i + 1} (${kind}): text still overflows at the ${Math.round(fit.scale * 100)}% floor — shorten it`);
+      const f = path.join(outDir, `card${i + 1}_${kind}.png`);
+      await cardPage.locator('#card').screenshot({ path: f });
+      const size = pngSize(f);
+      if (size.width !== SHORTS.w || size.height !== SHORTS.h) {
+        throw new Error(`${path.basename(f)} is ${size.width}×${size.height}, not ${SHORTS.w}×${SHORTS.h}`);
+      }
+      cardFiles.push({ file: f, kind });
+    }
+    await cardPage.close();
+
+    /* ── the fix section ───────────────────────────────────────────────── */
+    /* Track A records the tool at a PHONE viewport with deviceScaleFactor 2,
+     * so the frames come out 1080×1920 natively — scaling a 1080-wide desktop
+     * layout down to a phone frame would make the app's own text unreadable,
+     * which is the mistake the guide PDF already made once (S9 §E). */
+    let fixFrames = [];
+    let srv;
+    if (topic.track === 'A' && !noDemo && FIXTURE_FOR_DOC[topic.doc]) {
+      try {
+        srv = await startServer();
+        const port = srv.address().port;
+        const vp = await browser.newPage({
+          viewport: { width: SHORTS.w / 2, height: SHORTS.h / 2 }, deviceScaleFactor: 2
+        });
+        const url = `http://127.0.0.1:${port}/safe/?lang=ja&purpose=${topic.purpose}&from=direct`;
+        const resp = await vp.goto(url, { waitUntil: 'load' });
+        if (!resp || !resp.ok()) throw new Error(`${url} returned ${resp ? resp.status() : 'no response'}`);
+        if (!(await vp.locator('#fileInput').count())) throw new Error('no #fileInput — wrong document?');
+
+        // Caption bar, injected into the page (not drawn by ffmpeg) so the
+        // Japanese font stays inside the browser.
+        await vp.evaluate(() => {
+          const bar = document.createElement('div');
+          bar.id = '__scap';
+          bar.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;'
+            + 'background:rgba(23,20,15,.94);color:#fff;'
+            + 'font:700 25px/1.5 "Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;'
+            + 'padding:22px 24px;white-space:pre-line;min-height:104px';
+          document.body.appendChild(bar);
+          window.__scap = (t) => { bar.textContent = t; };
+        });
+        const caps = captions.length === 3 ? captions : [
+          '① PDF・写真をドラッグ',
+          `② 「提出目的：${topic.purpose}」を選ぶ`,
+          '③ ダウンロード — 下に原文は残りません'
+        ];
+        const setCap = (t) => vp.evaluate((x) => window.__scap(x), t);
+
+        let n = 0;
+        const grab = async (count) => {
+          for (let i = 0; i < count; i++) {
+            await vp.screenshot({ path: path.join(outDir, `fix${String(n).padStart(3, '0')}.png`) });
+            n++;
+            if (i < count - 1) await vp.waitForTimeout(400);
+          }
+        };
+
+        await setCap(caps[0]);
+        await grab(4);
+        await vp.setInputFiles('#fileInput', path.join(FIXTURES, FIXTURE_FOR_DOC[topic.doc]));
+        await vp.waitForFunction(
+          () => Array.isArray(pages) && pages.length > 0 && document.getElementById('docWrap').style.display === 'flex',
+          { timeout: 300000 }
+        );
+        await setCap(caps[1]);
+        await vp.locator('#jpBar').scrollIntoViewIfNeeded().catch(() => {});
+        await grab(5);
+        await vp.click('#btnMake');
+        await vp.waitForFunction(() => document.getElementById('result').style.display === 'block', { timeout: 120000 });
+        await setCap(caps[2]);
+        await vp.locator('#result').scrollIntoViewIfNeeded().catch(() => {});
+        await vp.waitForTimeout(400);
+        await grab(6);
+        await vp.close();
+        fixFrames = fs.readdirSync(outDir).filter((f) => f.startsWith('fix')).sort();
+        if (fixFrames.length < 6) throw new Error(`only ${fixFrames.length} fix frames`);
+      } catch (e) {
+        // Partial by design: a failed recording falls back to comparison cards
+        // rather than losing the whole Short.
+        warnings.push(`shorts: screen recording failed (${e.message}) — using comparison cards instead`);
+        fixFrames = [];
+      } finally {
+        if (srv) srv.close();
+      }
+    }
+
+    /* ── stitch ────────────────────────────────────────────────────────── */
+    const segs = [];
+    const seg = (file, seconds) => {
+      const out = path.join(outDir, `seg${segs.length}.mp4`);
+      run('ffmpeg', ['-y', '-loop', '1', '-i', file, '-t', String(seconds),
+        '-r', String(SHORTS.fps), '-c:v', 'libx264', '-pix_fmt', 'yuv420p',
+        '-vf', `scale=${SHORTS.w}:${SHORTS.h}:force_original_aspect_ratio=decrease,pad=${SHORTS.w}:${SHORTS.h}:(ow-iw)/2:(oh-ih)/2:color=0xF7F5EF`,
+        out]);
+      segs.push(out);
+    };
+
+    const painCard = cardFiles.find((c) => c.kind === 'pain');
+    const whyCard = cardFiles.find((c) => c.kind === 'why');
+    const cmpCard = cardFiles.find((c) => c.kind === 'compare');
+    const doneCard = cardFiles.find((c) => c.kind === 'done');
+
+    seg(painCard.file, SHORTS_SEGMENTS.pain);
+    seg(whyCard.file, SHORTS_SEGMENTS.why);
+
+    if (fixFrames.length) {
+      // The recording, stretched to exactly the fix window so the total stays
+      // at 30s whatever the frame count turned out to be.
+      const fps = fixFrames.length / SHORTS_SEGMENTS.fix;
+      const out = path.join(outDir, `seg${segs.length}.mp4`);
+      run('ffmpeg', ['-y', '-framerate', String(fps), '-i', path.join(outDir, 'fix%03d.png'),
+        '-r', String(SHORTS.fps), '-c:v', 'libx264', '-pix_fmt', 'yuv420p',
+        '-vf', `scale=${SHORTS.w}:${SHORTS.h}:force_original_aspect_ratio=decrease,pad=${SHORTS.w}:${SHORTS.h}:(ow-iw)/2:(oh-ih)/2:color=0x111111`,
+        out]);
+      segs.push(out);
+    } else if (cmpCard) {
+      seg(cmpCard.file, SHORTS_SEGMENTS.fix);
+    } else {
+      // Track A whose recording failed and which has no comparison card: hold
+      // the why card. Stated in the manifest rather than silently shortened.
+      seg(whyCard.file, SHORTS_SEGMENTS.fix);
+      warnings.push('shorts: no fix footage and no comparison card — held the why card for the middle 15s');
+    }
+    seg(doneCard.file, SHORTS_SEGMENTS.done);
+
+    const listFile = path.join(outDir, 'concat.txt');
+    fs.writeFileSync(listFile, segs.map((f) => `file '${f.replace(/'/g, "'\\\\''")}'`).join('\n') + '\n');
+    run('ffmpeg', ['-y', '-f', 'concat', '-safe', '0', '-i', listFile, '-c', 'copy', '-movflags', '+faststart', mp4]);
+
+    /* ── verify from the FILE, not from what we asked for ──────────────── */
+    const probe = spawnSync('ffprobe', ['-v', 'error', '-select_streams', 'v:0',
+      '-show_entries', 'stream=width,height:format=duration', '-of', 'json', mp4], { encoding: 'utf8' });
+    if (probe.status !== 0) throw new Error(`ffprobe failed: ${(probe.stderr || '').slice(-200)}`);
+    const meta = JSON.parse(probe.stdout);
+    const st = meta.streams[0];
+    const dur = Number(meta.format.duration);
+    if (st.width !== SHORTS.w || st.height !== SHORTS.h) {
+      throw new Error(`shorts.mp4 is ${st.width}×${st.height}, not ${SHORTS.w}×${SHORTS.h}`);
+    }
+    if (!(dur > 0) || dur > SHORTS.maxSeconds + 0.5) {
+      throw new Error(`shorts.mp4 is ${dur.toFixed(2)}s, over the ${SHORTS.maxSeconds}s cap`);
+    }
+
+    /* ── title and description ─────────────────────────────────────────── */
+    // Title: question form, JA, <=20 chars + 3 hashtags (marketing plan §6-3).
+    // Taken from topics.json rather than invented here, and TRUNCATION IS NOT
+    // SILENT — an over-length title is reported the same way an over-length
+    // tweet is, because a headline cut at a byte boundary is one the author
+    // did not write.
+    const shortsTitle = (topic.shorts_title_ja || fm.title).trim();
+    if ([...shortsTitle].length > 20) {
+      warnings.push(`shorts_title_ja: ${[...shortsTitle].length}字 — 20字以内が望ましい(topics.json に shorts_title_ja を足す)`);
+    }
+    const tags = (topic.shorts_tags || ['#黒塗り', '#個人情報', '#提出書類']).slice(0, 3);
+    fs.writeFileSync(path.join(epDir, 'shorts_title_ja.txt'), `${shortsTitle} ${tags.join(' ')}\n`);
+    fs.writeFileSync(path.join(epDir, 'shorts_desc_ja.txt'), [
+      fm.hook,
+      '',
+      ...fm.bullets.map((b, i) => `${['①', '②', '③'][i]}${b}`),
+      '',
+      MUST_SENTENCE,
+      '',
+      `くわしく: ${BASE_URL}/ja/blog/${slugFor(topic)}?via=youtube&ep=ep${EPP}`,
+      `試す: ${viaUrl('youtube')}`,
+      '',
+      tags.join(' ')
+    ].join('\n') + '\n');
+
+    const kb = Math.round(fs.statSync(mp4).size / 1024);
+    shorts = `ok: ${dur.toFixed(1)}s, ${st.width}x${st.height}, ${kb}KB, ${fixFrames.length ? `${fixFrames.length} recorded frames` : 'cards only'}`;
+    process.stdout.write(`  shorts.mp4  (${dur.toFixed(1)}s, ${st.width}x${st.height}, ${kb}KB, ${fixFrames.length ? 'recording' : 'cards'})\n`);
+    fs.rmSync(outDir, { recursive: true, force: true });
+  } catch (e) {
+    shorts = `failed: ${e.message}`;
+    warnings.push(`shorts.mp4: ${e.message}`);
+    process.stdout.write(`  shorts.mp4 FAILED: ${e.message}\n`);
+    // Intermediates are left behind on failure — they are the only evidence of
+    // how far the build got, same rule as the demo frames.
+  }
+}
+
 await browser.close();
 
 /* ── manifest ─────────────────────────────────────────────────────────────── */
@@ -823,10 +1096,11 @@ const manifest = {
   utm_url: utmUrl,
   generated_by: 'scripts/content/make_episode.mjs',
   files: ['post_ja.md', 'post_en.md', 'linkedin_en.md', 'summary_ko.md', 'x_thread.md',
-          'carousel_1.png', 'carousel_2.png', 'carousel_3.png', 'demo.gif', 'demo.mp4', 'guide_en.pdf']
+          'carousel_1.png', 'carousel_2.png', 'carousel_3.png', 'demo.gif', 'demo.mp4', 'guide_en.pdf', 'shorts.mp4']
     .map(fileEntry).filter(Boolean),
   demo: demoForManifest(),
   guide: guide,
+  shorts: shorts,
   warnings,
   // Publishing checklist. Justin ticks these by hand after posting, then sets
   // topics.json status to "posted". They start false — a checklist that

@@ -1,0 +1,12 @@
+契約書をAIに貼った後で、相手方の口座番号も送っていたと気づいた。
+
+①相談に必要なのは条項と金額の関係で、相手方の氏名・住所・口座ではありません
+②貼り付けた内容を保存するAIサービスは多く、あとから取り消せない前提で考えます
+③画像にして貼れば、黒塗りの下の文字列はコピーできません
+
+提出先の指示を必ず確認してください。
+
+くわしく: https://slimfile.net/ja/blog/jp-ep03-redact-the-personal-data-before-you-past?via=youtube&ep=ep03
+試す: https://slimfile.net/safe/jp/ai-mae/?via=youtube&ep=ep03
+
+#ChatGPT #契約書 #個人情報

@@ -1,0 +1,12 @@
+「マスキングのうえ提出」とだけ書いてあって、どこを隠すのか分からない。
+
+①「被保険者等記号・番号」は記号と番号の両方を指し、枝番を含むのが通例です
+②「個人情報を除いて」は氏名まで消す指示ではなく、審査項目は残すのが前提です
+③指定が読み取れないときは、発注者の窓口に確認するのが最短です
+
+提出先の指示を必ず確認してください。
+
+くわしく: https://slimfile.net/ja/blog/jp-ep02-reading-a-tender-s-masking-instructions?via=youtube&ep=ep02
+試す: https://slimfile.net/safe/jp/nyusatsu/?via=youtube&ep=ep02
+
+#入札 #マスキング #提出書類

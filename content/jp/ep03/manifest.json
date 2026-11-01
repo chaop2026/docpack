@@ -48,11 +48,18 @@
     {
       "name": "guide_en.pdf",
       "bytes": 215176
+    },
+    {
+      "name": "shorts.mp4",
+      "bytes": 357964
     }
   ],
   "demo": "failed: no dummy document exists for doc=\"契約書\" (only shikaku_kakuninsho, unten_menkyo, mynumber_card, juminhyo have fixtures)",
   "guide": "ok: 7 pages, 210KB, diagrams (no recording)",
-  "warnings": [],
+  "shorts": "ok: 30.0s, 1080x1920, 350KB, cards only",
+  "warnings": [
+    "shorts: no fix footage and no comparison card — held the why card for the middle 15s"
+  ],
   "posted": {
     "x": false,
     "youtube_shorts": false,

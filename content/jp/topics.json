@@ -66,7 +66,13 @@
       "intent": "手順",
       "publish_on": "2026-10-26",
       "verify_before": false,
-      "social_skip": false
+      "social_skip": false,
+      "shorts_title_ja": "黒塗り、一箇所残っていませんか？",
+      "shorts_tags": [
+        "#入札",
+        "#黒塗り",
+        "#資格確認書"
+      ]
     },
     {
       "ep": 2,
@@ -83,7 +89,13 @@
       "intent": "理由",
       "publish_on": "2026-11-02",
       "verify_before": false,
-      "social_skip": false
+      "social_skip": false,
+      "shorts_title_ja": "どこを隠せばいいのか分からない？",
+      "shorts_tags": [
+        "#入札",
+        "#マスキング",
+        "#提出書類"
+      ]
     },
     {
       "ep": 3,
@@ -100,7 +112,13 @@
       "intent": "手順",
       "publish_on": "2026-11-09",
       "verify_before": false,
-      "social_skip": false
+      "social_skip": false,
+      "shorts_title_ja": "AIに契約書、そのまま貼ってない？",
+      "shorts_tags": [
+        "#ChatGPT",
+        "#契約書",
+        "#個人情報"
+      ]
     },
     {
       "ep": 4,
