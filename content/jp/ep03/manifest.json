@@ -7,12 +7,12 @@
   "doc": "契約書",
   "purpose": "consult_share",
   "landing": "/safe/jp/ai-mae/",
-  "utm_url": "https://slimfile.net/safe/jp/ai-mae/?utm_source=x&utm_campaign=ep03",
+  "utm_url": "https://slimfile.net/safe/jp/ai-mae/?via=x&ep=ep03",
   "generated_by": "scripts/content/make_episode.mjs",
   "files": [
     {
       "name": "post_ja.md",
-      "bytes": 3433
+      "bytes": 3418
     },
     {
       "name": "post_en.md",
@@ -20,19 +20,19 @@
     },
     {
       "name": "linkedin_en.md",
-      "bytes": 1487
+      "bytes": 1452
     },
     {
       "name": "summary_ko.md",
-      "bytes": 5137
+      "bytes": 5130
     },
     {
       "name": "x_thread.md",
-      "bytes": 1168
+      "bytes": 1118
     },
     {
       "name": "carousel_1.png",
-      "bytes": 101497,
+      "bytes": 97336,
       "pixels": "1080x1350"
     },
     {
@@ -42,12 +42,12 @@
     },
     {
       "name": "carousel_3.png",
-      "bytes": 109116,
+      "bytes": 104469,
       "pixels": "1080x1350"
     },
     {
       "name": "guide_en.pdf",
-      "bytes": 215532
+      "bytes": 215176
     }
   ],
   "demo": "failed: no dummy document exists for doc=\"契約書\" (only shikaku_kakuninsho, unten_menkyo, mynumber_card, juminhyo have fixtures)",

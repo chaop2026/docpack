@@ -16,6 +16,6 @@ Two things surprised me:
 
 It's free and still rough. If paperwork has ever come back to you for the wrong reason, try it and tell me what confused you.
 
-https://slimfile.net/en/blog/jp-ep02-reading-a-tender-s-masking-instructions?utm_source=linkedin&utm_medium=social&utm_campaign=ep02
+https://slimfile.net/en/blog/jp-ep02-reading-a-tender-s-masking-instructions?via=linkedin&ep=ep02
 
 #buildinpublic #privacy #sideproject

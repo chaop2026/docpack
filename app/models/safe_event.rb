@@ -49,7 +49,32 @@ class SafeEvent < ApplicationRecord
     # excluded from P16's numerator (JpWeeklyKpi): the blog's own in-article CTA
     # is internal linking, and counting it would make the metric rise as the
     # blog grows, which is the opposite of what P16 asks.
-    "utm_source" => %w[x linkedin youtube blog direct other none]
+    "utm_source" => %w[x linkedin youtube blog direct other none],
+
+    # ── S10: the same question, asked with a parameter that survives ────────
+    #
+    # `via` replaces `utm_source` in every link we publish from now on, because
+    # `?utm_*` is blocked by ad/tracker-blocking browser extensions BEFORE the
+    # request is made. The server was answering 200 the whole time; the author's
+    # own Chrome would not open his own shared link. A measurement whose
+    # parameter is stripped on the way in measures nothing.
+    #
+    # `utm_source` above is KEPT, not replaced. Rows already exist with it, and
+    # links already published — blog bodies, tweets posted before 2026-10-27 —
+    # keep arriving with it for as long as anyone clicks them. Deleting the key
+    # would push those visits into `none`, which reads as "traffic fell" when
+    # what actually happened is "we stopped counting". JpWeeklyKpi sums the two.
+    "via"        => %w[x linkedin youtube blog direct other none],
+
+    # Which episode's link was clicked. New information: `utm_campaign=epNN`
+    # was in the URL but was never stored (it is not in KEYS below), so
+    # per-episode attribution has never been measurable.
+    #
+    # A fixed list, like everything else here — the premise of this table is
+    # that only category values are stored, and `ep` arrives in a URL a visitor
+    # can edit. 33 is the planned run (content/jp/topics.json); anything else
+    # becomes "other".
+    "ep"         => (1..33).map { |n| format("ep%02d", n) }.push("other").freeze
   }.freeze
 
   # Which keys each event may carry. A key that is valid for one event is not
@@ -60,8 +85,11 @@ class SafeEvent < ApplicationRecord
     "doc_class"    => %w[doc_class locale from],
     "purpose"      => %w[purpose doc_class locale from source],
     "download"     => %w[format doc_class purpose locale from],
-    "landing_view" => %w[from locale utm_source],
-    "cta_click"    => %w[from purpose locale utm_source]
+    # `utm_source` and `via` are both listed on purpose — see VALUES. A visit
+    # arriving on an old link carries the first, a new link carries the second,
+    # and an event never carries both (jp.js sends whichever it found).
+    "landing_view" => %w[from locale utm_source via ep],
+    "cta_click"    => %w[from purpose locale utm_source via ep]
   }.freeze
 
   validates :name, inclusion: { in: NAMES }

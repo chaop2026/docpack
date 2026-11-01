@@ -206,7 +206,7 @@ class JpEpisodeSource
     return nil if fm_en.blank?
     return fm_en["x_reply"] if fm_en["x_reply"].present?
 
-    "#{fm_en['cta']}\n#{utm_url('x')}".presence
+    "#{fm_en['cta']}\n#{via_url('x')}".presence
   end
 
   # ── LinkedIn ───────────────────────────────────────────────────────────────
@@ -335,20 +335,41 @@ class JpEpisodeSource
     LANDING_PATH.fetch(topic_row["landing"], "/safe/jp/nyusatsu/")
   end
 
-  def utm_url(source)
-    "#{base_url}#{landing_path}?utm_source=#{source}&utm_medium=#{source == 'blog' ? 'organic' : 'social'}&utm_campaign=ep#{epp}"
+  # ── Attribution parameters (S10) ───────────────────────────────────────────
+  #
+  # `?via=<channel>&ep=NN`, NOT `?utm_source=…&utm_medium=…&utm_campaign=…`.
+  #
+  # Ad- and tracker-blocking browser extensions strip or block `?utm_*` before
+  # the request is made. Measured 2026-10-27: Justin's own Chrome would not open
+  # his own shared link, while the server answered 200 to everything — so the
+  # failure was invisible from the server side and the visits were being counted
+  # as having no source.
+  #
+  # Two parameters instead of three, and `medium` is gone: it only ever held
+  # "social" or "organic", which is derivable from the channel and was never
+  # stored (SafeEvent::KEYS had no key for it). A parameter nothing reads is a
+  # parameter that can only be wrong.
+  #
+  # Kept short on purpose — this string is read aloud in a Shorts video and
+  # retyped by hand.
+  def via_url(channel)
+    "#{base_url}#{landing_path}?via=#{channel}&ep=ep#{epp}"
   end
 
-  def blog_url(locale)
+  def blog_url(locale, channel: "linkedin")
     prefix = locale.to_sym == :ja ? "/ja" : "/#{locale}"
-    "#{base_url}#{prefix}/blog/#{slug}?utm_source=linkedin&utm_medium=social&utm_campaign=ep#{epp}"
+    "#{base_url}#{prefix}/blog/#{slug}?via=#{channel}&ep=ep#{epp}"
   end
 
+  # Still called `utm` in `package` because that key is already stored on live
+  # rows and renamed keys in a JSONB document are a migration nobody asked for.
+  # The VALUES it holds are the new ones.
   def utm
     {
-      "blog" => utm_url("blog"),
-      "x" => utm_url("x"),
-      "linkedin" => blog_url(:en)
+      "blog" => via_url("blog"),
+      "x" => via_url("x"),
+      "linkedin" => blog_url(:en),
+      "youtube" => blog_url(:ja, channel: "youtube")
     }
   end
 

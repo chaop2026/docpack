@@ -198,7 +198,15 @@ class JpContentGuardTest < ActiveSupport::TestCase
   end
 
   test "a tweet inside both limits passes" do
-    assert_empty guard(tweets: [ "あ" * 60, MUST ]).violations
+    # The first line is short and concrete because S10 added a rule about the
+    # OPENER of tweet 1 (pain first, <=40 chars). A bare "あ"*60 now trips that
+    # rule, which would make this test fail for a reason that has nothing to do
+    # with the weighted-length limits it exists to check. The body stays long so
+    # the tweet is still a meaningful distance inside both caps.
+    inside = "黒塗りが一箇所残っていた。\n#{'あ' * 50}"
+    assert_operator JpContentGuard.weighted_length(inside), :<, JpContentGuard.limits["tweet_editorial"] * 2,
+                    "premise: still comfortably under the platform cap"
+    assert_empty guard(tweets: [ inside, MUST ]).violations
   end
 
   # ── the other limits ────────────────────────────────────────────────────────

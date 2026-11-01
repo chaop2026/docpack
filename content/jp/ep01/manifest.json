@@ -7,12 +7,12 @@
   "doc": "shikaku_kakuninsho",
   "purpose": "bid_attachment",
   "landing": "/safe/jp/nyusatsu/",
-  "utm_url": "https://slimfile.net/safe/jp/nyusatsu/?utm_source=x&utm_campaign=ep01",
+  "utm_url": "https://slimfile.net/safe/jp/nyusatsu/?via=x&ep=ep01",
   "generated_by": "scripts/content/make_episode.mjs",
   "files": [
     {
       "name": "post_ja.md",
-      "bytes": 4181
+      "bytes": 4142
     },
     {
       "name": "post_en.md",
@@ -20,19 +20,19 @@
     },
     {
       "name": "linkedin_en.md",
-      "bytes": 1635
+      "bytes": 1600
     },
     {
       "name": "summary_ko.md",
-      "bytes": 5464
+      "bytes": 5457
     },
     {
       "name": "x_thread.md",
-      "bytes": 1212
+      "bytes": 1138
     },
     {
       "name": "carousel_1.png",
-      "bytes": 105486,
+      "bytes": 99092,
       "pixels": "1080x1350"
     },
     {
@@ -42,23 +42,23 @@
     },
     {
       "name": "carousel_3.png",
-      "bytes": 106315,
+      "bytes": 101668,
       "pixels": "1080x1350"
     },
     {
       "name": "demo.gif",
-      "bytes": 809875
+      "bytes": 807942
     },
     {
       "name": "demo.mp4",
-      "bytes": 341809
+      "bytes": 341477
     },
     {
       "name": "guide_en.pdf",
-      "bytes": 984932
+      "bytes": 984929
     }
   ],
-  "demo": "ok: 40 frames, demo.gif 791KB, demo.mp4 334KB",
+  "demo": "ok: 40 frames, demo.gif 789KB, demo.mp4 333KB",
   "guide": "ok: 7 pages, 962KB, real screenshots",
   "warnings": [],
   "posted": {

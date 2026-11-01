@@ -14,6 +14,6 @@ This week I added support for Japanese ID documents, and I learned three simple 
 
 It's free, it's early, and I'm sure it has rough edges. If you ever have to send a copy of an ID somewhere, try it and tell me what felt confusing. That helps me more than a like.
 
-https://slimfile.net/en/blog/jp-ep01-how-to-redact-the-numbers-on-a-qualifica?utm_source=linkedin&utm_medium=social&utm_campaign=ep01
+https://slimfile.net/en/blog/jp-ep01-how-to-redact-the-numbers-on-a-qualifica?via=linkedin&ep=ep01
 
 #buildinpublic #privacy #sideproject

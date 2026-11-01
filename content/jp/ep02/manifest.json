@@ -7,12 +7,12 @@
   "doc": "shikaku_kakuninsho",
   "purpose": "bid_attachment",
   "landing": "/safe/jp/nyusatsu/",
-  "utm_url": "https://slimfile.net/safe/jp/nyusatsu/?utm_source=x&utm_campaign=ep02",
+  "utm_url": "https://slimfile.net/safe/jp/nyusatsu/?via=x&ep=ep02",
   "generated_by": "scripts/content/make_episode.mjs",
   "files": [
     {
       "name": "post_ja.md",
-      "bytes": 3973
+      "bytes": 3958
     },
     {
       "name": "post_en.md",
@@ -20,19 +20,19 @@
     },
     {
       "name": "linkedin_en.md",
-      "bytes": 1583
+      "bytes": 1548
     },
     {
       "name": "summary_ko.md",
-      "bytes": 5240
+      "bytes": 5233
     },
     {
       "name": "x_thread.md",
-      "bytes": 1188
+      "bytes": 1138
     },
     {
       "name": "carousel_1.png",
-      "bytes": 100989,
+      "bytes": 96449,
       "pixels": "1080x1350"
     },
     {
@@ -42,16 +42,16 @@
     },
     {
       "name": "carousel_3.png",
-      "bytes": 114725,
+      "bytes": 109616,
       "pixels": "1080x1350"
     },
     {
       "name": "guide_en.pdf",
-      "bytes": 217794
+      "bytes": 217434
     }
   ],
   "demo": "skipped: track B has no tool demo",
-  "guide": "ok: 7 pages, 213KB, diagrams (no recording)",
+  "guide": "ok: 7 pages, 212KB, diagrams (no recording)",
   "warnings": [],
   "posted": {
     "x": false,

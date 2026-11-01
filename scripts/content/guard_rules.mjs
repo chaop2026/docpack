@@ -50,6 +50,15 @@ export const RULES = {
   linkedin: {
     forbidden: raw.linkedin.forbidden.map((f) => ({ id: f.id, re: compile(f, 'linkedin'), why: f.why })),
     limits: raw.linkedin.limits
+  },
+  // The first line of the first tweet (S10). Loaded on both sides like
+  // everything else here — a rule one engine checks and the other trusts is a
+  // rule that exists in one place.
+  xThread: {
+    firstLine: {
+      maxChars: raw.x_thread.first_line.max_chars,
+      forbidden: raw.x_thread.first_line.forbidden.map((f) => ({ id: f.id, re: compile(f, 'x_thread'), why: f.why }))
+    }
   }
 };
 
@@ -58,6 +67,40 @@ if (!RULES.forbidden.length) {
 }
 if (!RULES.linkedin.forbidden.length) {
   throw new Error('guard_rules.json carries no linkedin patterns — refusing to run with an empty LinkedIn guard');
+}
+if (!RULES.xThread.firstLine.forbidden.length) {
+  throw new Error('guard_rules.json carries no x_thread first-line patterns — refusing to run with an empty guard');
+}
+
+/*
+ * The first line of the FIRST tweet. Marketing plan §6-1: the opener is always
+ * the reader's pain, never a feature, a price or a statistic.
+ *
+ * Mirrors JpContentGuard#x_thread_violations. Only the first line of tweet 1 is
+ * in scope — the same sentence is perfectly fine as the article's lede, because
+ * an article is read by someone who came to read it and a tweet has to stop
+ * someone who is scrolling past.
+ *
+ * `tweets` is the finished array. Returns [] for an empty thread; the ABSENCE
+ * of a thread is make_episode's own error, reported where it is produced.
+ */
+export function runXThread(tweets) {
+  if (!tweets || !tweets.length) return [];
+  const firstLine = String(tweets[0]).split(/\r?\n/)[0].trim();
+  if (!firstLine) return ['x_thread.md (generated): 1ツイート目が空行で始まっている'];
+
+  const out = [];
+  for (const f of RULES.xThread.firstLine.forbidden) {
+    if (f.re.test(firstLine)) {
+      out.push(`x_thread.md (generated) 1行目: 「${firstLine.slice(0, 40)}」 — ${f.why} [${f.id}]`);
+    }
+  }
+  const len = [...firstLine].length;
+  if (len > RULES.xThread.firstLine.maxChars) {
+    out.push(`x_thread.md (generated) 1行目: ${len}字 — ${RULES.xThread.firstLine.maxChars}字以内`
+      + '(痛みの一行は短い。長くなるのは解説を始めたとき) [x_opener_length]');
+  }
+  return out;
 }
 
 /*

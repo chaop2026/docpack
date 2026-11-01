@@ -76,10 +76,18 @@ class JpContentGuard
         linkedin: {
           forbidden: raw.fetch("linkedin").fetch("forbidden").map { |f| compile(f, "linkedin") },
           limits: raw.fetch("linkedin").fetch("limits")
+        },
+        # The first line of the first tweet (S10). `fetch` for the same reason
+        # as `linkedin`: a file that has lost the section must fail loudly here
+        # rather than turn the check into a method that always returns [].
+        x_first_line: {
+          max_chars: raw.fetch("x_thread").fetch("first_line").fetch("max_chars"),
+          forbidden: raw.fetch("x_thread").fetch("first_line").fetch("forbidden").map { |f| compile(f, "x_thread") }
         }
       }.tap do |r|
         raise RuleFileError, "guard_rules.json carries no forbidden patterns" if r[:forbidden].empty?
         raise RuleFileError, "guard_rules.json carries no linkedin patterns" if r[:linkedin][:forbidden].empty?
+        raise RuleFileError, "guard_rules.json carries no x_thread first-line patterns" if r[:x_first_line][:forbidden].empty?
       end
     rescue Errno::ENOENT
       raise RuleFileError, "guard_rules.json is missing at #{RULES_PATH}"
@@ -138,6 +146,7 @@ class JpContentGuard
       length_violations,
       faq_violations,
       linkedin_violations,
+      x_first_line_violations,
       summary_ko_violations
     ].flatten.compact
   end
@@ -319,6 +328,40 @@ class JpContentGuard
     return 0.0 if prose.empty?
 
     prose.sum { |s| s.split(/\s+/).length }.to_f / prose.length
+  end
+
+  # ── the first line of the first tweet (S10) ───────────────────────────────
+  #
+  # Marketing plan §6-1: the opener is always the reader's pain — never a
+  # feature, a price, a brand name or a statistic. The thread is the surface
+  # where that matters most, because an article is read by someone who came to
+  # read it and a tweet has to stop someone scrolling past.
+  #
+  # Scope is deliberately ONE LINE of ONE tweet. The same sentence is fine as
+  # the article's lede, and a rule that fired on the body would be telling the
+  # author to write worse prose.
+  #
+  # What a regex can decide is only the shapes a pain line CANNOT have. Whether
+  # it actually opens with pain is read by a human — scripts/content/README.md
+  # keeps the enforced and the human-held rules in two separate tables.
+  def x_first_line_violations
+    return [] if @tweets.empty?
+
+    first_line = @tweets.first.to_s.split(/\r?\n/).first.to_s.strip
+    return [ "x_thread: 1ツイート目が空行で始まっている" ] if first_line.empty?
+
+    rules = r[:x_first_line]
+    out = rules[:forbidden].filter_map do |rule|
+      next unless rule.re.match?(first_line)
+
+      "x_thread 1行目: 「#{first_line.first(40)}」 — #{rule.why} [#{rule.id}]"
+    end
+
+    if first_line.length > rules[:max_chars]
+      out << "x_thread 1行目: #{first_line.length}字 — #{rules[:max_chars]}字以内" \
+             "(痛みの一行は短い。長くなるのは解説を始めたとき) [x_opener_length]"
+    end
+    out
   end
 
   # ── the reviewer's Korean copy (S9) ────────────────────────────────────────

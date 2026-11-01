@@ -20,23 +20,71 @@
 
   var FROM = document.documentElement.getAttribute('data-from') || 'direct';
 
-  /* Which channel sent this visit. Mapped onto the fixed list the server
-   * accepts (SafeEvent::VALUES["utm_source"]) rather than passed through:
-   * a free-text utm_source is a visitor-controlled string, and the whole
-   * premise of this endpoint is that only category values are stored. Anything
-   * unrecognised becomes 'other', absent becomes 'none' — the two are different
-   * facts and are kept apart.
+  /* Which channel sent this visit, and which episode's link it was.
    *
-   * Nothing is written to storage and nothing is read back; this is derived
-   * from the current URL on each page load. */
-  var UTM_SOURCE = (function () {
-    try {
-      var allowed = ['x', 'linkedin', 'youtube', 'blog', 'direct'];
-      var v = new URLSearchParams(window.location.search).get('utm_source');
-      if (!v) return 'none';
-      return allowed.indexOf(v.toLowerCase()) >= 0 ? v.toLowerCase() : 'other';
-    } catch (e) { return 'none'; }
+   * Mapped onto the fixed lists the server accepts (SafeEvent::VALUES) rather
+   * than passed through: a free-text parameter is a visitor-controlled string,
+   * and the whole premise of this endpoint is that only category values are
+   * stored. Anything unrecognised becomes 'other', absent becomes 'none' —
+   * the two are different facts and are kept apart.
+   *
+   * ── Why two parameter names (S10) ────────────────────────────────────────
+   *
+   * `?via=` is what every link published from 2026-11-01 carries. `?utm_source=`
+   * is what the ones already out there carry — blog bodies, tweets, the earlier
+   * pinned tweet — and those keep being clicked.
+   *
+   * The switch is not cosmetic: ad/tracker-blocking extensions strip or block
+   * `?utm_*` BEFORE the request leaves the browser, so those visits were
+   * arriving with no source at all and being counted as 'none'. The server was
+   * answering 200 the whole time, which is why it looked like nothing was
+   * wrong.
+   *
+   * `via` wins when both are present. Nothing is written to storage and nothing
+   * is read back; both are derived from the current URL on each page load. */
+  var PARAMS = (function () {
+    try { return new URLSearchParams(window.location.search); }
+    catch (e) { return null; }
   })();
+
+  function pick(name, allowed) {
+    try {
+      if (!PARAMS) return 'none';
+      var v = PARAMS.get(name);
+      if (!v) return 'none';
+      v = v.toLowerCase();
+      return allowed.indexOf(v) >= 0 ? v : 'other';
+    } catch (e) { return 'none'; }
+  }
+
+  var CHANNELS = ['x', 'linkedin', 'youtube', 'blog', 'direct'];
+  var VIA = pick('via', CHANNELS);
+  var UTM_SOURCE = VIA === 'none' ? pick('utm_source', CHANNELS) : 'none';
+
+  /* epNN, two digits, ep01-ep33 — the planned run. Built here rather than
+   * written out so the list cannot drift from SafeEvent::VALUES["ep"]. */
+  var EPISODES = (function () {
+    var out = [];
+    for (var i = 1; i <= 33; i++) out.push('ep' + (i < 10 ? '0' : '') + i);
+    return out;
+  })();
+  var EP = pick('ep', EPISODES);
+
+  /* Only the dimensions this visit actually has. Sending `via: 'none'` AND
+   * `utm_source: 'none'` on every direct visit would double-count the same
+   * non-fact in two columns of the weekly table. */
+  function attribution() {
+    var p = {};
+    if (VIA !== 'none') p.via = VIA;
+    if (UTM_SOURCE !== 'none') p.utm_source = UTM_SOURCE;
+    if (EP !== 'none') p.ep = EP;
+    return p;
+  }
+
+  function assign(target, extra) {
+    for (var k in extra) { if (Object.prototype.hasOwnProperty.call(extra, k)) target[k] = extra[k]; }
+    return target;
+  }
 
   function beacon(name, props) {
     try {
@@ -49,13 +97,13 @@
     } catch (e) { /* never surfaces */ }
   }
 
-  beacon('landing_view', { from: FROM, locale: 'ja', utm_source: UTM_SOURCE });
+  beacon('landing_view', assign({ from: FROM, locale: 'ja' }, attribution()));
 
   // CTA clicks. `data-purpose` mirrors the purpose in the link's own query
   // string so the counter and the destination cannot disagree.
   Array.prototype.forEach.call(document.querySelectorAll('[data-cta]'), function (el) {
     el.addEventListener('click', function () {
-      var p = { from: FROM, locale: 'ja', utm_source: UTM_SOURCE };
+      var p = assign({ from: FROM, locale: 'ja' }, attribution());
       var purpose = el.getAttribute('data-purpose');
       if (purpose) p.purpose = purpose;
       beacon('cta_click', p);

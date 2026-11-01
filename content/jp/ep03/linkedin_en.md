@@ -16,6 +16,6 @@ One caution I put in the article: your workplace rules may not allow a third-par
 
 It's free and early. Try it and tell me what confused you.
 
-https://slimfile.net/en/blog/jp-ep03-redact-the-personal-data-before-you-past?utm_source=linkedin&utm_medium=social&utm_campaign=ep03
+https://slimfile.net/en/blog/jp-ep03-redact-the-personal-data-before-you-past?via=linkedin&ep=ep03
 
 #buildinpublic #privacy #sideproject

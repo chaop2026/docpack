@@ -2,12 +2,12 @@
 # X thread — ep01
 
 > 資格確認書の番号を隠して提出する手順【提出先の指示を確認】
-> landing: https://slimfile.net/safe/jp/nyusatsu/?utm_source=x&utm_campaign=ep01
+> landing: https://slimfile.net/safe/jp/nyusatsu/?via=x&ep=ep01
 
-## 1 / 5  (71字 / weighted 140)
+## 1 / 5  (58字 / weighted 114)
 
 ```
-入札書類の差し戻しの多くは、記号・番号の黒塗りが一箇所残っていることが原因です。
+黒塗りが一箇所だけ残っていて、入札書類が差し戻された。
 
 資格確認書の番号を隠して提出する手順【提出先の指示を確認】
 ```
@@ -30,10 +30,10 @@
 ③出力を画像に平坦化すれば、黒塗りの下に原文は残りません
 ```
 
-## 5 / 5  (109字 / weighted 101)
+## 5 / 5  (92字 / weighted 101)
 
 ```
 資格確認書の黒塗りを、ブラウザだけで試す
 提出先の指示を必ず確認してください。
-https://slimfile.net/safe/jp/nyusatsu/?utm_source=x&utm_campaign=ep01
+https://slimfile.net/safe/jp/nyusatsu/?via=x&ep=ep01
 ```

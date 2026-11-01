@@ -11,7 +11,14 @@
     property of the URL, which is the bug this app already shipped once.
 %>
 <% showing_en = url_locale.to_sym == :en && post.body_en.present? %>
-<% utm = "utm_source=blog&utm_medium=organic&utm_campaign=ep#{format('%02d', post.content_ep.to_i)}" %>
+<%# ?via=blog&ep=NN, not ?utm_* (S10) — blocking extensions strip the latter
+    before the request is made, so these in-article CTA clicks were arriving
+    with no recorded source. Named `utm` still because the variable is used
+    below in several places and the rename buys nothing; the VALUE is the new
+    form. JpWeeklyKpi counts `via=blog` in P16's DENOMINATOR only, same as it
+    did for utm_source=blog — an in-article link is internal navigation, and
+    counting it as social would make the metric rise as the blog grows. %>
+<% utm = "via=blog&ep=ep#{format('%02d', post.content_ep.to_i)}" %>
 <% landing = post.package["landing_path"].presence || "/safe/jp/nyusatsu/" %>
 
 <article class="jp-article" lang="<%= showing_en ? "en" : "ja" %>">

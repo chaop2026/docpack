@@ -70,7 +70,7 @@ const FIXTURE_FOR_DOC = {
 // content/jp/guard_rules.json so the server's JpContentGuard enforces the same
 // list on import — a rule that exists in one of the two places is a rule the
 // other half of the project can break without anything saying so.
-const { RULES, weightedLength, runForbidden, runLegalClaim, mustLineViolations, runLinkedIn } =
+const { RULES, weightedLength, runForbidden, runLegalClaim, mustLineViolations, runLinkedIn, runXThread } =
   await import(pathToFileURL(path.join(__dirname, 'guard_rules.mjs')).href);
 
 // Our editorial limit, not X's. X's actual cap is RULES.limits.tweet_weighted
@@ -116,7 +116,15 @@ if (!landing) {
   console.error(`ep${EP}: unknown landing "${topic.landing}"`);
   process.exit(2);
 }
-const utmUrl = `${BASE_URL}${landing}?utm_source=x&utm_campaign=ep${EPP}`;
+/* Attribution: ?via=<channel>&ep=NN, not ?utm_* (S10).
+ *
+ * Ad/tracker-blocking extensions strip ?utm_* before the request is made —
+ * measured 2026-10-27, the author's own Chrome would not open his own shared
+ * link while the server answered 200 to everything. Mirrors
+ * JpEpisodeSource#via_url; the two build the same string for the same episode
+ * and a test pins that. */
+const viaUrl = (channel) => `${BASE_URL}${landing}?via=${channel}&ep=ep${EPP}`;
+const utmUrl = viaUrl('x');
 
 /* ── frontmatter ──────────────────────────────────────────────────────────── */
 /* A deliberately small YAML subset: `key: value` and `key:` followed by `- `
@@ -314,6 +322,12 @@ if (enBody) violations.push(...runLegalClaim('post_en.md', enBody));
 // surface; the LinkedIn rules are about voice, and 「日本の」 in CORPUS would
 // fail every Japanese article ever written.
 violations.push(...runLinkedIn(liBody));
+
+// The first line of tweet 1 must be the reader's pain (marketing plan §6-1).
+// Checked on the BUILT thread rather than on fm.hook, because the thread is
+// what gets posted — if the assembly below ever stops putting the hook first,
+// this catches it instead of silently passing.
+violations.push(...runXThread(tweets));
 
 // Title length, by the same number the server uses.
 if ([...fm.title].length > RULES.limits.title_chars) {
@@ -675,7 +689,7 @@ const GUIDE_STEPS = [
 ];
 const GUIDE_SHOT_TITLES = ['Step 1 — drop it in', 'Step 2 — say where it is going',
                            'Step 3 — check what will be covered', 'Step 4 — save it'];
-const LINKEDIN_UTM = `${BASE_URL}${landing}?utm_source=linkedin&utm_medium=social&utm_campaign=ep${EPP}`;
+const LINKEDIN_UTM = viaUrl('linkedin');
 
 let guide = 'skipped';
 {

@@ -56,22 +56,47 @@ class JpWeeklyKpi
 
   # P16 — share of landing visits arriving from social.
   #
-  # `utm_source=blog` is EXCLUDED from the numerator (cross-review Q5). The
-  # blog's own in-article CTA is not a social referral; counting it would make
-  # the metric measure our own internal linking and drift upward as the blog
-  # grows, which is the opposite of what P16 is for.
+  # `blog` is EXCLUDED from the numerator (cross-review Q5). The blog's own
+  # in-article CTA is not a social referral; counting it would make the metric
+  # measure our own internal linking and drift upward as the blog grows, which
+  # is the opposite of what P16 is for.
   SOCIAL_SOURCES = %w[x linkedin youtube].freeze
 
+  # Both parameter names, summed (S10). Links published from 2026-11-01 carry
+  # `?via=`; everything already out there carries `?utm_source=` and keeps being
+  # clicked. Reading only one of them would report a drop that is really a
+  # change of spelling.
+  ATTRIBUTION_KEYS = %w[via utm_source].freeze
+
   def p16
-    by_source = landing_views_by("utm_source")
-    total = by_source.values.sum
+    by_source = attributed_landing_views
+
+    # ── the denominator is ALL landing views, not just attributed ones ───────
+    #
+    # Counted from the events, NOT from `by_source.values.sum`. jp.js omits the
+    # key entirely on a direct visit (sending via:'none' AND utm_source:'none'
+    # would write the same non-fact into two columns), and `landing_views_by`
+    # drops null groups — so summing the groups would quietly make the
+    # denominator "visits that had a source", and P16 would approach 100% as
+    # direct traffic grew. The metric is a share of ALL visits.
+    total = scoped(SafeEvent.where(name: "landing_view")).count
     social = by_source.slice(*SOCIAL_SOURCES).values.sum
     {
       total: total,
       social: social,
       blog_excluded: by_source.fetch("blog", 0),
+      attributed: by_source.values.sum,
       share: total.zero? ? nil : (social.to_f / total * 100).round(1)
     }
+  end
+
+  # { "x" => n, "linkedin" => n, … } — `via` and `utm_source` added together.
+  # An event carries at most one of the two (jp.js sends whichever it found),
+  # so adding cannot double-count a single visit.
+  def attributed_landing_views
+    ATTRIBUTION_KEYS.each_with_object(Hash.new(0)) do |key, acc|
+      landing_views_by(key).each { |source, n| acc[source] += n }
+    end
   end
 
   # P17 — YouTube only. v3's table had it covering "SNS", which it never did.
@@ -120,7 +145,7 @@ class JpWeeklyKpi
       { "id" => "P16", "statement" => "랜딩 유입 중 소셜 경유", "target" => "≥10%",
         "current" => p16v[:share] ? "#{p16v[:share]}%" : "—",
         "detail" => "x+linkedin+youtube #{p16v[:social]} / #{p16v[:total]} " \
-                    "(utm_source=blog #{p16v[:blog_excluded]}건은 분모에만 넣고 분자에서 제외)" },
+                    "(blog #{p16v[:blog_excluded]}건은 분모에만 넣고 분자에서 제외)" },
       { "id" => "P17", "statement" => "YouTube 누적 재생", "target" => "≥3,000",
         "current" => "—", "detail" => p17[:note] },
       { "id" => "P18", "statement" => p18_row[:statement], "target" => P18_TARGET.to_s,
@@ -150,23 +175,37 @@ class JpWeeklyKpi
     out << "> X のインプレッションと YouTube の再生数はこの DB に存在しない — 「—」は"
     out << "> 「測って0だった」ではなく「測る元がない」の意味。"
     out << ""
-    out << "### UTM別ランディング流入"
+    out << "### 유입 채널별 랜딩 방문 (via + utm_source 합산)"
     out << ""
-    utm = landing_views_by("utm_source")
-    if utm.empty?
-      out << "この期間に `landing_view` が記録されていない。"
+    merged = attributed_landing_views
+    p16v = p16
+    if merged.empty?
+      out << "이 기간에 출처가 기록된 `landing_view` 가 없다" \
+             "(전체 landing_view #{p16v[:total]}건)."
       out << ""
-      out << "> ⚠️ `utm_source` は 2026-10-25 に追加した次元で、**その日より前のイベントには"
-      out << "> 存在しない**。空であることは「ソーシャル流入が0だった」ではなく「この次元を"
-      out << "> 送る版がまだ配備されていない」を意味する場合がある — 配備日より前の週は"
-      out << "> この表を根拠に P16 を判定しないこと。"
+      out << "> ⚠️ 두 차원 모두 배포 후에만 쌓인다 — `utm_source` 는 2026-10-25,"
+      out << "> `via` 는 2026-11-01(S10) 에 추가했다. 비어 있다는 것은 「소셜 유입이 0이었다」가"
+      out << "> 아니라 **「이 차원을 보내는 버전이 아직 배포되지 않았다」** 일 수 있다 —"
+      out << "> 배포일 이전 주는 이 표를 근거로 P16 을 판정하지 말 것."
     else
-      out << "| utm_source | count |"
-      out << "| --- | --- |"
-      utm.sort_by { |k, v| [ -v, k.to_s ] }.each { |k, v| out << "| #{k} | #{v} |" }
+      # 두 열로 나눠 보여준다. 합계만 보면 「옛 링크가 아직 얼마나 돌고 있는지」를 알 수 없고,
+      # 그것이 utm → via 전환이 끝났는지 판단하는 유일한 신호다.
+      via = landing_views_by("via")
+      utm = landing_views_by("utm_source")
+      out << "| 채널 | via (신규 링크) | utm_source (기존 링크) | 합계 |"
+      out << "| --- | --- | --- | --- |"
+      merged.sort_by { |k, v| [ -v, k.to_s ] }.each do |k, v|
+        out << "| #{k} | #{via.fetch(k, 0)} | #{utm.fetch(k, 0)} | **#{v}** |"
+      end
       out << ""
-      out << "> `none` = utm_source が付いていない訪問。`other` = 一覧外の値。"
-      out << "> P16 の分子は x + linkedin + youtube のみ(`blog` は自サイト内リンクなので除外)。"
+      out << "> 전체 landing_view **#{p16v[:total]}건** 중 출처가 기록된 것 #{p16v[:attributed]}건."
+      out << "> 나머지는 파라미터 없이 들어온 방문이며 **P16 의 분모에는 포함**된다."
+      out << "> P16 의 분자는 x + linkedin + youtube 만(`blog` 는 자사 내부 링크이므로 제외)."
+      out << "> `other` = 목록 밖 값."
+      if utm.values.sum.positive?
+        out << "> ℹ️ `utm_source` 열이 아직 0이 아니라는 것은 **옛 링크가 계속 클릭되고 있다**는 뜻이다."
+        out << "> 그 열이 0이 될 때까지 두 열을 함께 읽어야 한다."
+      end
     end
     out << ""
     out

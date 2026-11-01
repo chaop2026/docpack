@@ -2,12 +2,12 @@
 # X thread — ep03
 
 > ChatGPTに契約書を貼る前に、個人情報だけ黒塗りする
-> landing: https://slimfile.net/safe/jp/ai-mae/?utm_source=x&utm_campaign=ep03
+> landing: https://slimfile.net/safe/jp/ai-mae/?via=x&ep=ep03
 
-## 1 / 5  (68字 / weighted 125)
+## 1 / 5  (63字 / weighted 115)
 
 ```
-AIに契約書の意味を聞くとき、相手方の氏名と口座番号まで一緒に送っています。
+契約書をAIに貼った後で、相手方の口座番号も送っていたと気づいた。
 
 ChatGPTに契約書を貼る前に、個人情報だけ黒塗りする
 ```
@@ -30,10 +30,10 @@ ChatGPTに契約書を貼る前に、個人情報だけ黒塗りする
 ③画像にして貼れば、黒塗りの下の文字列はコピーできません
 ```
 
-## 5 / 5  (110字 / weighted 105)
+## 5 / 5  (93字 / weighted 105)
 
 ```
 契約書をAIに貼る前に、個人情報だけ黒塗りする
 提出先の指示を必ず確認してください。
-https://slimfile.net/safe/jp/ai-mae/?utm_source=x&utm_campaign=ep03
+https://slimfile.net/safe/jp/ai-mae/?via=x&ep=ep03
 ```

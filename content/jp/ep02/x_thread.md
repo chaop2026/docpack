@@ -2,12 +2,12 @@
 # X thread — ep02
 
 > 入札添付の資格確認書、マスキング指示の読み方
-> landing: https://slimfile.net/safe/jp/nyusatsu/?utm_source=x&utm_campaign=ep02
+> landing: https://slimfile.net/safe/jp/nyusatsu/?via=x&ep=ep02
 
-## 1 / 5  (64字 / weighted 126)
+## 1 / 5  (59字 / weighted 116)
 
 ```
-入札公告の「マスキングのうえ提出」は、どこを隠すかを書いていないことがあります。
+「マスキングのうえ提出」とだけ書いてあって、どこを隠すのか分からない。
 
 入札添付の資格確認書、マスキング指示の読み方
 ```
@@ -30,10 +30,10 @@
 ③指定が読み取れないときは、発注者の窓口に確認するのが最短です
 ```
 
-## 5 / 5  (114字 / weighted 111)
+## 5 / 5  (97字 / weighted 111)
 
 ```
 提出目的を選ぶだけで、書類別の黒塗り箇所を確認する
 提出先の指示を必ず確認してください。
-https://slimfile.net/safe/jp/nyusatsu/?utm_source=x&utm_campaign=ep02
+https://slimfile.net/safe/jp/nyusatsu/?via=x&ep=ep02
 ```
