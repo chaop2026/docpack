@@ -336,3 +336,11 @@ source 키가 **아예 없다**」로 고쳤다(그것이 변경의 요점이고
 ---
 
 S10_DONE
+
+## 11. 배포 후 실측 (2026-11-01 16:30 KST, Justin 실행 · Claude 확인)
+- 배포: add1349 (S10+S10b), 백업 `docpack_pre_s10_20261101_0715.sql.gz`
+- `XClient.dry_run?` → **true** · `auto_generate_jp` next → **2026-11-07 00:00 +0900** · `sanitize(via+utm_source)` → **nil(거부)**
+- 프로덕션 import: ep02 거부(exit 2, scheduled — 정상) · ep03 updated · ep04~08 created, 전부 guard clean / summary_ko 7/7
+- Post 상태: ep01 published · ep02 scheduled(11-02 09:00 JST) · ep03~08 draft
+- `/safe/jp/nyusatsu/?via=x&ep=ep01` → 200
+- 교차검증 조건(codex_review_s10) 전부 닫힘. 11-07 토 승인 메일은 **ep03**(publish_on 11-09)이 대상.

@@ -12,3 +12,9 @@
 8. **utm_ 파라미터 폐기** — Justin의 Chrome(차단 확장)에서 `?utm_*` 붙은 주소가 브라우저 단계에서 차단됨(서버는 정상 200). 공유 링크는 깨끗한 주소로 통일하고, 계측은 `?via=x|linkedin|blog|youtube&ep=NN` 로 교체(jp.js 매핑·safe_events 허용값·make_episode UTM 생성·jp_episode_source#utm_url·KPI P16 분모/분자). 기존 utm 이벤트는 그대로 두고 새 키로 합산.
 9. **X 문안 규칙 개정** — 고통(差し戻し·締切前日やり直し) → 원인 → 해결 순. 기술적 신기함("검은 상자 밑 글자")을 첫 줄로 쓰지 말 것. 영어 답글은 본 트윗의 1:1 영어판. 전략 §3-3 X 행에 반영.
 10. 고정 트윗 교체 완료(2115055040432083148). 외부 확인은 항상 실제 공유 주소(파라미터 포함)로.
+
+## 2026-11-01 YouTube 채널 개설·첫 Shorts (Claude, Chrome)
+- 채널: SafeFile セーフファイル @safefile_jp — https://www.youtube.com/channel/UC0TZjC4xG0iaRVqFrJroJxA (소유 tasicop.kr, 관리자 chaop2)
+- 프로필·배너(public/safe/brand/yt_profile_800.png, yt_banner_2048x1152.png)·일본어 설명·링크 2개(랜딩 ?via=youtube, X) 게시
+- ep01 Shorts 공개: https://youtube.com/shorts/-mrJZVWP_6E (언어 ja, 아동용 아님, 설명에 ?via=youtube&ep=ep01)
+- S11 후보: manifest.posted.youtube 를 승인 화면에 표시 + 토요일 승인 패키지에 shorts.mp4·제목·설명 첨부(지금은 수동 업로드)
