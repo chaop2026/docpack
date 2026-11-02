@@ -21,3 +21,9 @@
 - 지금(Claude): Google 색인 요청 4건 ✅. Bing Webmaster(GSC 가져오기)는 Google 로그인 연결 승인 필요 → Justin 확인 대기
 - S11(Claude Code): 아래 프롬프트 §GEO
 - 측정: 2주 후(11-16) GSC에서 4 URL 색인 여부 재확인, 이후 매주 토요일 승인 메일 KPI에 「JP 색인 수」 추가
+
+## Bing Webmaster (2026-11-02 20:45 완료)
+- chaop2 Google 로그인으로 GSC 가져오기 → 4사이트 등록·검증: schooljob.site, hellokorean.org, currencyrate.info, slimfile.net (softr·blogspot 3곳 제외)
+- slimfile.net 사이트맵 https://slimfile.net/sitemap.xml 제출(Processing)
+- URL 직접 제출 8건 성공: /safe/jp/nyusatsu/·ai-mae/·honnin-kakunin/, /safe/, /ja/blog, ep01·ep02 글, /llms.txt
+- 이후 IndexNow(S11 #6)가 붙으면 새 글은 자동 통지

@@ -64,7 +64,27 @@ class SafeEvent < ApplicationRecord
     # keep arriving with it for as long as anyone clicks them. Deleting the key
     # would push those visits into `none`, which reads as "traffic fell" when
     # what actually happened is "we stopped counting". JpWeeklyKpi sums the two.
-    "via"        => %w[x linkedin youtube blog direct other none],
+    #
+    # ── `email` (S11) ──────────────────────────────────────────────────────
+    #
+    # Outreach mail is the only channel with real volume right now — eight
+    # firms were contacted on 2026-11-01 and the second round is planned
+    # (docs/jp/jp_outreach_playbook_2026-11-01.md §6), and every one of those
+    # visits was landing as "no source recorded". The playbook asked for the
+    # value in §5-3.
+    #
+    # It is deliberately NOT added to `utm_source` above. That list describes
+    # links already published and must not grow: jp.js accepts a value only if
+    # the server's list has it, so a `?utm_source=email` that the client sent
+    # and the server refused would discard the WHOLE event (sanitize returns
+    # nil) — and sendBeacon never reads the response, so the loss would be
+    # invisible from both ends. Two lists, two purposes.
+    #
+    # `email` is in P16's DENOMINATOR only, like `blog`: P16 asks for the share
+    # of landing visits arriving from SOCIAL, and a mail sent by hand to a
+    # named firm is not that. Counting it would make P16 rise as outreach
+    # scaled, which is the opposite of what the metric is for (JpWeeklyKpi).
+    "via"        => %w[x linkedin youtube blog email direct other none],
 
     # Which episode's link was clicked. New information: `utm_campaign=epNN`
     # was in the URL but was never stored (it is not in KEYS below), so

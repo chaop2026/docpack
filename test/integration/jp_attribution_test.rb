@@ -204,4 +204,86 @@ class JpAttributionTest < ActionDispatch::IntegrationTest
     assert_match(/옛 링크가 계속 클릭되고 있다/, lines,
                  "while the old column is non-zero the report has to say so")
   end
+
+  # ── `via=email` (S11) ──────────────────────────────────────────────────────
+  #
+  # Outreach mail is the channel with real volume right now — eight firms on
+  # 2026-11-01, the second round planned — and every one of those visits was
+  # being recorded as "no source". The playbook asked for the value in §5-3.
+
+  test "via=email is storable through the endpoint" do
+    assert_includes SafeEvent::VALUES["via"], "email"
+
+    assert_difference -> { SafeEvent.count }, 1 do
+      post "/api/safe_events",
+           params: { name: "landing_view", props: { from: "nyusatsu", locale: "ja", via: "email" } }.to_json,
+           headers: { "CONTENT_TYPE" => "application/json" }
+      assert_response :no_content
+    end
+    assert_equal "email", SafeEvent.last.props.fetch("via")
+  end
+
+  test "utm_source=email is NOT storable — the two lists are not the same list" do
+    # `utm_source` describes links that are already published and is frozen.
+    # This is asserted rather than left implicit because the server rejecting a
+    # value the client was willing to send discards the WHOLE event
+    # (sanitize → nil), and sendBeacon never reads the response: the loss would
+    # be invisible from both ends. jp.js therefore keeps two arrays, and the
+    # test below checks that it does.
+    refute_includes SafeEvent::VALUES["utm_source"], "email"
+    assert_nil SafeEvent.sanitize("landing_view", { "from" => "nyusatsu", "utm_source" => "email" })
+  end
+
+  test "jp.js offers exactly the channels the server will accept, per key" do
+    # The two lists live in two files by necessity (one is a static JS asset,
+    # one is a Rails model). What can be checked is that they agree — a value
+    # the page sends and the server refuses throws the event away silently.
+    js = Rails.root.join("public", "safe", "jp", "jp.js").read
+
+    via_js = js[/var VIA_CHANNELS = \[(.*?)\];/m, 1]
+    utm_js = js[/var UTM_CHANNELS = \[(.*?)\];/m, 1]
+    assert via_js && utm_js, "jp.js no longer declares VIA_CHANNELS / UTM_CHANNELS"
+
+    parse = ->(s) { s.scan(/'([a-z_]+)'/).flatten.sort }
+
+    # 'none' and 'other' are produced by the server-side mapping, never sent as
+    # a literal, so they are expected in VALUES and not in the JS arrays.
+    assert_equal (SafeEvent::VALUES["via"] - %w[none other]).sort, parse.(via_js),
+                 "VIA_CHANNELS and SafeEvent::VALUES['via'] disagree"
+    assert_equal (SafeEvent::VALUES["utm_source"] - %w[none other]).sort, parse.(utm_js),
+                 "UTM_CHANNELS and SafeEvent::VALUES['utm_source'] disagree"
+    refute_equal parse.(via_js), parse.(utm_js),
+                 "the two arrays are identical again — sharing one list is how " \
+                 "?utm_source=email would get sent and thrown away"
+  end
+
+  test "email stays out of P16's numerator and inside its denominator" do
+    # Same rule as `blog`, different reason: a mail sent by hand to a named
+    # firm is outreach, not social reach. It is the channel with the most
+    # volume today, so counting it would let P16 report ≥10% off the back of
+    # work P16 was never asked about.
+    SafeEvent.delete_all
+    3.times { SafeEvent.create!(name: "landing_view", props: { "from" => "nyusatsu", "via" => "email" }) }
+    SafeEvent.create!(name: "landing_view", props: { "from" => "nyusatsu", "via" => "x" })
+
+    k = JpWeeklyKpi.new.p16
+    assert_equal 1, k[:social], "only the x visit is social"
+    assert_equal 3, k[:email_excluded]
+    assert_equal 4, k[:total], "all four are in the denominator"
+    assert_equal 25.0, k[:share]
+    refute_includes JpWeeklyKpi::SOCIAL_SOURCES, "email"
+    assert_includes JpWeeklyKpi::NON_SOCIAL_SOURCES, "email"
+  end
+
+  test "the P16 row names both exclusions so the number can be read" do
+    SafeEvent.delete_all
+    SafeEvent.create!(name: "landing_view", props: { "from" => "nyusatsu", "via" => "email" })
+    SafeEvent.create!(name: "landing_view", props: { "from" => "nyusatsu", "via" => "blog" })
+
+    row = JpWeeklyKpi.new.rows.find { |r| r["id"] == "P16" }
+    assert_match(/blog 1건/, row["detail"])
+    assert_match(/email 1건/, row["detail"])
+    assert_match(/email/, JpWeeklyKpi.new.lines.join("\n"),
+                 "the weekly table has to explain why email is not in the numerator")
+  end
 end

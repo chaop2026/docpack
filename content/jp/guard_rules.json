@@ -82,6 +82,12 @@
     { "id": "fukusu_files", "re": "複数(枚|ファイル|のPDF|PDF|書類をまとめ)", "why": "複数ファイル入力は未出荷 — ファイル入力は1件のみ" },
     { "id": "matomete", "re": "まとめて(読み込|処理|ダウンロード|黒塗り)", "why": "複数ファイル入力は未出荷" },
     { "id": "shori_kiroku", "re": "処理記録|処理ログ", "why": "処理ログはチームプランのロードマップ項目で、出荷済み機能ではない" },
+    {
+      "id": "pilot_scarcity",
+      "re": "先着[0-9０-９]+社|先着[0-9０-９]+名",
+      "why": "「先着N社」は数えていないカウントダウン — 有料プランがまだ存在せず、割り引く元の価格もない。「先行利用の事務所を募集しています（無料）」を使う",
+      "_note": "Added S11 (2026-11-02). The outreach playbook §2 had this on its forbidden list before the first mail went out, and the nyusatsu landing was still saying it — a rule that lived in one document and was enforced nowhere. No episode has ever carried the phrase (grepped), so this fires on nothing today and exists to stop it coming back."
+    },
     { "id": "hozon_kyoyu", "re": "保存して(共有|おく)|共有リンク", "why": "保存・共有リンクは未出荷" },
     { "id": "batch_en", "re": "\\bbatch\\b", "ignorecase": true, "why": "batch processing has not shipped" },
     { "id": "multifile_en", "re": "several files|multiple files|all at once|at once is fine|in one pass|in bulk", "ignorecase": true, "why": "multi-file input has not shipped" },

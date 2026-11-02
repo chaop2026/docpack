@@ -51,7 +51,9 @@ const PAGES = [
       // this line the list reads as shipped, which is advertising a feature
       // that does not exist.
       '※ 以下の機能はパイロット期間中に順次提供します（現在は1ファイルずつ処理）',
-      '先行導入パイロット募集',
+      // S11 item 10: 「先着10社に3か月無料」 promised a countdown nobody was
+      // counting, off a paid plan that does not exist. Replaced, not deleted.
+      '先行利用の事務所を募集しています（無料）',
       '健康保険法等の改正による告知要求制限（2020年10月1日施行）。'
     ],
     // Phrases that were REMOVED and must not come back. The step list used to
@@ -95,7 +97,7 @@ const PAGES = [
 ];
 
 // Phrases the copy rules forbid outright (docs/jp/jp_landing_copy §공통 규칙).
-const FORBIDDEN = ['タイムズカー', '絶対', '防ぎます', '唯一', '必ず安全'];
+const FORBIDDEN = ['タイムズカー', '絶対', '防ぎます', '唯一', '必ず安全', '先着10社'];
 
 const browser = await chromium.launch({ channel: 'chrome' });
 
@@ -218,6 +220,47 @@ for (const p of PAGES) {
   const twCard = await page.getAttribute('meta[name="twitter:card"]', 'content');
   ok(`${p.slug}: twitter:card summary_large_image`, twCard === 'summary_large_image', twCard);
 
+  /* ── S11: FAQ, Organization, internal links ───────────────────────────────
+   * The 2026-11-02 audit found two of these three pages with no
+   * question-shaped unit for an answer engine to quote, no publisher identity
+   * in any structured-data block, and nothing already indexed linking here.
+   *
+   * Checked from the LIVE page rather than from the file so a JSON-LD block
+   * that does not parse fails here too — Google drops an invalid block
+   * silently, which is indistinguishable from never having added it. */
+  const ld = await page.$$eval('script[type="application/ld+json"]', (els) =>
+    els.map((el) => { try { return JSON.parse(el.textContent); } catch { return { '@type': '<unparseable>' }; } }));
+  const types = ld.map((b) => b['@type']);
+  ok(`${p.slug}: every JSON-LD block parses`, !types.includes('<unparseable>'), types.join(', '));
+
+  const faq = ld.find((b) => b['@type'] === 'FAQPage');
+  ok(`${p.slug}: FAQPage present`, !!faq, types.join(', '));
+  ok(`${p.slug}: FAQPage has 3 questions`, faq && faq.mainEntity && faq.mainEntity.length === 3,
+     faq ? String(faq.mainEntity && faq.mainEntity.length) : 'no block');
+  // The answers must be IN the document, not only in the markup. Structured
+  // data describing a section the page does not contain is a false claim about
+  // the page — and the rule this repository already applies to the blog's FAQ.
+  const squashed = (body || '').replace(/\s+/g, '');
+  for (const q of (faq ? faq.mainEntity : [])) {
+    ok(`${p.slug}: FAQ answer is rendered — "${q.name.slice(0, 16)}…"`,
+       squashed.includes(q.acceptedAnswer.text.replace(/\s+/g, '')));
+  }
+
+  const org = ld.find((b) => b['@type'] === 'Organization');
+  ok(`${p.slug}: Organization present`, !!org, types.join(', '));
+  ok(`${p.slug}: Organization names SafeFile with a logo`,
+     org && org.name === 'SafeFile' &&
+     org.logo === 'https://slimfile.net/safe/brand/icon-512.png', JSON.stringify(org));
+  ok(`${p.slug}: Organization links X, YouTube and LINE`,
+     org && ['https://x.com/safefile_jp',
+             'https://www.youtube.com/channel/UC0TZjC4xG0iaRVqFrJroJxA',
+             'https://lin.ee/rV1LpPB'].every((u) => (org.sameAs || []).includes(u)),
+     JSON.stringify(org && org.sameAs));
+
+  // Links back to the Japanese blog listing. These pages were orphans in both
+  // directions; the listing links here and here links to the listing.
+  ok(`${p.slug}: links to /ja/blog`, await page.locator('a[href="/ja/blog"]').count() >= 1);
+
   // CTA: the href's purpose and the counter's purpose must be the same value.
   // They are written in two places (HTML attribute and query string) and a
   // mismatch would silently misattribute every conversion.
@@ -322,10 +365,31 @@ for (const p of PAGES) {
      ctaStatuses.length > 0 && ctaStatuses.every((s) => s === 204),
      ctaStatuses.length ? ctaStatuses.join(',') : 'no /api/safe_events response after the click');
 
-  // Google Fonts is the one cross-origin host /safe/ already loads; an ad or
-  // analytics host appearing here would break the page's own privacy claim.
-  const unexpected = [...hosts].filter((h) => !['fonts.googleapis.com', 'fonts.gstatic.com'].includes(h));
-  ok(`${p.slug}: no third-party host beyond the font CDN`, unexpected.length === 0, unexpected.join(', '));
+  /* ── third-party hosts (S11) ──────────────────────────────────────────────
+   * Google Fonts was the only cross-origin host these pages loaded. S11 adds
+   * Google Analytics 4 to the three LANDING pages — deliberately, with
+   * Signals and ad personalisation off, and disclosed in Japanese on
+   * /privacy/. So the allowlist grew, and the assertion that used to read
+   * "no third-party host beyond the font CDN" would now be false.
+   *
+   * What has NOT changed, and what the boundary actually is, is checked in
+   * section [2/4] below: /safe/ — the screen where a document is opened —
+   * loads no analytics at all. That is the half worth protecting, and
+   * test/integration/jp_analytics_scope_test.rb pins it in Ruby as well.
+   *
+   * The list stays explicit rather than becoming a "google.com" wildcard: a
+   * new Google host appearing here should be a decision, not a pass. */
+  const ALLOWED_HOSTS = [
+    'fonts.googleapis.com', 'fonts.gstatic.com',
+    'www.googletagmanager.com', 'www.google-analytics.com',
+    'region1.google-analytics.com', 'analytics.google.com'
+  ];
+  const unexpected = [...hosts].filter((h) => !ALLOWED_HOSTS.includes(h));
+  ok(`${p.slug}: no third-party host beyond fonts + GA4`, unexpected.length === 0, unexpected.join(', '));
+  // The positive half: GA has to be LOADED, not merely allowed. Without this
+  // the page could lose the tag and the allowlist above would stay green.
+  ok(`${p.slug}: GA4 is actually loaded`, hosts.has('www.googletagmanager.com'),
+     [...hosts].join(', '));
 
   await page.close();
 }
@@ -349,6 +413,28 @@ console.log('\n[2/4] /safe/ entry parameters — lang + purpose preselect');
   // identity_submit — on the page a tender clerk presses most.
   await page.evaluate(() => resetAll());
   ok('entry: purpose survives resetAll', await page.evaluate(() => jpState.purpose) === 'bid_attachment');
+
+  /* ── S11: /safe/ carries no analytics ────────────────────────────────────
+   * The other half of the GA decision, measured on the live page rather than
+   * asserted in a comment. The landings are measured; the screen where a
+   * document is opened is not. (AdSense predates S11 and is a separate,
+   * disclosed thing — see test/integration/jp_analytics_scope_test.rb, which
+   * pins the full external-script allowlist.) */
+  {
+    const toolHosts = new Set();
+    const probe = await browser.newPage();
+    probe.on('request', (req) => toolHosts.add(new URL(req.url()).hostname));
+    await probe.goto(`${BASE}/safe/`, { waitUntil: 'networkidle' });
+    const analytics = [...toolHosts].filter((h) => /googletagmanager|google-analytics/.test(h));
+    ok('tool page: /safe/ loads no analytics host', analytics.length === 0, analytics.join(', '));
+    ok('tool page: /safe/ defines no gtag', await probe.evaluate(() => typeof gtag) === 'undefined');
+    // And the footer link that stops the landings being orphans.
+    for (const slug of ['nyusatsu', 'honnin-kakunin', 'ai-mae']) {
+      ok(`tool page: footer links to /safe/jp/${slug}/`,
+         await probe.locator(`footer a[href="/safe/jp/${slug}/"]`).count() === 1);
+    }
+    await probe.close();
+  }
 
   // An unknown purpose must be ignored, not stored.
   await page.goto(`${BASE}/safe/?purpose=../../etc&from=evil`, { waitUntil: 'load' });

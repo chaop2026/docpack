@@ -25,6 +25,15 @@ env:
     - GMAIL_USERNAME
     - GMAIL_PASSWORD
     - ADMIN_PASSWORD
+    # IndexNow ownership key (S11). Public by protocol — it is served back at
+    # /<key>.txt — but listed under `secret` because that is how a value gets
+    # out of .env.production.local and into the container WITHOUT being
+    # committed to this public repository. Until it is set, IndexNow.dry_run?
+    # is true and every submission is a log line (lib/index_now.rb).
+    #
+    # Generate one (any 8–128 char hex string) and put it in
+    # .env.production.local as INDEXNOW_KEY=…; .kamal/secrets reads that file.
+    - INDEXNOW_KEY
   clear:
     RAILS_ENV: production
     RAILS_LOG_LEVEL: info

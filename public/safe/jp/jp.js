@@ -5,8 +5,16 @@
  *  1. landing_view / cta_click counters, sent to our OWN /api/safe_events with
  *     navigator.sendBeacon. Category values only — the page's `from` slug and
  *     the purpose the CTA carries. No cookie is set, no identifier is
- *     generated, nothing is read back. There is no third-party script on these
- *     pages and this file must never become the place one is added.
+ *     generated, nothing is read back.
+ *
+ *     ⚠️ S11: the three landing PAGES now also load Google Analytics 4, in
+ *     their own <head>, with Signals and ad personalisation turned off and
+ *     /privacy/ saying so in Japanese. This file is not where that lives and
+ *     must not become it — the GA tag belongs to the marketing pages, and the
+ *     counters below belong to the product. /safe/, the screen where a
+ *     document is actually opened, still carries NO third-party script at all,
+ *     and test/integration/jp_analytics_scope_test.rb pins that boundary in
+ *     both directions.
  *
  *  2. The pilot form on /safe/jp/nyusatsu/, posted as JSON so the page can show
  *     a thank-you in place without a navigation.
@@ -57,9 +65,24 @@
     } catch (e) { return 'none'; }
   }
 
-  var CHANNELS = ['x', 'linkedin', 'youtube', 'blog', 'direct'];
-  var VIA = pick('via', CHANNELS);
-  var UTM_SOURCE = VIA === 'none' ? pick('utm_source', CHANNELS) : 'none';
+  /* Two lists, not one shared one (S11).
+   *
+   * `via` gained `email` — outreach mail is the channel with actual volume
+   * right now and those visits were arriving unattributed. `utm_source` did
+   * NOT, because it describes links that are already published and that list
+   * is frozen.
+   *
+   * They have to be separate arrays, and this is not tidiness: the server
+   * validates each key against its OWN list (SafeEvent::VALUES), and an
+   * unknown value makes `sanitize` return nil, which discards the ENTIRE
+   * event rather than one field. Sharing one array here would mean that
+   * `?utm_source=email` was accepted by this file, sent, and then thrown away
+   * whole by the server — and since sendBeacon never reads the response, the
+   * loss would be invisible from both ends. */
+  var VIA_CHANNELS = ['x', 'linkedin', 'youtube', 'blog', 'email', 'direct'];
+  var UTM_CHANNELS = ['x', 'linkedin', 'youtube', 'blog', 'direct'];
+  var VIA = pick('via', VIA_CHANNELS);
+  var UTM_SOURCE = VIA === 'none' ? pick('utm_source', UTM_CHANNELS) : 'none';
 
   /* epNN, two digits, ep01-ep33 — the planned run. Built here rather than
    * written out so the list cannot drift from SafeEvent::VALUES["ep"]. */

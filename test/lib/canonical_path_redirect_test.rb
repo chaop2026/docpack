@@ -271,6 +271,26 @@ class CanonicalPathRedirectTest < ActiveSupport::TestCase
     end
   end
 
+  test "the IndexNow key file reaches the router untouched" do
+    # This middleware runs IN FRONT of the router, so a rewrite here would be
+    # invisible to test/integration/index_now_test.rb — that stack sees whatever
+    # this one passes on. Bing fetches /<key>.txt exactly as published; a 301,
+    # even to the same bytes, is a failed ownership check.
+    #
+    # Nothing in `canonical_spelling` should touch it (no repeated slashes, no
+    # trailing slash, not a DIRS entry), but "should" is what this file exists
+    # to replace.
+    key = "s11testkeyabcdef0123456789abcdef"
+    assert_equal 200, call("/#{key}.txt").first,
+                 "the key file must not be redirected"
+
+    # The trailing-slash spelling IS normalised, and that is correct: Bing is
+    # only ever given the slash-less URL (IndexNow.key_location builds it), and
+    # one address per document is this middleware's whole job.
+    _, headers, = call("/#{key}.txt/")
+    assert_equal "/#{key}.txt", headers["location"]
+  end
+
   test "the trailing-slash redirect preserves the query string" do
     _, headers, = call("/blog/", query: "category=privacy")
     assert_equal "/blog?category=privacy", headers["location"]

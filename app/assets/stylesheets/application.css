@@ -1780,3 +1780,65 @@ p {
 
 .jp-article-nav { margin-top: 1.8rem; text-align: center; }
 .jp-article-nav a { font-size: 13px; color: var(--text-sub); text-decoration: none; }
+
+/* ── SafeFile JP: landing cards on the /ja/blog listing (S11) ──────────────
+   The three landing pages were orphan URLs — nothing already indexed linked
+   to them. These cards are the entry point from the listing, grouped by the
+   PURPOSE a reader arrives with, which is the axis the three pages split on.
+   Bento Soft tokens throughout; the lift on hover matches .feature-card. */
+.jp-landing-heading {
+  font-size: 15px; font-weight: 600; letter-spacing: -0.01em;
+  margin: 0 0 0.9rem;
+}
+.jp-landing-cards {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px; margin-bottom: 2rem;
+}
+.jp-landing-card {
+  display: block; padding: 16px; background: var(--card-bg);
+  border: 0.5px solid var(--border-color); border-radius: var(--r-card);
+  text-decoration: none; color: var(--text); transition: transform 0.2s;
+}
+.jp-landing-card:hover { transform: translateY(-3px); }
+.jp-landing-card strong {
+  display: block; font-size: 15px; font-weight: 600;
+  letter-spacing: -0.01em; margin-bottom: 6px;
+}
+.jp-landing-card span {
+  display: block; font-size: 13px; color: var(--text-sub); line-height: 1.55;
+}
+
+/* ── Global footer (S11) ───────────────────────────────────────────────────
+   The Korean LAYOUT had no footer at all, which is why there was no place for
+   a single site-wide link to the Japanese pages (item 4d). /blog/resident-
+   number-masking is the one KO article Google has indexed and its body is
+   deliberately NOT touched — a layout footer reaches it without editing it.
+
+   Named `global-footer`, NOT `site-footer`: pages/home.html.erb already has a
+   `.site-footer` with its own rules 1,000 lines above this, and a second
+   definition of that class down here would win the cascade and silently
+   restyle the home page's footer. Measured — the first version of this block
+   did exactly that, and the test that caught it was counting
+   `footer.site-footer` and finding two. */
+.global-footer {
+  margin-top: 2.5rem; padding: 18px 20px 40px;
+  border-top: 0.5px solid var(--border-color);
+  text-align: center; font-size: 12px; color: var(--text-sub); line-height: 1.8;
+}
+.global-footer a { color: var(--text-sub); text-decoration: none; }
+.global-footer a:hover { text-decoration: underline; }
+.global-footer .global-footer-jp { opacity: 0.9; }
+
+/* ── SafeFile JP: breadcrumb (S11) ─────────────────────────────────────────
+   The trail the BreadcrumbList in posts/show.html.erb describes. Visible so
+   the structured data is not a claim about a navigation the page lacks. */
+.jp-breadcrumb {
+  font-size: 12px; color: var(--text-sub); line-height: 1.6;
+  margin-bottom: 1rem; display: flex; flex-wrap: wrap; gap: 6px;
+}
+.jp-breadcrumb a { color: var(--text-sub); text-decoration: none; }
+.jp-breadcrumb a:hover { text-decoration: underline; }
+.jp-breadcrumb-current {
+  color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  max-width: 100%;
+}

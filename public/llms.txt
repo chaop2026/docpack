@@ -43,6 +43,43 @@
 - https://slimfile.net/faq
 - Covers pricing (free), file formats, privacy, upload limits
 
+## SafeFile (JP) — 日本の提出書類向けの黒塗りツール / redaction for Japanese submission documents
+
+### 日本語
+
+- SafeFile は、提出書類に写っている個人情報の位置だけを黒い帯で隠すブラウザツールです。元のレイアウトはそのまま残ります。
+- 自動で判定できる書類は4種類です: 資格確認書(健康保険)・運転免許証・マイナンバーカード・住民票の写し。
+- 提出目的を選ぶと、その目的で隠す項目と残す項目が切り替わります。目的は4つ: 本人確認提出 / 個人番号手続 / 入札添付 / 相談用共有。
+- 例(入札添付): 保険者番号・被保険者等記号・番号・枝番・二次元コードを隠し、氏名・生年月日・事業所名称は残します。
+- 例(本人確認提出): マイナンバーカードは裏面全体と表面の臓器提供欄を隠し、顔写真・氏名・住所・生年月日・有効期限は残します。
+- ファイルはブラウザの中だけで処理され、サーバーには送信されません。アカウント登録は不要で、料金はかかりません。
+- 出力は画像に平坦化されるため、黒い帯の下から元の文字を取り出すことはできません。EXIF などのメタデータも削除します。
+- 限界: 上記4種以外の書類は自動で判定されません。その場合は隠したい範囲を自分で囲って指定します(手動の範囲選択)。氏名・会社名のように形が決まっていない情報は、任意の AI 精密検査を選んだときに候補として出ます。
+- 自動で見つけたものの位置を特定できなかった項目は、結果画面に赤色で「位置不明」と表示されます。保存する前に目で確かめてください。
+- 提出先の指示を必ず確認してください。
+
+### English
+
+- SafeFile is a browser tool that covers the personal data on Japanese submission documents with solid bars, leaving the original page layout intact.
+- Four document types are detected automatically: health-insurance qualification certificate (資格確認書), driver's licence (運転免許証), My Number card (マイナンバーカード), and a certificate of residence (住民票の写し).
+- A submission purpose decides which fields are covered and which are kept. Four purposes: identity check, My Number procedure, tender attachment, and sharing for advice.
+- Example (tender attachment): the insurer number, insured symbol/number, branch number and 2-D code are covered; name, date of birth and employer name are kept.
+- Files are processed inside the browser and are not uploaded. No account, no sign-up, no charge.
+- The output is flattened to a raster image, so no text remains under the bars, and metadata such as EXIF is dropped.
+- Limits: a document outside those four types is not classified, and the area to cover is then selected by hand. Fields with no fixed shape, such as personal and company names, appear only as candidates and only when the optional AI inspection is chosen.
+- Items that were detected but whose position could not be fixed are shown in red on the result screen and have to be checked before the file is saved.
+- Always check the recipient's own instructions.
+
+### SafeFile (JP) pages and channels
+- 入札添付 / tender attachments: https://slimfile.net/safe/jp/nyusatsu/
+- 本人確認書類 / identity documents: https://slimfile.net/safe/jp/honnin-kakunin/
+- AIに貼る前に / before pasting into an AI: https://slimfile.net/safe/jp/ai-mae/
+- ツール本体 / the tool itself: https://slimfile.net/safe/
+- 日本語ブログ / Japanese blog: https://slimfile.net/ja/blog
+- YouTube: https://www.youtube.com/channel/UC0TZjC4xG0iaRVqFrJroJxA
+- X: https://x.com/safefile_jp
+- LINE: https://lin.ee/rV1LpPB
+
 ## Related services
 - Schooljob.site (https://schooljob.site) — Korean school job marketplace
 - HelloKorean (https://hellokorean.org) — Korean language learning for international students

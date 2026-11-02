@@ -60,7 +60,18 @@ class JpWeeklyKpi
   # in-article CTA is not a social referral; counting it would make the metric
   # measure our own internal linking and drift upward as the blog grows, which
   # is the opposite of what P16 is for.
+  #
+  # `email` (S11) is excluded for the same reason stated differently: a mail
+  # sent by hand to a named firm is outreach, not social reach. It is the
+  # channel with the most volume today, so putting it in the numerator would
+  # make P16 read ≥10% off the back of work P16 was not asked about. Both are
+  # in the DENOMINATOR — they are real landing visits.
   SOCIAL_SOURCES = %w[x linkedin youtube].freeze
+
+  # Attributed-but-not-social. Listed so the weekly table can show them
+  # explicitly: a channel that is in neither list would be silently invisible
+  # in the detail line while still moving the denominator.
+  NON_SOCIAL_SOURCES = %w[blog email].freeze
 
   # Both parameter names, summed (S10). Links published from 2026-11-01 carry
   # `?via=`; everything already out there carries `?utm_source=` and keeps being
@@ -85,6 +96,7 @@ class JpWeeklyKpi
       total: total,
       social: social,
       blog_excluded: by_source.fetch("blog", 0),
+      email_excluded: by_source.fetch("email", 0),
       attributed: by_source.values.sum,
       share: total.zero? ? nil : (social.to_f / total * 100).round(1)
     }
@@ -145,7 +157,8 @@ class JpWeeklyKpi
       { "id" => "P16", "statement" => "랜딩 유입 중 소셜 경유", "target" => "≥10%",
         "current" => p16v[:share] ? "#{p16v[:share]}%" : "—",
         "detail" => "x+linkedin+youtube #{p16v[:social]} / #{p16v[:total]} " \
-                    "(blog #{p16v[:blog_excluded]}건은 분모에만 넣고 분자에서 제외)" },
+                    "(blog #{p16v[:blog_excluded]}건·email #{p16v[:email_excluded]}건은 " \
+                    "분모에만 넣고 분자에서 제외)" },
       { "id" => "P17", "statement" => "YouTube 누적 재생", "target" => "≥3,000",
         "current" => "—", "detail" => p17[:note] },
       { "id" => "P18", "statement" => p18_row[:statement], "target" => P18_TARGET.to_s,
@@ -200,7 +213,9 @@ class JpWeeklyKpi
       out << ""
       out << "> 전체 landing_view **#{p16v[:total]}건** 중 출처가 기록된 것 #{p16v[:attributed]}건."
       out << "> 나머지는 파라미터 없이 들어온 방문이며 **P16 의 분모에는 포함**된다."
-      out << "> P16 의 분자는 x + linkedin + youtube 만(`blog` 는 자사 내부 링크이므로 제외)."
+      out << "> P16 의 분자는 x + linkedin + youtube 만 — `blog`(자사 내부 링크)와"
+      out << "> `email`(손으로 보낸 아웃리치 메일)은 **분모에만** 넣는다. 둘 다 진짜 방문이지만"
+      out << "> 소셜 도달이 아니고, 분자에 넣으면 P16 이 아웃리치 통수에 따라 올라간다."
       out << "> `other` = 목록 밖 값."
       if utm.values.sum.positive?
         out << "> ℹ️ `utm_source` 열이 아직 0이 아니라는 것은 **옛 링크가 계속 클릭되고 있다**는 뜻이다."

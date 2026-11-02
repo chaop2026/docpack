@@ -102,6 +102,27 @@ ja:
     cta_desc: "画像圧縮とPDF変換が無料。登録不要ですぐに使えます。"
     related: "関連記事"
     back_to_list: "ブログ一覧へ"
+    # ── /ja/blog is a DIFFERENT publication from /blog (S11) ────────────────
+    #
+    # The keys above describe SlimFile's Korean blog translated into Japanese
+    # ("画像圧縮、PDF変換、ファイル最適化に関する…"), which is what /ja/blog used
+    # to say about itself — and since S8 that URL serves the SafeFile JP track
+    # instead (PostsController#index scopes by track). The title and the search
+    # snippet were describing the other blog.
+    #
+    # A separate block rather than new values for the keys above: /blog with a
+    # `locale=ja` cookie is still the Korean blog with Japanese chrome, and it
+    # still needs those strings. The view picks between the two on url_locale,
+    # not on I18n.locale — the listing's identity is a property of the URL.
+    jp:
+      title: "提出書類の黒塗り実務ブログ | SafeFile"
+      heading: "提出書類の黒塗り、実務の手順"
+      description: "資格確認書・運転免許証・マイナンバーカード・住民票の写し。提出先ごとに「どこを隠し、どこを残すか」を書類別にまとめています。"
+      meta_description: "入札添付・本人確認・個人番号手続で、書類のどこを黒塗りし、どこを残すか。資格確認書・運転免許証・マイナンバーカード・住民票の写しの手順を、提出先の指示の読み方とあわせてまとめています。"
+      landings_heading: "目的から探す"
+      empty: "記事の公開準備中です。"
+  site_footer:
+    jp_label: "日本の提出書類向け"
   nav_blog: "ブログ"
   seo:
     default_description: "画像を圧縮し、PDFに変換し、SNS用にリサイズできる無料オンラインツール。すべて2MB以下、登録不要。"

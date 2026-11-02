@@ -102,6 +102,16 @@ ko:
     cta_desc: "이미지 압축과 PDF 변환을 무료로. 회원가입 없이 바로 시작하세요."
     related: "관련 글"
     back_to_list: "블로그 목록으로"
+  # ── Site footer (S11) ─────────────────────────────────────────────────────
+  # The only purpose of this block is the Japanese-pages line. The Korean
+  # layout had no footer, so there was nowhere to put a site-wide link to
+  # /safe/jp/* — and the one Korean article Google has indexed
+  # (/blog/resident-number-masking) was not to be edited, so the link had to
+  # reach it without touching its body.
+  # The LEAD-IN is translated; the three page names stay Japanese because the
+  # destinations are Japanese documents and that is what they are called.
+  site_footer:
+    jp_label: "일본 제출서류용"
   nav_blog: "블로그"
   seo:
     default_description: "무료 온라인 이미지 압축, PDF 변환, 소셜 미디어 리사이즈 도구. 2MB 이하, 회원가입 불필요."

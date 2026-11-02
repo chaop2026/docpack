@@ -13,6 +13,30 @@ class PostsController < ApplicationController
     @url_locale = helpers.url_locale
     @posts = (@url_locale == :ja ? Post.jp : Post.where.not(primary_locale: "ja")).published.recent
     @posts = @posts.by_category(params[:category]) if params[:category].present?
+
+    # ── hreflang: the two listings are not translations of each other (S11) ──
+    #
+    # They used to be advertised as if they were. The layout emits all four UI
+    # locales unless a controller narrows the set, so /ja/blog declared /blog as
+    # its Korean alternate and /blog declared /ja/blog as its Japanese one —
+    # while the two serve DIFFERENT POSTS with different titles. Google's rule
+    # is that hreflang targets are the same document in another language, and
+    # this is the signal shape that has already cost this repository twice
+    # (/safe/ folded as a duplicate, /en/about folded onto /about).
+    #
+    # S8 scoped the ROWS by track and S11 gave the Japanese listing its own
+    # title and description; this is the third half of the same change.
+    #
+    #   /ja/blog           → [] — one Japanese document. An empty set also
+    #                        suppresses x-default (see the layout), which is
+    #                        right: a fallback pointer to the Korean blog would
+    #                        say "if your language is not listed, read this",
+    #                        and the Korean blog is a different publication.
+    #   /blog, /en, /es    → the three that ARE translations of one listing.
+    #
+    # app/views/pages/sitemap.xml.erb carries the same split. A page and a
+    # sitemap disagreeing about hreflang is its own documented failure here.
+    @hreflang_locales = @url_locale == :ja ? [] : (I18n.available_locales - [ :ja ])
     # page_meta lives in index.html.erb — a controller-side call is a silent
     # no-op here. See the comment at the top of that view.
   end

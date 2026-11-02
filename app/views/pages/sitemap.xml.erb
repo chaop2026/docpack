@@ -21,21 +21,45 @@
     ["/faq",      "monthly", "0.7"],
     ["/blog",     "daily",   "0.8"],
   ]
+
+  # /ja/blog is NOT one of /blog's language alternates (S11).
+  #
+  # It is a different publication that happens to share a controller:
+  # PostsController#index scopes the rows by track, so /blog lists the Korean
+  # posts and /ja/blog lists the Japanese ones, with their own title and
+  # description. Declaring them as hreflang alternates says "same document,
+  # other language", which is false — and this file cross-referencing all four
+  # locales is how that false claim was being made for every /blog URL.
+  #
+  # So the Japanese listing is emitted separately, below, with NO hreflang —
+  # the same call as /about and the three /safe/jp/ landings. The page agrees
+  # (PostsController#index sets @hreflang_locales); a page and a sitemap that
+  # disagree about hreflang is its own documented failure in this repository.
+  blog_ui_locales = ui_locales - [:ja]
 %>
 <% ui_pages.each do |path, changefreq, priority| %>
-  <% ui_locales.each do |loc| %>
+  <% locales = path == "/blog" ? blog_ui_locales : ui_locales %>
+  <% locales.each do |loc| %>
   <url>
     <loc><%= @base_url %><%= prefix.(loc, path) %></loc>
     <lastmod><%= Date.today.iso8601 %></lastmod>
     <changefreq><%= changefreq %></changefreq>
     <priority><%= priority %></priority>
-    <% ui_locales.each do |alt| %>
+    <% locales.each do |alt| %>
     <xhtml:link rel="alternate" hreflang="<%= alt %>" href="<%= @base_url %><%= prefix.(alt, path) %>"/>
     <% end %>
     <xhtml:link rel="alternate" hreflang="x-default" href="<%= @base_url %><%= prefix.(default, path) %>"/>
   </url>
   <% end %>
 <% end %>
+  <%# The Japanese blog listing — its own entry, no hreflang. See the
+      blog_ui_locales note above. %>
+  <url>
+    <loc><%= @base_url %>/ja/blog</loc>
+    <lastmod><%= Date.today.iso8601 %></lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
 <%# Category listing pages (?category=privacy et al.) are deliberately NOT listed.
     They used to be, and that contradicted the pages themselves: PostsController#index
     calls page_meta(path: "/blog"), so /blog?category=privacy declares

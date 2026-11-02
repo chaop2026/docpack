@@ -40,6 +40,36 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/safe/jp/jp.css">
+<!-- Google Analytics 4 — ON THE THREE JAPANESE LANDING PAGES ONLY (S11).
+     See the long note in /safe/jp/honnin-kakunin/index.html. Never on /safe/. -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-1RHNPW0ZTD"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-1RHNPW0ZTD', {
+    anonymize_ip: true,
+    allow_google_signals: false,
+    allow_ad_personalization_signals: false
+  });
+</script>
+<!-- Organization (S11). See the note in /safe/jp/honnin-kakunin/index.html. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "SafeFile",
+  "alternateName": "セーフファイル",
+  "url": "https://slimfile.net/safe/",
+  "logo": "https://slimfile.net/safe/brand/icon-512.png",
+  "parentOrganization": { "@type": "Organization", "name": "Tasicop" },
+  "sameAs": [
+    "https://x.com/safefile_jp",
+    "https://www.youtube.com/channel/UC0TZjC4xG0iaRVqFrJroJxA",
+    "https://lin.ee/rV1LpPB"
+  ]
+}
+</script>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -160,7 +190,17 @@
     <ul class="plain">
       <li>ファイルはお使いのブラウザ内で処理され、サーバーには送信されません</li>
       <li>出力はラスター化（画像化）。テキスト層・メタデータは含まれません</li>
-      <li>処理記録はブラウザ内のみ</li>
+      <!-- S11. This line said 「処理記録はブラウザ内のみ」, which describes a
+           feature that does not exist: the only things /safe/ writes to
+           localStorage are the chosen language and the install-banner
+           dismissal (public/safe/index.html:818, 926, 3226 — checked), and
+           nothing anywhere records which document was processed. The guard's
+           own `shori_kiroku` rule caught it while S11 was running the
+           forbidden list over the landing pages for the first time; the Team
+           plan list further down lists a processing log as a ROADMAP item,
+           which is what the rule is about. The honest statement is stronger
+           than the one it replaces. -->
+      <li>どの書類をいつ処理したかの記録は、サーバーにもブラウザにも残りません</li>
     </ul>
   </section>
 
@@ -182,7 +222,14 @@
     </div>
 
     <div class="pilot" id="pilot">
-      <p><strong>先行導入パイロット募集</strong>：入札書類を月に複数件提出する建設業者・電子入札代行・行政書士の方、先着10社に3か月無料でご提供します。反映したい提出先ルールをお送りください。</p>
+      <!-- S11 item 10. This said 「先着10社に3か月無料でご提供します」, which
+           promised a countdown nobody was counting and a discount off a paid
+           plan that does not exist yet (there is no Stripe JP product —
+           s6_report §5, and the Team-plan list above is a roadmap). The
+           outreach playbook §2 had already put the phrase on its forbidden
+           list for the same reason before any mail went out; the page was the
+           last place still saying it. Replaced with what is actually true. -->
+      <p><strong>先行利用の事務所を募集しています（無料）</strong>：入札書類を月に何件も提出する建設業者・電子入札代行・行政書士の方。反映したい提出先ルールをお送りください。</p>
 
       <form class="pf" id="pilotForm" novalidate>
         <div>
@@ -239,12 +286,21 @@
     <p class="note">提出先の指示を必ず確認してください。</p>
   </section>
 
+  <!-- 関連記事 — a STATIC page cannot ask which episodes are published, so it
+       links to the listing rather than to slugs that would go stale or 404.
+       (S11 item 4c: "dynamic → link /ja/blog instead".) -->
+  <section class="blk">
+    <h2>関連記事</h2>
+    <p>書類ごとの手順と、提出先の指示の読み方は日本語ブログにまとめています。</p>
+    <p><a href="/ja/blog">日本語ブログの記事一覧 →</a></p>
+  </section>
+
   <details class="en">
     <summary>English</summary>
     <div class="en-body">
       <p><strong>Redact only the numbers on insurance certificates for public tender attachments — and stop resubmissions.</strong></p>
       <p>Japanese public-works tenders require masking of the insured symbol/number and insurer number on health-insurance certificate copies. SafeFile detects the document type and blacks out exactly those fields, keeping name, date of birth and employer visible for review. Files never leave your browser.</p>
-      <p><strong>Team plan</strong>: ¥2,980/month — per-recipient presets, batch PDF processing, processing log CSV, SlimFile compression, Japanese email support. These arrive progressively during the pilot; today the tool processes one file at a time. Pilot: first 10 companies, 3 months free.</p>
+      <p><strong>Team plan</strong>: ¥2,980/month — per-recipient presets, batch PDF processing, processing log CSV, SlimFile compression, Japanese email support. These arrive progressively during the pilot; today the tool processes one file at a time. Early-access firms are being taken on now, free of charge.</p>
     </div>
   </details>
 

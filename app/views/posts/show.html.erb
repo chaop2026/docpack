@@ -91,10 +91,31 @@
       "@type": "Organization",
       "name": "SlimFile"
     },
+    <%# `logo` on the JP track only (S11).
+
+        The 2026-11-02 audit found no publisher logo anywhere in the site's
+        structured data, which is a documented requirement for Google's Article
+        rich result. Adding it to the Korean track as well would be a change to
+        the 42 live Korean posts' markup, and this round's standing rule is that
+        they do not move — so the JP branch gets it and the Korean one emits
+        exactly the three lines it emitted before. E-1 cannot see this (it does
+        not capture JSON-LD), so there is a separate test that reads the Korean
+        block and asserts the key is absent: a snapshot that cannot see a field
+        cannot protect it.
+
+        ⚠️ `name` stays "SlimFile" here while the Organization block on the
+        landing pages names SafeFile and this logo is SafeFile's icon. That
+        mismatch is on purpose only in the sense that S11 asked for the LOGO;
+        whether the JP track's publisher should be renamed to SafeFile is a
+        brand decision and is listed in docs/jp/s11_report.md §6. %>
     "publisher": {
       "@type": "Organization",
       "name": "SlimFile",
-      "url": "<%= base_url %>"
+      "url": "<%= base_url %>"<% if @post.primary_locale == "ja" %>,
+      "logo": {
+        "@type": "ImageObject",
+        "url": "<%= base_url %>/safe/brand/icon-512.png"
+      }<% end %>
     },
     "mainEntityOfPage": {
       "@type": "WebPage",
@@ -133,6 +154,43 @@
      } %>
   <script type="application/ld+json">
   <%= faq_ld.to_json.gsub("</", "<\\/").html_safe %>
+  </script>
+  <% end %>
+  <%# BreadcrumbList — JP track only (S11).
+
+      ホーム › ブログ › 記事. The Korean track does not get one for the same
+      reason as the publisher logo above: its markup does not move this round.
+
+      The trail follows the CANONICAL path, not @url_locale. A Japanese episode
+      with a body_en is canonical at /en/blog/:slug, and a breadcrumb whose
+      first two rungs said /ja while the page said /en would describe a
+      different document's position in the site. Both rungs are real pages
+      (root and the listing exist under each prefix), so nothing here points at
+      a URL that does not resolve — which is the mistake the hreflang work in
+      this repository has already made twice.
+
+      Only two rungs carry `item`. The last one is the current page and Google
+      asks that it be left without a URL; naming itself would make the page its
+      own ancestor. %>
+  <% if @post.primary_locale == "ja" %>
+    <% bc_en = canonical_path.start_with?("/en/") %>
+    <% bc_prefix = bc_en ? "/en" : "/ja" %>
+    <% breadcrumb_ld = {
+         "@context" => "https://schema.org",
+         "@type" => "BreadcrumbList",
+         "itemListElement" => [
+           { "@type" => "ListItem", "position" => 1,
+             "name" => bc_en ? "Home" : "ホーム",
+             "item" => "#{base_url}#{bc_prefix}" },
+           { "@type" => "ListItem", "position" => 2,
+             "name" => bc_en ? "Blog" : "ブログ",
+             "item" => "#{base_url}#{bc_prefix}/blog" },
+           { "@type" => "ListItem", "position" => 3,
+             "name" => @post.title(@url_locale).to_s }
+         ]
+       } %>
+  <script type="application/ld+json">
+  <%= breadcrumb_ld.to_json.gsub("</", "<\\/").html_safe %>
   </script>
   <% end %>
 <% end %>

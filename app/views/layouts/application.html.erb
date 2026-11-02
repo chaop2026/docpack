@@ -166,6 +166,37 @@
       <button class="bookmark-banner-close" data-action="bookmark-banner#dismiss">&times;</button>
     </div>
     <%= yield %>
+    <%# ── Site footer (S11 item 4d) ──────────────────────────────────────────
+        Added for one line: the link to the Japanese pages.
+
+        Those three URLs were orphans. Search Console had all four JP pages in
+        "Discovered – currently not indexed" on 2026-11-02, and the audit found
+        the cause — no page Google had already indexed linked to them. The one
+        Korean article that IS indexed is /blog/resident-number-masking, whose
+        body is owned by `blog:migrate_privacy` and is deliberately not edited
+        here (test/integration/privacy_guide_ownership_test.rb). A layout footer
+        reaches that page, and every other Korean page, without touching any
+        article's prose.
+
+        The lead-in is localized; the three page names stay in Japanese because
+        the destinations are Japanese documents and that is what they are
+        called. No ?via= parameter — internal navigation, and `via` has no value
+        meaning "from our own site"; tagging these would file our own clicks
+        under a referral channel (see the same note in /safe/'s footer).
+
+        E-1 (test/integration/blog_seo_snapshot_test.rb) captures canonical,
+        robots, hreflang, og:locale and <html lang>. A footer moves none of
+        them, which is asserted rather than assumed — the snapshot still holds
+        at 38/38 byte-identical rows. %>
+    <footer class="global-footer">
+      <div class="global-footer-jp">
+        <%= t("site_footer.jp_label") %> —
+        <a href="/safe/jp/nyusatsu/">入札添付</a> ·
+        <a href="/safe/jp/honnin-kakunin/">本人確認書類</a> ·
+        <a href="/safe/jp/ai-mae/">AIに貼る前に</a> ·
+        <a href="/ja/blog">日本語ブログ</a>
+      </div>
+    </footer>
     <% if params[:debug] %>
   <script>
     window.addEventListener('load', function(){

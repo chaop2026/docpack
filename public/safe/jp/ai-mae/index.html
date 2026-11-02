@@ -31,6 +31,19 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/safe/jp/jp.css">
+<!-- Google Analytics 4 — ON THE THREE JAPANESE LANDING PAGES ONLY (S11).
+     See the long note in /safe/jp/honnin-kakunin/index.html. Never on /safe/. -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-1RHNPW0ZTD"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-1RHNPW0ZTD', {
+    anonymize_ip: true,
+    allow_google_signals: false,
+    allow_ad_personalization_signals: false
+  });
+</script>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -44,6 +57,51 @@
   "offers": [
     { "@type": "Offer", "name": "無料で1枚", "price": "0", "priceCurrency": "JPY" },
     { "@type": "Offer", "name": "30日パス", "price": "980", "priceCurrency": "JPY" }
+  ]
+}
+</script>
+<!-- Organization (S11). See the note in /safe/jp/honnin-kakunin/index.html. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "SafeFile",
+  "alternateName": "セーフファイル",
+  "url": "https://slimfile.net/safe/",
+  "logo": "https://slimfile.net/safe/brand/icon-512.png",
+  "parentOrganization": { "@type": "Organization", "name": "Tasicop" },
+  "sameAs": [
+    "https://x.com/safefile_jp",
+    "https://www.youtube.com/channel/UC0TZjC4xG0iaRVqFrJroJxA",
+    "https://lin.ee/rV1LpPB"
+  ]
+}
+</script>
+<!-- FAQPage (S11). Rendered as real content further down — the <dl> and this
+     block carry the same three answers. No claim is made about how any AI
+     service treats what is pasted into it: that is the service's own terms,
+     and the honest answer is to send the reader there. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "inLanguage": "ja",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "黒塗りした画像をAIに貼って、相談の内容は伝わりますか",
+      "acceptedAnswer": { "@type": "Answer", "text": "条文・金額の相対関係・日付・見出しは残るので、契約内容そのものについての相談はそのまま進められます。特定の相手を調べる相談のように固有名詞が答えの一部になるものには向きません。" }
+    },
+    {
+      "@type": "Question",
+      "name": "帯の下の文字をAIが読み取ることはありますか",
+      "acceptedAnswer": { "@type": "Answer", "text": "出力は画像に平坦化され、帯の下に文字は残りません。元のPDFをそのまま貼ると文字層が残るので、SafeFile でダウンロードした画像を貼ってください。" }
+    },
+    {
+      "@type": "Question",
+      "name": "貼り付けたファイルはAIの学習に使われますか",
+      "acceptedAnswer": { "@type": "Answer", "text": "SafeFile の処理はブラウザの中だけで行われ、ファイルは送信されません。貼り付けた先のAIサービスがその内容をどう扱うかは、そのサービスの規約と設定で確認してください。" }
+    }
   ]
 }
 </script>
@@ -106,6 +164,28 @@
       </div>
       <p class="note">※ 決済は準備中です。ご希望の方はメールでお知らせください。順次ご案内します。</p>
     </div>
+  </section>
+
+  <section class="blk">
+    <h2>よくある質問</h2>
+    <dl class="faq">
+      <dt>黒塗りした画像をAIに貼って、相談の内容は伝わりますか</dt>
+      <dd>条文・金額の相対関係・日付・見出しは残るので、契約内容そのものについての相談はそのまま進められます。特定の相手を調べる相談のように固有名詞が答えの一部になるものには向きません。</dd>
+      <dt>帯の下の文字をAIが読み取ることはありますか</dt>
+      <dd>出力は画像に平坦化され、帯の下に文字は残りません。元のPDFをそのまま貼ると文字層が残るので、SafeFile でダウンロードした画像を貼ってください。</dd>
+      <dt>貼り付けたファイルはAIの学習に使われますか</dt>
+      <dd>SafeFile の処理はブラウザの中だけで行われ、ファイルは送信されません。貼り付けた先のAIサービスがその内容をどう扱うかは、そのサービスの規約と設定で確認してください。</dd>
+    </dl>
+    <p class="note">提出先の指示を必ず確認してください。</p>
+  </section>
+
+  <!-- 関連記事 — a STATIC page cannot ask which episodes are published, so it
+       links to the listing rather than to slugs that would go stale or 404.
+       (S11 item 4c: "dynamic → link /ja/blog instead".) -->
+  <section class="blk">
+    <h2>関連記事</h2>
+    <p>書類ごとの手順と、提出先の指示の読み方は日本語ブログにまとめています。</p>
+    <p><a href="/ja/blog">日本語ブログの記事一覧 →</a></p>
   </section>
 
   <details class="en">

@@ -102,6 +102,8 @@ en:
     cta_desc: "Compress images and convert to PDF for free. No signup required."
     related: "Related Posts"
     back_to_list: "Back to Blog"
+  site_footer:
+    jp_label: "For Japanese submission documents"
   nav_blog: "Blog"
   seo:
     default_description: "Free online tool to compress images, convert to PDF, and resize for social media. All under 2MB, no signup required."

@@ -353,4 +353,121 @@ class PublishScheduledPostsJobTest < ActiveJob::TestCase
 
     assert_empty Post.publish_stuck, "a database blip is not a stuck post"
   end
+
+  # ── IndexNow (S11) ─────────────────────────────────────────────────────────
+  #
+  # The publish is the thing that matters; the ping is not. These tests are
+  # mostly about that asymmetry — a third-party endpoint being down must not
+  # turn a run that published everything into a failed run.
+
+  test "each published post's canonical URL is submitted to IndexNow" do
+    ready_post(slug: "indexnow-ko")
+    submitted = []
+
+    IndexNow.stub(:submit, ->(urls, **_) { submitted.concat(urls); { status: :sent } }) do
+      PublishScheduledPostsJob.perform_now
+    end
+
+    assert_equal [ "https://slimfile.net/blog/indexnow-ko" ], submitted,
+                 "a Korean post's canonical URL is the unprefixed one"
+  end
+
+  test "a Japanese post is submitted at its own /ja URL, not the unprefixed one" do
+    # /blog/:slug 301s to /ja/blog/:slug for a JP post. Submitting the
+    # redirecting spelling would ask Bing to index a URL that answers 301.
+    Post.create!(content_track: "jp", content_ep: 71, primary_locale: "ja",
+                 status: "scheduled", published_at: 1.hour.ago, category: "privacy",
+                 slug: "jp-ep71-indexnow", title_ja: "テスト", body_ja: "<p>本文</p>")
+    submitted = []
+
+    IndexNow.stub(:submit, ->(urls, **_) { submitted.concat(urls); { status: :sent } }) do
+      PublishScheduledPostsJob.perform_now
+    end
+
+    assert_equal [ "https://slimfile.net/ja/blog/jp-ep71-indexnow" ], submitted
+  end
+
+  test "the publish invariant already makes an unindexable publish impossible" do
+    # Measured while writing the test below: there is no way to get a published
+    # post whose own locale is not indexable, because `indexable?` is
+    # «published AND translated into that locale» and the publish invariant
+    # requires the primary locale's body. So the guard in ping_index_now is
+    # DEFENCE, not a path the job can take — and this test is what says so,
+    # rather than a comment claiming it.
+    post = Post.create!(content_track: "jp", content_ep: 72, primary_locale: "ja",
+                        status: "scheduled", published_at: 1.hour.ago, category: "privacy",
+                        slug: "jp-ep72-noindex", title_ja: "テスト", body_ja: "<p>本文</p>")
+    post.update_column(:body_ja, "")
+
+    PublishScheduledPostsJob.perform_now
+    assert_equal "scheduled", post.reload.status,
+                 "an empty primary body is refused by the publish invariant, not by IndexNow"
+    assert_includes Post.publish_stuck, post
+  end
+
+  test "the guard itself refuses to submit a URL that would answer noindex" do
+    # The branch the test above proves the job cannot reach. Exercised directly
+    # so a typo in it cannot hide: ping_index_now rescues StandardError, so a
+    # NoMethodError in this branch would be swallowed and logged as if the
+    # endpoint had failed. Asking an engine to index a page that answers
+    # noindex is a contradiction we would be sending on purpose.
+    post = ready_post(slug: "indexnow-guard")
+    submitted = []
+
+    out = with_captured_log do
+      IndexNow.stub(:submit, ->(urls, **_) { submitted.concat(urls); { status: :sent } }) do
+        post.stub(:indexable?, false) do
+          PublishScheduledPostsJob.new.send(:ping_index_now, post)
+        end
+      end
+    end
+
+    assert_empty submitted
+    assert_match(/not indexable/, out, "the skip has to say why, or it looks like a lost ping")
+
+    # And the inverse through the same seam, so "nothing was submitted" is not
+    # passing because the seam itself is broken.
+    with_captured_log do
+      IndexNow.stub(:submit, ->(urls, **_) { submitted.concat(urls); { status: :sent } }) do
+        post.stub(:indexable?, true) do
+          PublishScheduledPostsJob.new.send(:ping_index_now, post)
+        end
+      end
+    end
+    assert_equal [ "https://slimfile.net/blog/indexnow-guard" ], submitted
+  end
+
+  test "an IndexNow failure leaves the post published and the batch running" do
+    ready_post(slug: "indexnow-first")
+    ready_post(slug: "indexnow-second")
+
+    out = with_captured_log do
+      IndexNow.stub(:submit, ->(*, **) { raise Errno::ECONNREFUSED }) do
+        PublishScheduledPostsJob.perform_now
+      end
+    end
+
+    assert_equal "published", Post.find_by(slug: "indexnow-first").status
+    assert_equal "published", Post.find_by(slug: "indexnow-second").status,
+                 "a ping failure on the first post must not stop the second from publishing"
+    assert_empty Post.publish_stuck
+    assert_match(/ERROR.*IndexNow/, out)
+  end
+
+  test "the job does not need IndexNow configured to publish" do
+    # The default posture. No key → dry run → a log line and nothing else, and
+    # the publish goes through untouched. This is the state production is in
+    # until somebody puts a key in .env.production.local.
+    ready_post(slug: "indexnow-unconfigured")
+    before = ENV["INDEXNOW_KEY"]
+    ENV.delete("INDEXNOW_KEY")
+
+    out = with_captured_log { PublishScheduledPostsJob.perform_now }
+
+    assert_equal "published", Post.find_by(slug: "indexnow-unconfigured").status
+    assert_match(/DRY RUN/, out)
+    assert_match(%r{https://slimfile\.net/blog/indexnow-unconfigured}, out)
+  ensure
+    before.nil? ? ENV.delete("INDEXNOW_KEY") : ENV["INDEXNOW_KEY"] = before
+  end
 end

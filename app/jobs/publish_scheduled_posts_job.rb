@@ -22,6 +22,9 @@
 #   notification fails to enqueue  | skip the mail,     | logger.error
 #                                  | post STAYS         |
 #                                  | published          |
+#   IndexNow submission fails      | skip the ping,     | logger.error
+#   (or is not configured)         | post STAYS         | (or an info line
+#                                  | published          | saying DRY RUN)      |
 #   anything else (DB down, …)     | retried by this    | if the retries are
 #                                  | job's retry_on;    | exhausted, Solid
 #                                  | otherwise it       | Queue records it
@@ -95,8 +98,46 @@ class PublishScheduledPostsJob < ApplicationJob
     Rails.logger.info("Published scheduled post: #{post.slug}")
     clear_error(post)
     enqueue_x_thread(post)
+    ping_index_now(post)
     notify(post)
     true
+  end
+
+  # Tell IndexNow (Bing, and therefore ChatGPT search and Copilot) that the URL
+  # exists — immediately, because the alternative measured on 2026-11-02 was
+  # weeks: every SafeFile JP page was sitting in Search Console as
+  # "Discovered – currently not indexed" and Bing did not know the site at all.
+  #
+  # Per post rather than one batch at the end of the run, on purpose. A batch
+  # would be one HTTP call instead of N (≈1/day here), but it would also be
+  # lost for the posts that already succeeded if a later post raised an
+  # infrastructure error and the job propagated it — and those posts are
+  # already published, so `scheduled_ready` will never return them again and
+  # their URL would never be submitted. Isolation per post is the discipline
+  # the rest of this file is built on.
+  #
+  # Best-effort in the same sense as `notify`: IndexNow.submit rescues
+  # internally and returns a status, and this rescue is the belt for anything
+  # raised before it (a URL that cannot be built). The post is public either
+  # way; a third-party endpoint being down must not fail the job.
+  #
+  # Only submitted when the URL is actually indexable. Asking an engine to
+  # index a page that answers `noindex` is a contradiction we would be sending
+  # on purpose.
+  def ping_index_now(post)
+    loc = post.primary_locale_sym
+    unless post.indexable?(loc)
+      Rails.logger.info("[IndexNow] '#{post.slug}' is not indexable as #{loc} — not submitted")
+      return
+    end
+
+    base = IndexNow.default_base_url
+    IndexNow.submit([ "#{base}#{post.canonical_path_for(loc)}" ], base_url: base)
+  rescue StandardError => e
+    Rails.logger.error(
+      "PublishScheduledPostsJob: '#{post.slug}' was published but its IndexNow " \
+      "submission could not be attempted — #{e.class}: #{e.message}"
+    )
   end
 
   # A JP package's X thread, armed by the approval and due three hours after the

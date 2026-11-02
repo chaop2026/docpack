@@ -102,6 +102,8 @@ es:
     cta_desc: "Comprime imágenes y convierte a PDF gratis. Sin registro."
     related: "Publicaciones relacionadas"
     back_to_list: "Volver al blog"
+  site_footer:
+    jp_label: "Para documentos japoneses"
   nav_blog: "Blog"
   seo:
     default_description: "Herramienta online gratuita para comprimir imágenes, convertir a PDF y redimensionar para redes sociales. Todo por debajo de 2 MB, sin registro."

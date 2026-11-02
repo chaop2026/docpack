@@ -31,6 +31,28 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/safe/jp/jp.css">
+<!-- Google Analytics 4 — ON THE THREE JAPANESE LANDING PAGES ONLY (S11).
+     It must never be added to /safe/ (the tool). That page's whole promise is
+     that the screen where a document is opened carries no third-party script,
+     and the measurement there is the first-party SafeEvent counter instead.
+     test/integration/jp_analytics_scope_test.rb pins both halves: these three
+     pages carry the tag and /safe/ does not.
+
+     Signals that would turn a pageview into an advertising identity are off:
+     allow_google_signals (cross-device/Signals), allow_ad_personalization_signals
+     (ad personalisation) and anonymize_ip. /privacy/ states this in Japanese —
+     a measurement nobody is told about is the thing being avoided here. -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-1RHNPW0ZTD"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-1RHNPW0ZTD', {
+    anonymize_ip: true,
+    allow_google_signals: false,
+    allow_ad_personalization_signals: false
+  });
+</script>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -42,6 +64,63 @@
   "description": "本人確認書類のうち、提出先が通常求めない面・項目だけをブラウザ内で黒塗りします。",
   "inLanguage": "ja",
   "offers": { "@type": "Offer", "name": "無料", "price": "0", "priceCurrency": "JPY" }
+}
+</script>
+<!-- Organization (S11). The audit of 2026-11-02 found the publisher unnamed in
+     every structured-data block on the site: no logo, no sameAs, so an answer
+     engine had nothing to tie slimfile.net, @safefile_jp, the YouTube channel
+     and the LINE account to one entity. `url` points at /safe/ rather than at
+     the site root because this Organization is SafeFile, not SlimFile — the
+     root belongs to the parent brand's WebApplication block.
+     The same three lines are in nyusatsu/ and ai-mae/; one more copy of them is
+     cheaper than a build step for three static files, and
+     test/integration/jp_analytics_scope_test.rb asserts all three agree. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "SafeFile",
+  "alternateName": "セーフファイル",
+  "url": "https://slimfile.net/safe/",
+  "logo": "https://slimfile.net/safe/brand/icon-512.png",
+  "parentOrganization": { "@type": "Organization", "name": "Tasicop" },
+  "sameAs": [
+    "https://x.com/safefile_jp",
+    "https://www.youtube.com/channel/UC0TZjC4xG0iaRVqFrJroJxA",
+    "https://lin.ee/rV1LpPB"
+  ]
+}
+</script>
+<!-- FAQPage (S11). The audit's finding was that this page had no question-shaped
+     unit at all, so an answer engine had nothing to quote. The three questions
+     below are rendered as real content further down — structured data that
+     describes a section the document does not contain is a false claim about
+     the page, which is why the markup and the <dl> carry the same text.
+     No legal effect is asserted: 「提出先の案内で求められているかどうか」 is a
+     fact about a piece of paper the reader can look at, and there is still no
+     review by a Japanese lawyer. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "inLanguage": "ja",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "提出先から「裏面も送ってください」と言われました",
+      "acceptedAnswer": { "@type": "Answer", "text": "提出先の案内で個人番号（裏面）の提出がはっきり書かれている場合は、提出目的に「個人番号手続」を選び、確認のチェックを入れると裏面の帯が外れます。案内に書かれていない場合は、送る前に窓口へ確認してください。" }
+    },
+    {
+      "@type": "Question",
+      "name": "顔写真や氏名まで隠れてしまいませんか",
+      "acceptedAnswer": { "@type": "Answer", "text": "「本人確認提出」では顔写真・氏名・住所・生年月日・有効期限は残ります。隠す項目は一件ずつ切り替えられるので、提出先の指示と違う場合はその場で直せます。" }
+    },
+    {
+      "@type": "Question",
+      "name": "免許証の裏面に何も書かれていないように見えます",
+      "acceptedAnswer": { "@type": "Answer", "text": "備考欄は薄い手書きが残っていることがあり、画面では読み取れない状態でも枠ごと帯で隠します。自動で見つけたものの位置を特定できなかった項目は結果画面に赤色で表示されるので、保存する前に目で確かめてください。" }
+    }
+  ]
 }
 </script>
 </head>
@@ -125,6 +204,28 @@
     <div class="cta-row">
       <a class="btn" data-cta data-purpose="identity_submit" href="/safe/?lang=ja&amp;purpose=identity_submit&amp;from=honnin">今すぐ試す（無料・登録不要）</a>
     </div>
+  </section>
+
+  <section class="blk">
+    <h2>よくある質問</h2>
+    <dl class="faq">
+      <dt>提出先から「裏面も送ってください」と言われました</dt>
+      <dd>提出先の案内で個人番号（裏面）の提出がはっきり書かれている場合は、提出目的に「個人番号手続」を選び、確認のチェックを入れると裏面の帯が外れます。案内に書かれていない場合は、送る前に窓口へ確認してください。</dd>
+      <dt>顔写真や氏名まで隠れてしまいませんか</dt>
+      <dd>「本人確認提出」では顔写真・氏名・住所・生年月日・有効期限は残ります。隠す項目は一件ずつ切り替えられるので、提出先の指示と違う場合はその場で直せます。</dd>
+      <dt>免許証の裏面に何も書かれていないように見えます</dt>
+      <dd>備考欄は薄い手書きが残っていることがあり、画面では読み取れない状態でも枠ごと帯で隠します。自動で見つけたものの位置を特定できなかった項目は結果画面に赤色で表示されるので、保存する前に目で確かめてください。</dd>
+    </dl>
+    <p class="note">提出先の指示を必ず確認してください。</p>
+  </section>
+
+  <!-- 関連記事 — a STATIC page cannot ask which episodes are published, so it
+       links to the listing rather than to slugs that would go stale or 404.
+       (S11 item 4c: "dynamic → link /ja/blog instead".) -->
+  <section class="blk">
+    <h2>関連記事</h2>
+    <p>書類ごとの手順と、提出先の指示の読み方は日本語ブログにまとめています。</p>
+    <p><a href="/ja/blog">日本語ブログの記事一覧 →</a></p>
   </section>
 
   <details class="en">

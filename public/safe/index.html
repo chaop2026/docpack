@@ -240,6 +240,13 @@ header{border-bottom:1px solid var(--line);background:var(--paper);position:stic
 #resultDoc{padding:16px;background:#FDFCFA;height:min(78vh,920px);overflow:auto;display:flex;justify-content:safe center;align-items:safe center;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 #resultDoc canvas.rv-pg{display:block;margin:auto;border:1px solid var(--line);border-radius:6px;background:#fff;box-shadow:0 1px 5px rgba(23,20,15,.10)}
 .result-flat{font-size:12px;color:var(--sub);text-align:center;padding:10px 16px 14px}
+/* S11 — "detected but not located", on the result screen, in red. */
+.result-unlocated{margin:12px 16px 0;border:1px solid var(--no);border-left-width:4px;background:var(--no-bg);border-radius:10px;padding:11px 13px;font-size:13px;color:var(--no);line-height:1.6}
+.result-unlocated strong{display:block;font-weight:700;margin-bottom:4px}
+.result-unlocated ul{margin:6px 0 0;padding-left:18px}
+.result-unlocated li{margin:2px 0}
+.result-unlocated .ru-val{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px}
+.result-card.rv-full .result-unlocated{flex:0 0 auto}
 /* fullscreen overlay — portable choice: iPhone Safari / PWA standalone don't support the element Fullscreen API */
 .result-card.rv-full{position:fixed;inset:0;z-index:1000;margin:0;border-radius:0;max-width:none;display:flex;flex-direction:column;box-shadow:none}
 .result-card.rv-full .rv-toolbar{position:static}
@@ -262,6 +269,7 @@ body.rv-lock{overflow:hidden}
 .partner-card span{font-size:13px;color:var(--sub)}
 footer{padding:16px 0 44px;text-align:center;color:var(--sub);font-size:13px}
 footer a{color:var(--sub)}
+footer .foot-jp{margin-top:8px;font-size:12px;opacity:.85}
 .privacy-note{max-width:640px;margin:0 auto 26px;text-align:center;font-size:12.5px;color:var(--sub);background:var(--marker-soft);border-radius:10px;padding:11px 15px}
 
 #toast{position:fixed;bottom:calc(24px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 20px;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:100;max-width:90vw;text-align:center}
@@ -473,6 +481,16 @@ footer a{color:var(--sub)}
         </div>
       </div>
       <div id="resultDoc"></div>
+      <!-- S11 item 8. "Detected, but we could not say WHERE" was only ever
+           shown as a small grey chip in the detection list, above the fold and
+           before the document was built. By the time someone is looking at the
+           finished file — the moment they decide whether to attach it — the
+           one thing they most need to know had scrolled away.
+           Red, and placed under the preview rather than above it: the question
+           it answers is "is this file safe to send", not "what did the tool
+           find". Populated by rvRenderUnlocated(); empty → not rendered at all,
+           because a warning box that is usually blank stops being read. -->
+      <div class="result-unlocated" id="resultUnlocated" role="alert" style="display:none"></div>
       <div class="result-flat" data-i18n="resFlat">🔒 이 파일은 이미지로 평탄화(플래튼)되어 검은 박스 아래 원문이 남아 있지 않습니다.</div>
     </div>
   </section>
@@ -498,6 +516,22 @@ footer a{color:var(--sub)}
 
 <footer>
   <div class="wrap">SafeFile · <span data-i18n="footer">개인정보를 지키는 가장 빠른 방법</span> · <a href="https://slimfile.net">SlimFile</a> · <a href="/privacy/" data-i18n="footPrivacy">개인정보처리방침</a> · <a href="/blog" data-i18n="footBlog">블로그</a></div>
+  <!-- S11 item 4a. The three Japanese landing pages were orphans: nothing
+       Google had already indexed linked to them, which is the textbook input
+       for "Discovered – currently not indexed" (the state all four JP URLs
+       were in on 2026-11-02). This page IS indexed, so the link matters more
+       than its placement suggests.
+
+       The lead-in is translated per UI language; the three page names stay in
+       Japanese because the destinations are Japanese documents and that is
+       what they are called.
+
+       Deliberately NO ?via= parameter. These are internal navigation and
+       there is no `via` value that means "from the tool" — tagging them
+       `direct` or `other` would file our own clicks under a channel. With no
+       parameter the visit lands in P16's denominator and in no channel row,
+       which is the honest shape (JpWeeklyKpi#p16). -->
+  <div class="wrap foot-jp"><span data-i18n="footJp">일본 제출서류용</span> · <a href="/safe/jp/nyusatsu/">入札添付</a> · <a href="/safe/jp/honnin-kakunin/">本人確認書類</a> · <a href="/safe/jp/ai-mae/">AIに貼る前に</a></div>
 </footer>
 
 <div id="toast" role="status"></div>
@@ -542,10 +576,13 @@ ko:{
   resTitle:'완성된 문서', btnDl:'다운로드', btnCopy:'텍스트 복사',
   rvFit:'맞춤', rvPrevAria:'이전 페이지', rvNextAria:'다음 페이지', rvZoomInAria:'확대', rvZoomOutAria:'축소', rvFullAria:'전체화면', rvExitAria:'전체화면 닫기',
   resFlat:'🔒 이 파일은 이미지로 평탄화(플래튼)되어 검은 박스 아래 원문이 남아 있지 않습니다.',
+  resUnlocTitle:n=>`⚠ 위치를 찾지 못한 항목 ${n}건 — 이 파일에는 그대로 남아 있습니다`,
+  resUnlocBody:'아래 항목은 문서에서 발견했지만 어디에 있는지 특정하지 못해 띠를 덮지 못했습니다. 저장·제출하기 전에 미리보기를 확대해 직접 확인하고, 필요하면 「다른 문서」로 돌아가 해당 부분을 직접 영역 선택해 주세요.',
   privacy:'🔒 모든 문서는 사용자의 브라우저 안에서만 처리됩니다. AI 정밀 검사를 선택한 경우에만 추출된 텍스트가 AI 분석을 위해 전송되며, 저장되지 않습니다.',
   partners:'SafeFile이 추천하는 서비스',
   pSlim:'이미지 압축과 PDF 변환, 2MB 이하로 간단하게.', pSchool:'선생님을 위한 채용 정보, 딱 맞는 학교 찾기.', pHello:'한국어 배우기, 오늘부터 시작하세요.',
   footer:'개인정보를 지키는 가장 빠른 방법', footPrivacy:'개인정보처리방침', footBlog:'블로그',
+  footJp:'일본 제출서류용',
   pwaTitle:'홈 화면에 추가하면 앱처럼 쓸 수 있어요', pwaIosDesc:'사파리 공유 <span class="ib-share">↑</span> 버튼을 누른 뒤 “홈 화면에 추가”를 선택하세요', pwaAndroidDesc:'설치하면 오프라인에서도 열리고 앱처럼 빠르게 실행돼요', pwaInstall:'설치',
   cnt:n=>`${n}건`, cntUse:n=>`· ${n}건 사용`, scanDone:n=>`⚡ 즉시 검사 완료 — ${n}건 발견`, scanAI:n=>`🤖 AI 검사 포함 — 총 ${n}건`,
   tPasteEmpty:'내용을 붙여넣어 주세요', tBulkOk:'모든 항목을 공개로 설정했어요', tBulkNo:'모든 항목을 비공개로 설정했어요',
@@ -599,10 +636,13 @@ en:{
   resTitle:'Your safe document', btnDl:'Download', btnCopy:'Copy text',
   rvFit:'Fit', rvPrevAria:'Previous page', rvNextAria:'Next page', rvZoomInAria:'Zoom in', rvZoomOutAria:'Zoom out', rvFullAria:'Fullscreen', rvExitAria:'Exit fullscreen',
   resFlat:'🔒 This file is flattened to an image — no original text remains under the black boxes.',
+  resUnlocTitle:n=>`⚠ ${n} item(s) could not be located — they are still visible in this file`,
+  resUnlocBody:'These were found in the document, but their position could not be fixed, so no bar was drawn over them. Zoom into the preview and check before you save or submit; if needed, go back with "another document" and select the area by hand.',
   privacy:'🔒 All documents are processed inside your browser. Only when you choose AI deep scan is the extracted text sent for analysis — never stored.',
   partners:'Recommended by SafeFile',
   pSlim:'Image compression & PDF conversion, all under 2MB.', pSchool:'Teaching jobs — find the perfect school.', pHello:'Start learning Korean today.',
   footer:'The fastest way to protect personal info', footPrivacy:'Privacy Policy', footBlog:'Blog',
+  footJp:'For Japanese submission documents',
   pwaTitle:'Add it to your Home Screen to use it like an app', pwaIosDesc:'Tap Safari’s Share <span class="ib-share">↑</span> button, then choose “Add to Home Screen”', pwaAndroidDesc:'Install it to open offline and launch like an app', pwaInstall:'Install',
   cnt:n=>`${n}`, cntUse:n=>`· ${n} in use`, scanDone:n=>`⚡ Instant scan done — ${n} found`, scanAI:n=>`🤖 With AI scan — ${n} total`,
   tPasteEmpty:'Please paste some text first', tBulkOk:'All items set to show', tBulkNo:'All items set to hidden',
@@ -656,10 +696,13 @@ ja:{
   resTitle:'完成した文書', btnDl:'ダウンロード', btnCopy:'テキストをコピー',
   rvFit:'フィット', rvPrevAria:'前のページ', rvNextAria:'次のページ', rvZoomInAria:'拡大', rvZoomOutAria:'縮小', rvFullAria:'全画面', rvExitAria:'全画面を閉じる',
   resFlat:'🔒 このファイルは画像に平坦化（フラット化）され、黒いボックスの下に原文は残りません。',
+  resUnlocTitle:n=>`⚠ 位置を特定できなかった項目が ${n}件 — このファイルには残っています`,
+  resUnlocBody:'以下の項目は文書内で見つかりましたが、位置を特定できなかったため帯を重ねられませんでした。保存・提出の前にプレビューを拡大してご確認ください。必要な場合は「別の文書」に戻り、その部分を範囲選択で指定してください。',
   privacy:'🔒 すべての文書はお使いのブラウザ内でのみ処理されます。AI精密検査を選んだ場合のみ、抽出テキストがAI分析のため送信され、保存されることはありません。',
   partners:'SafeFileのおすすめサービス',
   pSlim:'画像圧縮とPDF変換を、2MB以下で手軽に。', pSchool:'先生のための求人情報、ぴったりの学校探し。', pHello:'韓国語学習を今日から始めましょう。',
   footer:'個人情報を守る、いちばん速い方法', footPrivacy:'プライバシーポリシー', footBlog:'ブログ',
+  footJp:'日本の提出書類向け',
   pwaTitle:'ホーム画面に追加すると、アプリのように使えます', pwaIosDesc:'Safariの共有 <span class="ib-share">↑</span> ボタンをタップして「ホーム画面に追加」を選んでください', pwaAndroidDesc:'インストールするとオフラインでも開き、アプリのように起動します', pwaInstall:'インストール',
   cnt:n=>`${n}件`, cntUse:n=>`· ${n}件使用中`, scanDone:n=>`⚡ 即時検査完了 — ${n}件検出`, scanAI:n=>`🤖 AI検査を含む — 合計${n}件`,
   tPasteEmpty:'内容を貼り付けてください', tBulkOk:'すべての項目を公開に設定しました', tBulkNo:'すべての項目を非公開に設定しました',
@@ -713,10 +756,13 @@ es:{
   resTitle:'Tu documento seguro', btnDl:'Descargar', btnCopy:'Copiar texto',
   rvFit:'Ajustar', rvPrevAria:'Página anterior', rvNextAria:'Página siguiente', rvZoomInAria:'Acercar', rvZoomOutAria:'Alejar', rvFullAria:'Pantalla completa', rvExitAria:'Salir de pantalla completa',
   resFlat:'🔒 Este archivo está aplanado a imagen: no queda texto original bajo las cajas negras.',
+  resUnlocTitle:n=>`⚠ ${n} elemento(s) sin ubicar: siguen visibles en este archivo`,
+  resUnlocBody:'Se encontraron en el documento, pero no se pudo fijar su posición, así que no se cubrieron con una barra. Amplía la vista previa y compruébalo antes de guardar o enviar; si hace falta, vuelve con «otro documento» y selecciona el área a mano.',
   privacy:'🔒 Todos los documentos se procesan dentro de tu navegador. Solo cuando eliges el análisis con IA se envía el texto extraído para su análisis, y nunca se almacena.',
   partners:'Recomendado por SafeFile',
   pSlim:'Compresión de imágenes y conversión a PDF, todo por debajo de 2 MB.', pSchool:'Empleo docente: encuentra el colegio perfecto.', pHello:'Empieza a aprender coreano hoy.',
   footer:'La forma más rápida de proteger tus datos personales', footPrivacy:'Política de privacidad', footBlog:'Blog',
+  footJp:'Para documentos japoneses',
   pwaTitle:'Añádela a tu pantalla de inicio para usarla como una app', pwaIosDesc:'Pulsa el botón Compartir <span class="ib-share">↑</span> de Safari y elige “Añadir a pantalla de inicio”', pwaAndroidDesc:'Instálala para abrirla sin conexión y ejecutarla como una app', pwaInstall:'Instalar',
   cnt:n=>`${n}`, cntUse:n=>`· ${n} en uso`, scanDone:n=>`⚡ Análisis instantáneo listo — ${n} encontrados`, scanAI:n=>`🤖 Con análisis de IA — ${n} en total`,
   tPasteEmpty:'Primero pega algún texto', tBulkOk:'Todos los elementos configurados como visibles', tBulkNo:'Todos los elementos configurados como ocultos',
@@ -890,6 +936,10 @@ function applyLang(){
   if(typeof refreshInstallBanner==='function') refreshInstallBanner();
   buildWmPresets();
   renderHero(); renderList(); buildPreview();
+  // The "not located" box is built from I18N strings too, so it has to be
+  // rebuilt on a language switch. Guarded rather than ordered: this function
+  // runs during init, before showResult has ever been called.
+  if(typeof renderUnlocated==='function' && $('result') && $('result').style.display!=='none') renderUnlocated();
   // keep the result viewer in sync (fit label + fullscreen aria are language-dependent)
   if(typeof rvPages!=='undefined' && rvPages.length && $('result') && $('result').style.display!=='none'){
     const b=$('rvFull'); if(b&&rvIsFull) b.setAttribute('aria-label',T().rvExitAria);
@@ -3035,7 +3085,38 @@ function showResult(sources){
   rvPages=sources.slice(); rvIndex=0; rvZoom=null;
   $('result').style.display='block';
   rvRender();
+  renderUnlocated();
   $('result').scrollIntoView({behavior:'smooth'});
+}
+/* The items the visitor asked to hide that we could NOT put a bar on (S11).
+ *
+ * `isOn(e) && e.mode!=='ok' && !located(e)` is the same predicate updateMake()
+ * and the masked-count toast use, with located() inverted — so this box lists
+ * exactly the complement of what got covered, rather than a second opinion
+ * about it. Entities the visitor chose to leave visible (mode 'ok') are not
+ * listed: nothing failed there.
+ *
+ * The VALUE is shown masked (displayValue → ■ blocks for a hidden item), not
+ * raw. A warning that reprints the number it is warning about would put the
+ * secret on the screen the visitor is about to screenshot or hand over.
+ * The category label is what makes the line actionable: 「保険者番号 が1件」
+ * tells someone where to look; a row of blocks on its own does not.
+ */
+function renderUnlocated(){
+  const box=$('resultUnlocated'); if(!box) return;
+  const miss=entities.filter(e=>isOn(e)&&e.mode!=='ok'&&!located(e));
+  if(!miss.length){ box.style.display='none'; box.innerHTML=''; return; }
+  const t=T();
+  // Grouped by category so five missed digits of one field read as one problem.
+  const byType={};
+  miss.forEach(e=>{ (byType[e.type]=byType[e.type]||[]).push(e); });
+  const rows=Object.keys(byType).map(type=>{
+    const items=byType[type];
+    const vals=items.map(e=>`<span class="ru-val">${escapeHtml(displayValue(e))}</span>`).join(', ');
+    return `<li>${(TYPES[type]||{}).icon||''} <strong style="display:inline;font-weight:700">${escapeHtml(tLabel(type))}</strong> ${t.cnt(items.length)} — ${vals}</li>`;
+  }).join('');
+  box.innerHTML=`<strong>${escapeHtml(t.resUnlocTitle(miss.length))}</strong>${escapeHtml(t.resUnlocBody)}<ul>${rows}</ul>`;
+  box.style.display='block';
 }
 function rvRender(){
   const host=$('resultDoc'); if(!host) return;

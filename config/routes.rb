@@ -156,4 +156,20 @@ Rails.application.routes.draw do
   get "sitemap.xml", to: "pages#sitemap", as: :sitemap, defaults: { format: :xml }
 
   get "up" => "rails/health#show", as: :rails_health_check
+
+  # IndexNow ownership key, served from ENV rather than from a committed file —
+  # see IndexNowKeyController for why, and lib/index_now.rb for what sends it.
+  #
+  # DECLARED LAST, and constrained to one path segment that ends in `.txt`:
+  # this is the only dynamic top-level route in the file, so it must not be in
+  # a position where it can shadow a real page. `format: false` keeps the
+  # `.txt` inside the segment instead of letting Rails strip it into
+  # params[:format], which is what makes the constraint able to require it.
+  #
+  # The controller still compares the segment against ENV["INDEXNOW_KEY"] and
+  # 404s on any mismatch, so this route does not turn every unmatched
+  # `/<something>.txt` into a 200 — and robots.txt, llms.txt and sitemap.xml
+  # never reach the router at all (ActionDispatch::Static answers them first).
+  get "/:indexnow_key", to: "index_now_key#show", format: false,
+      constraints: { indexnow_key: /[A-Za-z0-9][A-Za-z0-9_-]{7,127}\.txt/ }
 end

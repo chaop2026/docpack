@@ -22,6 +22,21 @@
 <% landing = post.package["landing_path"].presence || "/safe/jp/nyusatsu/" %>
 
 <article class="jp-article" lang="<%= showing_en ? "en" : "ja" %>">
+  <%# S11 — the trail the BreadcrumbList in posts/show.html.erb describes.
+      Rendered rather than only declared: this repository's standing rule is
+      that structured data must not announce something the document does not
+      contain (the FAQ block below is absent for the same reason when there is
+      no FAQ). `showing_en` is exactly the condition under which the canonical
+      is /en/blog/:slug, so the two trails cannot disagree about the prefix.
+      The current article is plain text, not a link to itself. %>
+  <% bc_prefix = showing_en ? "/en" : "/ja" %>
+  <nav class="jp-breadcrumb" aria-label="<%= showing_en ? "Breadcrumb" : "パンくずリスト" %>">
+    <a href="<%= bc_prefix %>"><%= showing_en ? "Home" : "ホーム" %></a>
+    <span aria-hidden="true">›</span>
+    <a href="<%= bc_prefix %>/blog"><%= showing_en ? "Blog" : "ブログ" %></a>
+    <span aria-hidden="true">›</span>
+    <span class="jp-breadcrumb-current"><%= post.title(url_locale) %></span>
+  </nav>
   <header class="jp-article-head">
     <% if post.package["intent"].present? %>
       <div class="jp-article-tag"><%= post.package["intent"] %></div>
