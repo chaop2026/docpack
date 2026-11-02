@@ -29,6 +29,18 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta charset="utf-8">
     <meta name="google-site-verification" content="kgzqmiPFYQX0JWICmT3tB88tsJ7TADz-uyXJdu1pAEw" />
+    <%# Naver Search Advisor (네이버 서치어드바이저) site ownership, S11b.
+
+        Verified from the ROOT HTML of https://slimfile.net/ — and the root is
+        this layout (`root "pages#home"`, config/routes.rb:30; there is no
+        public/index.html, so ActionDispatch::Static never answers "/").
+        It sits in the layout rather than in the home view because Naver
+        re-checks ownership periodically and a tag that lives on one action is a
+        tag that disappears the next time that action's template is reworked.
+
+        Not a secret: this token is a public ownership claim that only means
+        anything when it is served to everyone. %>
+    <meta name="naver-site-verification" content="4178937ade37131d7ee81e7a40d14392566d3529" />
 
     <meta name="description" content="<%= content_for(:meta_description) || t('seo.default_description') %>">
     <meta name="keywords" content="<%= t('seo.keywords') %>">

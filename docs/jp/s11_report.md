@@ -405,3 +405,126 @@ P16 은 「랜딩 유입 중 **소셜** 경유」다. 손으로 보낸 메일은
 9. `utm_source` 열이 0이 되는 것이 `via` 전환 완료의 유일한 신호다(주간 표가 두 열로 보여준다).
 10. ep04~33 본문 미작성 · YouTube 채널은 개설됐으나 Shorts 8편 **미게시** ·
     **X 요금제·월 쓰기 한도 미확인 → `X_API_DRY_RUN=1` 유지.**
+
+---
+
+## §13 S11b — §12 사람 결정 3건 반영 (2026-11-02/03)
+
+브랜치 `main`. **미배포·미푸시·실제 게시 0건.** 프로덕션 DB 미접촉. `X_API_DRY_RUN` 줄 미수정.
+입력: §12 의 「사람 결정」 항목 3·4 + 네이버 서치어드바이저 등록(신규).
+Justin 승인: **3건 전부 추천대로.**
+
+### 1. JP 글 `Article.publisher.name` → `"SafeFile"` (§12-3)
+
+S11 은 **로고**만 넣으라는 요구였으므로 `name` 을 `"SlimFile"` 로 남겼다. 그 결과 한 엔티티가
+두 이름으로 설명되고 있었다 — 랜딩 3곳의 `Organization` 은 `SafeFile`·`セーフファイル`·
+SafeFile 아이콘이고, 글의 `publisher` 는 같은 아이콘을 `SlimFile` 이라는 이름 아래 실었다.
+**답변 엔진이 둘을 다 읽으면 화해시킬 방법이 없다.**
+
+구현은 ERB 한 줄의 삼항식(`primary_locale == "ja" ? "SafeFile" : "SlimFile"`)이다.
+**소스는 바뀌고 한국어 출력은 바이트 불변** — 이것이 측정 대상이라, 테스트는 `name` 하나가
+아니라 **`publisher` 해시 전체**를 대조한다(`name` 만 보면 로고나 url 이 사라져도 녹색이다).
+한국어 쪽은 기존 단언(`{Organization, SlimFile, https://slimfile.net}` 완전 일치)이 그대로 지킨다.
+`author.name` 은 손대지 않았다 — 요구는 publisher 였고, author 는 양 트랙 공통으로
+`"SlimFile"` 이라서 바꾸면 한국어 42개 글의 마크업이 움직인다.
+
+### 2. `/safe/` 에서 AdSense 제거 (§12-4)
+
+두 곳이었다: `<head>` 의 **활성 로더**(`index.html:312`)와 `.partners` 안의
+**주석 처리된 슬롯 자리표시자**. 둘 다 제거했다.
+
+판단 근거는 수익이 아니라 **감사 가능성**이다. 이 화면은 사람이 運転免許証·住民票를 여는
+자리이고, 페이지 자신의 약속은 「아무것도 브라우저를 떠나지 않는다」다. 제3자 스크립트의
+쿠키·네트워크 호출은 **결과 파일만 보고는 확인할 수 없다** — 제출하는 사람이 감사할 수 없는
+약속은 약속이 아니다. 덧붙여 그 슬롯은 수익이 0이었다(슬롯 id 가 미교체 자리표시자였다).
+**주석 처리된 자리표시자까지 지운 이유**: 주석 처리된 광고 슬롯은 「주석을 해제하라」는
+초대장이고, 이 결정의 요점이 그 페이지에 광고가 없다는 것이다.
+
+사이트의 다른 AdSense(`layouts/application.html.erb:25`, `shared/_banners`)는 **범위 밖이고
+그대로**다. `/privacy/` §3 에 그 사실과 **「도구 화면에는 넣지 않는다」**를 한 줄로 명시했다
+(ko + ja). 단정 표현 가드(`絶対`·`防ぐ`·`唯一`·`必ず安全`·`一括`) 위반 0건.
+
+**S11 테스트의 의도적 좁힘이 풀렸다.** S11 은 「/safe/ 는 제3자 스크립트가 없다」가 **이미
+거짓**임을 측정하고, 테스트가 말할 수 있는 좁은 참 — 「애널리틱스가 없다」 — 만 고정했다.
+그래서 AdSense 는 `ANALYTICS_HOSTS` 밖에 두고 **별도 allowlist 로 노출**했다(짧은 목록이
+예외를 숨기지 않게). 지금은 넓은 주장이 참이 됐으므로:
+- allowlist 3개 → **2개**(cdnjs 두 번만). AdSense 는 allowlist 에서 **빠졌다** — 그래서
+  로더가 돌아오면 **개수와 호스트 양쪽**에서 실패한다.
+- 신규 테스트 `/safe/ loads NO advertising script` — `pagead2…`·`adsbygoogle`·
+  `data-ad-client`·`data-ad-slot` 4개 needle 을 **주석까지 포함한 원시 바이트**에서 거부
+  (주석 처리된 슬롯이 바로 「해제되는 것」이므로). `jp.js` 도 함께 본다.
+- 정책 문구 2개(ko·ja)를 같은 테스트가 단언한다.
+
+⚠️ **그 테스트가 내가 쓴 주석을 먼저 잡았다**: 제거 사유를 적은 주석에 `data-ad-slot` 이라는
+문자열이 들어 있어 첫 실행이 실패했다. 원시 바이트를 보는 단언이므로 **올바른 실패**다 —
+주석 문구를 「슬롯 id」로 바꿨다.
+
+SW 는 손댈 것이 없었다: `SHELL_ASSETS`·`CACHEABLE_CDN`·프리캐시 목록에 googlesyndication
+항목이 **0건**이었고, `CACHE_VERSION` 은 Dockerfile 이 빌드 타임스탬프로 치환하므로
+**배포마다 자동으로 올라간다** — 수동 버전 범프 불필요. 캐시된 구 셸은 그 범프로 교체된다.
+
+### 3. 네이버 서치어드바이저 소유확인 메타 (신규)
+
+`layouts/application.html.erb` 의 `google-site-verification` 바로 아래 1줄.
+
+**전제를 가정하지 않고 단언했다.** 네이버는 `https://slimfile.net/` **루트 HTML** 에서 확인하고,
+그 루트가 이 레이아웃인 것은 주어진 사실이 아니라 전제다 — 이 저장소는
+`ActionDispatch::Static` 이 라우터보다 먼저 답하는 데 이미 한 번 당했다(`/safe`, 2026-09-17).
+그래서 테스트가 ① `public/index.html` 부재 ② `recognize_path("/") == pages#home`
+③ `/` 가 레이아웃을 통해 렌더됐다 를 모두 본다. 레이아웃에 둔 이유는 네이버가 소유권을
+**주기적으로 재확인**하기 때문이다 — 한 액션에만 사는 태그는 그 템플릿을 다음에 손볼 때
+사라지는 태그다.
+
+⚠️ **첫 전제 단언이 틀린 이유로 실패했다**: 레이아웃 통과 마커로 `csrf-token` 을 썼는데
+테스트 환경은 위조 방지가 꺼져 있어 `csrf_meta_tags` 가 **아무것도 출력하지 않는다.**
+레이아웃과 무관한 이유로 빨개지는 단언은 지워지기 쉬운 단언이다 → 레이아웃 전용인
+`<meta name="keywords"` 로 교체하고 그 이유를 주석에 적었다.
+
+이 토큰은 비밀이 아니다 — 모두에게 서빙될 때만 의미가 있는 공개 소유권 주장이다.
+`google-site-verification` 쪽도 **여전히 1개인지** 함께 단언한다(옆 태그를 따라 붙이는 대신
+덮어쓰는 복붙 회귀가 여기서 잡힌다).
+
+### 변이 프로브 (3/3 실측)
+
+| 되돌린 것 | 결과 |
+|---|---|
+| `<head>` 에 AdSense 로더 재삽입 | **2 실패** — allowlist(개수) + `NO advertising script`(호스트) |
+| `naver-site-verification` 줄 제거 | **2 실패** — 루트 1회 단언 + 레이아웃 전파 단언 |
+| JP `publisher.name` 을 `"SlimFile"` 로 환원 | **1 실패** — `publisher` 해시 전체 대조 |
+
+### 검증
+
+| 항목 | 결과 |
+|---|---|
+| `bin/rails test` | **496 runs / 3,732 assertions / 0 failures** (S11: 491 / 3,691) |
+| 신규 `test/integration/site_verification_test.rb` | 4개 |
+| 신규 `jp_analytics_scope_test` 「NO advertising script」 | 1개 |
+| 골든 `test/safe/run.mjs` | **557/557** (불변) |
+| `test/safe/check_matrix.mjs` | **188 triple + 10 legal pair** (불변) |
+| E-1 `blog_seo_snapshot_test` | 통과 (1 run / 6 assertions, **38행 전수 대조**) · 스냅샷 파일 `git status` 상 **미수정** |
+| `test/safe/jp_landing_check.mjs` | **169/169** |
+| `test/safe/unlocated_check.mjs` | **19/19** |
+| `test/sw/offline_resilience.mjs` | **9/9** |
+| `script/canonical_sweep.rb` | **6/6** — 중복 200 = 0, 홉 `{1=>88, 2=>2}` |
+| rubocop | **86** (베이스라인 동일, 신규 0) |
+| brakeman | **12** (베이스라인 동일, 증가 0) |
+| 프로덕션 DB | **미접촉** |
+
+### 남는 것
+
+§12 의 나머지는 그대로 열려 있다 — 배포 전 `INDEXNOW_KEY`(1·2), `/ja/blog` 언어 전환기(5),
+카테고리 칩(6), **일본 변호사 검토(7)**, 11-16 GSC 재확인(8), `utm_source` 0 전환(9),
+ep04~33 본문 미작성 · Shorts 8편 미게시 · `X_API_DRY_RUN=1` 유지(10).
+§12-3·4 는 이번에 닫혔다.
+
+S11b 가 새로 남긴 것:
+- **`author.name` 은 양 트랙 모두 `"SlimFile"` 이다.** publisher 만 갈라졌으므로 JP 글 한 편이
+  publisher=SafeFile · author=SlimFile 을 함께 선언한다. 거짓은 아니다(발행 주체와 저자 조직이
+  다를 수 있다) — 다만 JP 트랙에서 author 도 SafeFile 로 가야 하는지는 **또 한 줄의 브랜드
+  결정**이고, 바꾸면 한국어 42개 글의 마크업이 움직이므로 이번 범위에서 뺐다.
+- `og:site_name`·`WebApplication.name`·`<title>` 기본값은 전 사이트 공통 `"SlimFile"` 이다.
+  JP 랜딩은 자기 정적 파일이라 영향이 없지만, **JP 블로그 글은 SlimFile 레이아웃 안에서
+  렌더된다** — 글의 JSON-LD 는 SafeFile 을 말하고 `og:site_name` 은 SlimFile 을 말한다.
+  같은 브랜드 결정의 꼬리이고, 역시 한국어 트랙 공용이라 손대지 않았다.
+- `/privacy/` 는 전체가 한국어 문서이고 §3-1 과 이번 줄만 일본어 병기다. 일본 사용자가
+  읽는 유일한 페이지가 아니므로 전면 일본어화는 별건.

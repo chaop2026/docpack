@@ -309,7 +309,15 @@ footer .foot-jp{margin-top:8px;font-size:12px;opacity:.85}
   .install-banner{padding:11px 12px}
 }
 </style>
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9747637096324982" crossorigin="anonymous"></script>
+<!-- No advertising network on this page. 2026-11-02 Justin decision (S11 §12
+     item 2): an AdSense loader used to sit on this line, and this is the screen
+     where someone opens a 運転免許証 or a 住民票. The page's own promise is that
+     nothing leaves the browser; a third-party script with its own cookies and
+     its own network calls is not something a visitor can audit from the result
+     file, so it does not belong here regardless of what it measures.
+     The removed slot never earned anything either — its slot id was still the
+     unreplaced placeholder. AdSense elsewhere on the site (the Rails layout
+     and the banner partial) is unchanged and disclosed in /privacy/ §3. -->
 </head>
 <body>
 
@@ -500,11 +508,10 @@ footer .foot-jp{margin-top:8px;font-size:12px;opacity:.85}
 
 <div class="partners">
   <div class="wrap">
-    <!-- ▼ Google AdSense 자리: 승인 후 아래 주석을 실제 코드로 교체
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9747637096324982" crossorigin="anonymous"></script>
-    <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-9747637096324982" data-ad-slot="XXXXXXXXXX" data-ad-format="auto" data-full-width-responsive="true"></ins>
-    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-    ▲ 여기까지 -->
+    <!-- An AdSense slot placeholder used to be commented out here. Removed with
+         the live loader in the <head> (2026-11-02 decision, see that comment): a
+         commented-out ad slot is an invitation to uncomment it, and the whole
+         point of the decision is that this page does not carry one. -->
     <h4 data-i18n="partners">SafeFile이 추천하는 서비스</h4>
     <div class="partner-grid">
       <a class="partner-card" href="https://slimfile.net" target="_blank" rel="noopener"><strong>🗜 SlimFile</strong><span data-i18n="pSlim">이미지 압축과 PDF 변환, 2MB 이하로 간단하게.</span></a>

@@ -103,14 +103,18 @@
         block and asserts the key is absent: a snapshot that cannot see a field
         cannot protect it.
 
-        ⚠️ `name` stays "SlimFile" here while the Organization block on the
-        landing pages names SafeFile and this logo is SafeFile's icon. That
-        mismatch is on purpose only in the sense that S11 asked for the LOGO;
-        whether the JP track's publisher should be renamed to SafeFile is a
-        brand decision and is listed in docs/jp/s11_report.md §6. %>
+        2026-11-02 Justin decision: the JP track's publisher is **SafeFile**
+        (S11 §12 item 1). S11 left `name` as "SlimFile" while the Organization
+        block on the landing pages named SafeFile and this logo was SafeFile's
+        icon — one entity described under two names, which is precisely what an
+        answer engine reading both cannot reconcile. The JP branch now says
+        SafeFile; the Korean branch still emits the exact three lines it emitted
+        before, so the 42 live Korean posts do not move by one byte. The ternary
+        changes the SOURCE but not the Korean OUTPUT — which is what E-1 and the
+        dedicated publisher test measure. %>
     "publisher": {
       "@type": "Organization",
-      "name": "SlimFile",
+      "name": "<%= @post.primary_locale == "ja" ? "SafeFile" : "SlimFile" %>",
       "url": "<%= base_url %>"<% if @post.primary_locale == "ja" %>,
       "logo": {
         "@type": "ImageObject",

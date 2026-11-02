@@ -315,6 +315,18 @@ class JpGeoSurfaceTest < ActionDispatch::IntegrationTest
                  article.dig("publisher", "logo", "url"),
                  "Google's Article rich result documents publisher.logo as required"
 
+    # S11b (2026-11-02 Justin decision). S11 shipped the SafeFile logo under the
+    # name "SlimFile", so one entity was described under two names across the
+    # articles and the landings' Organization block. Asserted as the whole hash:
+    # a check on `name` alone would stay green if the logo or url were lost.
+    assert_equal({ "@type" => "Organization",
+                   "name" => "SafeFile",
+                   "url" => "https://slimfile.net",
+                   "logo" => { "@type" => "ImageObject",
+                               "url" => "https://slimfile.net/safe/brand/icon-512.png" } },
+                 article["publisher"],
+                 "the JP track's publisher is SafeFile, matching the landings' Organization")
+
     bc = blocks.find { |b| b["@type"] == "BreadcrumbList" }
     assert bc, "no BreadcrumbList block"
     assert_equal [ "ホーム", "ブログ", post.title(:ja) ],
@@ -362,6 +374,9 @@ class JpGeoSurfaceTest < ActionDispatch::IntegrationTest
 
     article = blocks.find { |b| b["@type"] == "Article" }
     assert article, "premise: the Korean article still has an Article block"
+    # Unchanged by S11b: the rename is the JP branch only, and the 42 live
+    # Korean posts' markup does not move. This is the assertion that makes the
+    # ternary in show.html.erb a change to the SOURCE and not to the OUTPUT.
     assert_equal({ "@type" => "Organization", "name" => "SlimFile", "url" => "https://slimfile.net" },
                  article["publisher"],
                  "the Korean track's publisher block moved")

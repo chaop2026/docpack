@@ -27,20 +27,18 @@ class JpAnalyticsScopeTest < ActionDispatch::IntegrationTest
 
   # ANALYTICS hosts only.
   #
-  # ⚠️ Measured while writing this test: /safe/ already loads an ACTIVE Google
-  # AdSense script in its <head> (public/safe/index.html:312,
-  # pagead2.googlesyndication.com). So the sentence this repository has been
-  # repeating — «the tool page carries no third-party script» — was already
-  # false before S11, and jp.js said it in a comment. What is true, and what
-  # S11 was asked to pin, is that /safe/ carries no ANALYTICS: no GA4, no
-  # measurement id, no gtag call, and therefore no per-visitor measurement of
-  # the screen where a document is opened. AdSense is disclosed in /privacy/ §3
-  # and whether it belongs on this page at all is a revenue decision, not a
-  # test's to make — it is written up in docs/jp/s11_report.md §6.
+  # ⚠️ History, because the shape of this constant is the whole story. When S11
+  # wrote this test it measured that /safe/ loaded an ACTIVE Google AdSense
+  # script in its <head>, so the sentence this repository kept repeating —
+  # «the tool page carries no third-party script» — was false, and the honest
+  # thing available to a test was the narrower claim: no ANALYTICS. AdSense was
+  # therefore deliberately left OUT of this list and allowlisted separately, so
+  # that the exception was visible rather than hidden by a short list.
   #
-  # Keeping googlesyndication.com OUT of this list is therefore deliberate and
-  # is asserted separately below, so the exception is visible rather than
-  # hidden by a conveniently short list.
+  # S11b (2026-11-02 Justin decision) removed it. The wider claim is now true
+  # and is asserted as such below: /safe/ carries no advertising script either.
+  # The split survives because the two rules have different scopes — AdSense is
+  # still on the Rails pages, GA4 is still on the three landings.
   ANALYTICS_HOSTS = %w[googletagmanager.com google-analytics.com].freeze
   ADSENSE_HOST = "pagead2.googlesyndication.com".freeze
 
@@ -103,39 +101,62 @@ class JpAnalyticsScopeTest < ActionDispatch::IntegrationTest
     refute_match(/G-[A-Z0-9]{8,}/, html, "/safe/ carries a GA measurement id")
   end
 
-  test "the external scripts /safe/ does load are exactly the three known ones" do
+  test "the external scripts /safe/ does load are exactly the two known ones" do
     # An allowlist, not a count — a count passes when one script is swapped for
-    # another. Each entry is here for a stated reason, so adding a fourth has
+    # another. Each entry is here for a stated reason, so adding a third has
     # to be a deliberate edit of this list:
     #
     #   cdnjs pdf.js    — renders PDF pages to canvas (eagerly loaded; the
     #                     redaction pipeline cannot start without it)
     #   cdnjs mammoth   — reads .docx
-    #   AdSense         — revenue on the free tool. ⚠️ This is the one that
-    #                     makes «no third-party script on /safe/» false, and
-    #                     it predates S11. Disclosed in /privacy/ §3. Whether
-    #                     it belongs on a page people open ID documents on is a
-    #                     product decision (s11_report §6), not a test's.
+    #
+    # AdSense used to be a third entry and was removed in S11b. It is NOT
+    # allowlisted any more, which is what makes the refutation below bite: if
+    # the loader comes back, this test fails on the count AND on the host.
     #
     # Tesseract.js, heic2any and jsPDF are NOT here on purpose: they are loaded
     # lazily from JS, so they never appear as a <script src> in the HTML.
-    allowed_hosts = [ "cdnjs.cloudflare.com", ADSENSE_HOST ]
+    allowed_hosts = [ "cdnjs.cloudflare.com" ]
 
     html = body_of("/safe/").gsub(/<!--.*?-->/m, "")
     external = html.scan(/<script[^>]+src="(https?:[^"]+)"/).flatten.uniq
 
-    assert_equal 3, external.length,
+    assert_equal 2, external.length,
                  "/safe/ loads #{external.length} external scripts: #{external.join(', ')}"
     external.each do |src|
       assert_includes allowed_hosts, URI.parse(src).host,
                       "an unlisted external script appeared on /safe/: #{src}"
     end
-    assert external.any? { |s| s.include?(ADSENSE_HOST) },
-           "AdSense is gone from /safe/ — good, but this test's allowlist now describes " \
-           "a page that no longer exists. Drop it from allowed_hosts."
 
-    # And the policy has to cover it. §3 is the AdSense section.
+    # And the policy still has to cover the pages that DO carry ads. §3 is the
+    # AdSense section and the Rails layout still loads it.
     assert_includes body_of("/privacy/"), "Google AdSense"
+  end
+
+  test "/safe/ loads NO advertising script" do
+    # S11b (2026-11-02 Justin decision). Separate from the allowlist above
+    # because the allowlist is about what the page is ALLOWED to load and this
+    # is about one host in particular: the raw bytes are checked, comments and
+    # all, because a commented-out ad slot is the thing that gets uncommented.
+    #
+    # The reason is not measurement. This is the screen where someone opens a
+    # 運転免許証; the page promises nothing leaves the browser, and a visitor
+    # cannot audit a third-party script's cookies or network calls from the
+    # result file.
+    raw = body_of("/safe/")
+    [ ADSENSE_HOST, "adsbygoogle", "data-ad-client", "data-ad-slot" ].each do |needle|
+      refute_includes raw, needle,
+                      "/safe/ references #{needle} — no advertising network on the screen " \
+                      "where ID documents are opened (S11b)."
+    end
+
+    # The shared JP asset would reach the page if it were ever included there.
+    refute_includes Rails.root.join("public", "safe", "jp", "jp.js").read, "adsbygoogle"
+
+    # The policy has to say it, in both languages the page is read in.
+    policy = body_of("/privacy/")
+    assert_includes policy, "개인정보 가리기 도구(<code>/safe/</code>)에는 광고 스크립트를 넣지 않습니다"
+    assert_includes policy, "広告のスクリプトを置いていません"
   end
 
   test "jp.js is not where the tag lives" do
