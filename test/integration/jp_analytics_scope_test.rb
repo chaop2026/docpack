@@ -101,36 +101,110 @@ class JpAnalyticsScopeTest < ActionDispatch::IntegrationTest
     refute_match(/G-[A-Z0-9]{8,}/, html, "/safe/ carries a GA measurement id")
   end
 
-  test "the external scripts /safe/ does load are exactly the two known ones" do
-    # An allowlist, not a count — a count passes when one script is swapped for
-    # another. Each entry is here for a stated reason, so adding a third has
-    # to be a deliberate edit of this list:
-    #
-    #   cdnjs pdf.js    — renders PDF pages to canvas (eagerly loaded; the
-    #                     redaction pipeline cannot start without it)
-    #   cdnjs mammoth   — reads .docx
-    #
-    # AdSense used to be a third entry and was removed in S11b. It is NOT
-    # allowlisted any more, which is what makes the refutation below bite: if
-    # the loader comes back, this test fails on the count AND on the host.
-    #
-    # Tesseract.js, heic2any and jsPDF are NOT here on purpose: they are loaded
-    # lazily from JS, so they never appear as a <script src> in the HTML.
-    allowed_hosts = [ "cdnjs.cloudflare.com" ]
+  # The one library still loaded from somebody else's host, and the whole
+  # reason this is a named constant rather than an empty exception: Tesseract.js
+  # v5 chooses its WebAssembly core at runtime and its language data is ~20 MB
+  # per the four UI languages, fetched from tessdata.projectnaptha.com at
+  # recognise time. Vendoring the wrapper while the data still left the origin
+  # would make the promise LOOK closed to anyone reading the repo and stay open
+  # to anyone reading their network tab.
+  #
+  # Kept as a one-entry allowlist for the same reason S11 kept AdSense out of
+  # ANALYTICS_HOSTS: a short list is where an exception goes to hide. Asserted
+  # by set equality below, so a second external library cannot join it quietly.
+  OCR_HOST = "cdn.jsdelivr.net".freeze
 
+  test "/safe/ loads NO external script at all" do
+    # S11c (2026-11-05). Until this date the allowlist here had an entry —
+    # cdnjs, for pdf.js and mammoth — and /privacy/ §3-1 told visitors in two
+    # languages that this page carries no third-party script. One of those two
+    # was wrong, and the 2026-11-04 cross-review rated it RED (item 5).
+    #
+    # The libraries moved to /safe/vendor/ (same versions, hashes and licences
+    # in that directory), so the allowlist is now EMPTY and the assertion is
+    # the plain one: zero. A list with nothing on it says more than a list with
+    # two reasonable-looking entries.
     html = body_of("/safe/").gsub(/<!--.*?-->/m, "")
     external = html.scan(/<script[^>]+src="(https?:[^"]+)"/).flatten.uniq
 
-    assert_equal 2, external.length,
-                 "/safe/ loads #{external.length} external scripts: #{external.join(', ')}"
-    external.each do |src|
-      assert_includes allowed_hosts, URI.parse(src).host,
-                      "an unlisted external script appeared on /safe/: #{src}"
-    end
+    assert_empty external,
+                 "/safe/ loads #{external.length} external script(s): #{external.join(', ')}. " \
+                 "This is the screen where an ID document is opened and /privacy/ §3-1 " \
+                 "promises no third-party script. Vendor it under public/safe/vendor/ " \
+                 "instead of adding it here."
+
+    # The <script src> above is only the eager half. Four more libraries are
+    # fetched by loadScript() at runtime, and a URL in a JS string literal is
+    # invisible to the assertion above — which is exactly where the two that
+    # were NOT on the old allowlist (jsPDF, heic2any) lived.
+    src = Rails.root.join("public", "safe", "index.html").read
+    urls = src.scan(/^const (?:PDF_WORKER|CDN_[A-Z]+) = '([^']+)'/).flatten
+    assert_operator urls.length, :>=, 4,
+                    "premise: the library URL constants are still declared this way " \
+                    "(found #{urls.length}) — if they were renamed this test examined nothing"
+
+    offorigin = urls.reject { |u| u.start_with?("/") }
+    assert_equal [ OCR_HOST ], offorigin.map { |u| URI.parse(u).host }.uniq,
+                 "the libraries loaded from another origin are not exactly the one " \
+                 "allowed: #{offorigin.join(', ')}"
 
     # And the policy still has to cover the pages that DO carry ads. §3 is the
     # AdSense section and the Rails layout still loads it.
     assert_includes body_of("/privacy/"), "Google AdSense"
+  end
+
+  test "every vendored library is actually served, and whole" do
+    # A <script src> pointing at a 404 is the S8/S11 failure shape twice over
+    # (mode-700 brand directory, mode-600 brand images): the page looks fine in
+    # dev and the production container answers 404 because it runs as another
+    # user. Here it would be worse than a missing icon — pdf.js not loading
+    # means the tool silently cannot open a PDF.
+    #
+    # The hash is checked against the committed manifest rather than recomputed
+    # for its own sake: these are third-party bytes nobody in this repository
+    # reads, and "the file we vendored is the file upstream published" is the
+    # only claim available about them.
+    dir = Rails.root.join("public", "safe", "vendor")
+    sums = dir.join("SHA256SUMS").read.lines.map { |l| l.split(/\s+/, 2) }
+               .map { |(h, f)| [ f.strip, h ] }.to_h
+
+    assert_operator sums.length, :>=, 5, "SHA256SUMS lists only #{sums.length} files"
+
+    sums.each do |file, expected|
+      get "/safe/vendor/#{file}"
+      assert_response :success, "/safe/vendor/#{file} is not served"
+      assert_equal expected, Digest::SHA256.hexdigest(response.body),
+                   "/safe/vendor/#{file} does not match SHA256SUMS — it was edited, " \
+                   "truncated or replaced. Re-fetch the pinned upstream version; do not " \
+                   "update the manifest to match a file you cannot account for."
+    end
+
+    # Licences travel with the code. Checked as presence, not content: the point
+    # is that redistributing these files carries an obligation and that the
+    # obligation is met in the same directory, not that this test can read law.
+    %w[pdf.js mammoth jspdf heic2any].each do |lib|
+      assert dir.join("LICENSE.#{lib}.txt").exist?, "no licence file for #{lib}"
+    end
+  end
+
+  test "the service worker knows the libraries moved on-origin" do
+    # Two halves that fail in opposite directions, so neither alone is enough.
+    sw = Rails.root.join("public", "safe", "sw.js").read
+
+    # 1. A stale cross-origin entry. cdnjs in CACHEABLE_CDN would be a cache-
+    #    first rule for a host the page never contacts — harmless at runtime and
+    #    a lie in the file that the next reader would act on.
+    refute_includes sw, "cdnjs.cloudflare.com",
+                    "sw.js still names cdnjs; nothing is loaded from it since S11c"
+
+    # 2. The precache list has to name files that exist. precache() treats a
+    #    non-ok or redirected response as a failure, and for OPTIONAL assets
+    #    that failure is swallowed — so a typo here costs the offline pipeline
+    #    with no symptom anywhere.
+    sw.scan(%r{'(/safe/vendor/[^']+)'}).flatten.each do |path|
+      get path
+      assert_response :success, "sw.js precaches #{path}, which is not served"
+    end
   end
 
   test "/safe/ loads NO advertising script" do
@@ -183,6 +257,31 @@ class JpAnalyticsScopeTest < ActionDispatch::IntegrationTest
     assert_match(/ファイルを開いて処理する画面.*アクセス解析も第三者のスクリプトも利用していません/,
                  html.gsub(/<[^>]+>/, ""),
                  "the policy has to state that /safe/ is excluded, not only that the landings are included")
+  end
+
+  test "the policy says the libraries are served from here, and names the exceptions" do
+    # S11c. The sentence above became true by moving files, so the policy says
+    # where they come from — and then names what did NOT move. An absolute
+    # claim with an unnamed exception is the thing that was wrong before; an
+    # absolute claim with the exception spelled out is checkable by a reader in
+    # their own network tab, which is the standard this page is held to.
+    #
+    # Both languages, because the page is read in both and a promise that
+    # exists in one of them is half a promise.
+    text = body_of("/privacy/").gsub(/<[^>]+>/, "")
+
+    assert_includes text, "파일을 처리하는 라이브러리도 이 사이트에서 직접 제공합니다"
+    assert_includes text, "ファイルを処理するライブラリも、このサイトから直接配信しています"
+
+    # The named exceptions. Checked by HOST string: these are the two origins a
+    # visitor can actually observe, and naming them is what makes the carve-out
+    # auditable rather than a hedge.
+    [ "tessdata.projectnaptha.com", "cdn.jsdelivr.net", "fonts.googleapis.com" ].each do |host|
+      assert_includes text, host,
+                      "the policy claims no third-party script but does not disclose #{host}"
+    end
+    assert_includes text, "외부에서 가져오는 것은 두 가지뿐입니다"
+    assert_includes text, "外部から読み込むものは2つだけです"
   end
 
   # ── Organization (S11 item 3) ─────────────────────────────────────────────

@@ -104,6 +104,114 @@ class IndexNowTest < ActionDispatch::IntegrationTest
     with_env("INDEXNOW_KEY" => nil) { assert_nil IndexNow.key_location("https://slimfile.net") }
   end
 
+  # ── 1b. the key has to be a shape the key-file route can serve (S11c) ─────
+  #
+  # The 2026-11-04 cross-review rated this AMBER. Until S11c `IndexNow.key`
+  # only checked for non-blank, while the route that serves /<key>.txt is
+  # constrained to /[A-Za-z0-9][A-Za-z0-9_-]{7,127}\.txt/. A value in between —
+  # a trailing newline, a quoted string, something too short — submitted
+  # happily and advertised a keyLocation the router could never match, so Bing
+  # got a 404 on the ownership check. And the symptom is invisible: IndexNow
+  # answers 202 ("key not yet validated"), which is also what a healthy first
+  # submission returns.
+
+  # Each row is a real way an env var gets mangled, not a fuzz list.
+  MALFORMED = {
+    "trailing newline (here-doc / echo into a file)" => "s11testkeyabcdef0123456789abcdef\n",
+    "surrounding quotes left in the value"           => '"s11testkeyabcdef0123456789abcdef"',
+    "internal whitespace"                            => "s11 testkeyabcdef0123456789abcde",
+    "leading space"                                  => " s11testkeyabcdef0123456789abcde",
+    "too short (7 chars; the route wants 8+)"        => "abc1234",
+    "starts with a hyphen"                           => "-11testkeyabcdef0123456789abcdef",
+    "a character the route rejects"                  => "s11testkey.abcdef0123456789abcd"
+  }.freeze
+
+  def reset_key_warning!
+    # The warning is remembered per rejected value so one submission does not
+    # log five identical lines. Cleared here because these tests reuse values.
+    IndexNow.instance_variable_set(:@warned_key_value, nil)
+  end
+
+  test "a malformed key is treated as no key at all" do
+    MALFORMED.each do |why, value|
+      reset_key_warning!
+      with_env("INDEXNOW_KEY" => value, "INDEXNOW_DRY_RUN" => nil) do
+        assert_nil IndexNow.key, "accepted a malformed key — #{why}"
+        assert IndexNow.dry_run?, "did not fall back to dry run — #{why}"
+        assert_nil IndexNow.key_location("https://slimfile.net"),
+                   "advertised a keyLocation for a key the route cannot serve — #{why}"
+        refute IndexNow.report["present"], why
+      end
+    end
+  end
+
+  test "a malformed key is never submitted, however the caller asks" do
+    # The failure being prevented is not "key rejected" — it is a POST that
+    # LOOKS accepted. So this asserts no HTTP call is made at all.
+    calls = []
+    reset_key_warning!
+    with_env("INDEXNOW_KEY" => "s11testkeyabcdef0123456789abcdef\n", "INDEXNOW_DRY_RUN" => nil) do
+      result = IndexNow.submit([ "https://slimfile.net/ja/blog/x" ],
+                               logger: nil, http: ->(*args) { calls << args; 200 })
+      assert_equal :dry_run, result[:status]
+    end
+    assert_empty calls, "a malformed key still reached the network"
+  end
+
+  test "a valid 32-hex key is accepted — the rejections above are not vacuous" do
+    # Without this row every assertion in this section would also pass if `key`
+    # simply returned nil for everything, which is the shape of a key file that
+    # 404s for the real key too.
+    hex = "0123456789abcdef0123456789abcdef"
+    with_env("INDEXNOW_KEY" => hex, "INDEXNOW_DRY_RUN" => nil) do
+      assert_equal hex, IndexNow.key
+      refute IndexNow.dry_run?
+      assert_equal "https://slimfile.net/#{hex}.txt", IndexNow.key_location("https://slimfile.net")
+
+      # And the route really serves it — the two halves are asserted together
+      # because the whole point of the format check is that they agree.
+      get "/#{hex}.txt"
+      assert_response :success
+      assert_equal hex, response.body.strip
+    end
+
+    # Boundaries, from the route's own regex: 8 is the minimum, 128 the maximum.
+    %w[a2345678].each { |ok| with_env("INDEXNOW_KEY" => ok) { assert_equal ok, IndexNow.key } }
+    long = "a" + ("b" * 127)
+    with_env("INDEXNOW_KEY" => long) { assert_equal long, IndexNow.key, "128 chars is allowed" }
+    reset_key_warning!
+    with_env("INDEXNOW_KEY" => "a" + ("b" * 128)) { assert_nil IndexNow.key, "129 chars is not" }
+  end
+
+  test "the rejection is logged once, with the length and not the value" do
+    secret = "s11testkeyabcdef0123456789abcdef\n"
+    io = StringIO.new
+    before = Rails.logger
+    reset_key_warning!
+    begin
+      Rails.logger = ActiveSupport::Logger.new(io)
+      Rails.logger.formatter = proc { |sev, _t, _p, msg| "#{sev} #{msg}\n" }
+      with_env("INDEXNOW_KEY" => secret, "INDEXNOW_DRY_RUN" => nil) do
+        # Five `key` calls' worth of work, done the way `submit` does it.
+        IndexNow.submit([ "https://slimfile.net/ja/blog/x" ], logger: nil, http: ->(*) { 200 })
+      end
+    ensure
+      Rails.logger = before
+    end
+
+    out = io.string
+    warnings = out.lines.select { |l| l.start_with?("WARN") && l.include?("[IndexNow]") }
+    assert_equal 1, warnings.length,
+                 "expected exactly one warning for one bad value, got #{warnings.length}:\n#{out}"
+    assert_includes warnings.first, "#{secret.length} chars"
+
+    # The value must not be in the log. Checked against the key MINUS the
+    # newline too: a `.strip`/`inspect` anywhere in the line would leak it in a
+    # form a search for the raw value would miss.
+    refute_includes out, secret.strip
+    refute_includes out, secret.strip[0, 12]
+  end
+
   # ── 2. dry run and failure ────────────────────────────────────────────────
 
   test "no key means dry run, and the flag forces it even when a key is present" do

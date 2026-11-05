@@ -14,16 +14,20 @@
  * Never cached: POST/non-GET, and anything under /api/ (esp. /api/safe_scan —
  * the AI deep-scan endpoint must always hit the network and never be stored).
  *
- * CDN libraries (pdf.js, mammoth, tesseract, jspdf, heic2any, Google Fonts) are
- * version-pinned URLs, so they use CACHE-FIRST: first visit pays the network
- * cost (no extra first-load burden — nothing is pre-fetched), and returning
- * visitors get them instantly from cache. Because the URLs are immutable, there
- * is no staleness risk.
+ * Libraries. Since S11c (2026-11-05) pdf.js, its worker, mammoth, jsPDF and
+ * heic2any are served from THIS origin (/safe/vendor/, see that directory's
+ * README for why), so they take the same-origin cache-first path below. The one
+ * that is still cross-origin is Tesseract.js — loaded lazily and only for OCR;
+ * it keeps the version-pinned CACHE-FIRST treatment, which is safe because the
+ * URL is immutable. Google Fonts likewise.
  */
+// Bumped to v3 by S11c: the library URLs moved on-origin, so every runtime
+// cache entry naming cdnjs is now dead weight that nothing will ever request
+// again. A version bump is what evicts it (see activate()).
 // The build-time token below is replaced with the image build timestamp by the
 // Dockerfile (sed), so every deploy bumps the version even when this file is
 // otherwise unchanged. Unstamped (local dev) it stays a valid, stable literal.
-const CACHE_VERSION = 'v2-__SW_BUILD__';
+const CACHE_VERSION = 'v3-__SW_BUILD__';
 const SHELL_CACHE = `safefile-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `safefile-runtime-${CACHE_VERSION}`;
 
@@ -51,11 +55,30 @@ const OPTIONAL_SHELL_ASSETS = [
   '/safe/brand/icon-512.png',
   '/safe/brand/icon-maskable-512.png',
   '/safe/brand/icon-180.png',
+
+  // S11c — the vendored libraries (public/safe/vendor/). Optional for the same
+  // reason as the icons: the UI still OPENS without them. What it cannot do
+  // without them is its job, and the gap this closes is narrow but real — an
+  // installed PWA opened offline right after an update has an empty cache for
+  // them, so the shell would render over a dead pipeline. 2.41 MB.
+  //
+  // heic2any (1.35 MB) is deliberately NOT here: it is needed only for an iPhone
+  // HEIC input, and precaching the single largest file for a minority path would
+  // charge every reader of the page for it. It still gets cached on first use by
+  // the same-origin cache-first branch in fetch(), which is exactly the
+  // treatment it had while it lived on a CDN.
+  '/safe/vendor/pdf.min.js',
+  '/safe/vendor/pdf.worker.min.js',
+  '/safe/vendor/mammoth.browser.min.js',
+  '/safe/vendor/jspdf.umd.min.js',
 ];
 
-// Cross-origin hosts whose (version-pinned) assets we cache-first for revisit speed.
+// Cross-origin hosts whose (version-pinned) assets we cache-first for revisit
+// speed. cdnjs is gone from this list because nothing is loaded from it any
+// more (S11c) — a host listed here that the page never contacts is a comment
+// claiming a dependency that does not exist. jsdelivr stays for Tesseract.js,
+// the one library still off-origin; see public/safe/vendor/README.md.
 const CACHEABLE_CDN = [
-  'cdnjs.cloudflare.com',
   'cdn.jsdelivr.net',
   'fonts.googleapis.com',
   'fonts.gstatic.com',

@@ -42,8 +42,18 @@
 <meta name="twitter:image" content="https://slimfile.net/safe/brand/og_1200x630.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<!-- S11c (2026-11-05). These two used to be loaded from cdnjs. This is the
+     screen where someone opens a 運転免許証, and §3-1 of /privacy/ states in
+     both languages that the page carries no third-party script — which was
+     simply false while four libraries came from a CDN. The 2026-11-04
+     cross-review rated it RED (docs/jp/codex_review_s11_2026-11-04.md item 5).
+     Rewording the sentence was the cheaper fix; serving the files ourselves is
+     the one that makes it true, and it also means a cdnjs outage no longer
+     takes the tool down.
+     Same versions as before — a transport change, not an upgrade. Provenance,
+     hashes and licences: public/safe/vendor/README.md + SHA256SUMS. -->
+<script src="/safe/vendor/pdf.min.js"></script>
+<script src="/safe/vendor/mammoth.browser.min.js"></script>
 <style>
 :root{
   --paper:#F7F5EF; --card:#FFFFFF; --ink:#17140F; --sub:#6B655A;
@@ -868,10 +878,24 @@ function sfEvent(name, props){
 /* ───────── constants ───────── */
 const MAX_BYTES = 20*1024*1024;
 const MAX_PAGES = 30;
-const PDF_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+/* Library URLs. Same origin unless stated — see the <head> comment and
+   public/safe/vendor/README.md for why.
+
+   CDN_TESSERACT is the ONE exception and it is not an oversight. Tesseract.js
+   v5 selects its WebAssembly core at runtime (simd / lstm variants), and even
+   with the library vendored the language data stays third-party:
+   kor.traineddata.gz alone is 7 MB and the page needs kor+eng / eng / jpn+eng /
+   spa+eng depending on UI language, fetched from tessdata.projectnaptha.com at
+   recognise time. Hosting the scripts while the data still leaves the origin
+   would make the promise LOOK closed while a visitor watching the network tab
+   during an OCR run still sees third-party requests — which is the failure the
+   RED named. So /privacy/ §3-1 names the OCR exception out loud instead, and
+   test/integration/jp_analytics_scope_test.rb keeps this URL as the single
+   visible entry on an otherwise empty allowlist. */
+const PDF_WORKER = '/safe/vendor/pdf.worker.min.js';
 const CDN_TESSERACT = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
-const CDN_HEIC = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
-const CDN_JSPDF = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+const CDN_HEIC = '/safe/vendor/heic2any.min.js';
+const CDN_JSPDF = '/safe/vendor/jspdf.umd.min.js';
 
 /* ───────── state ───────── */
 // pages: [{canvas, w, h, ptW, ptH, items:[{str,x,y,w,h}]}]  (x,y,w,h in canvas px, top-left origin)

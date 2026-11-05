@@ -385,10 +385,19 @@ class JpGeoSurfaceTest < ActionDispatch::IntegrationTest
     refute_includes utf8_body, "jp-breadcrumb"
   end
 
-  test "an English-URL Japanese article keeps its breadcrumb on the /en prefix" do
-    # A Japanese episode with a body_en is canonical at /en/blog/:slug. A trail
-    # whose first two rungs said /ja while the page said /en would describe a
-    # different document's position in the site.
+  test "an English-URL Japanese article points its breadcrumb at the Japanese listing" do
+    # S11c (2026-11-05), reversing S11.
+    #
+    # S11 put the trail on the canonical prefix, so this page said Home → /en
+    # and Blog → /en/blog. The 2026-11-04 cross-review rated it AMBER and was
+    # right: /en/blog is a DIFFERENT PUBLICATION. PostsController#index serves
+    # Post.jp at /ja/blog and `where.not(primary_locale: "ja")` at /blog,
+    # /en/blog and /es/blog — so the breadcrumb named a parent index that will
+    # never list this article. The premise assertion at the bottom of this test
+    # is what makes that a fact here rather than a claim in a comment.
+    #
+    # Labels still follow the page's language; only the URLs are a claim about
+    # the site.
     post = create_jp_post(ep: 85, slug: "jp-ep85-geo-en", body_en: "<p>English body.</p>",
                           title_en: "Breadcrumb on the English URL")
     get "/en/blog/#{post.slug}"
@@ -397,13 +406,36 @@ class JpGeoSurfaceTest < ActionDispatch::IntegrationTest
     bc = ld_blocks(utf8_body).find { |b| b["@type"] == "BreadcrumbList" }
     assert bc
     assert_equal [ "Home", "Blog", "Breadcrumb on the English URL" ],
-                 bc["itemListElement"].map { |i| i["name"] }
-    assert_equal [ "https://slimfile.net/en", "https://slimfile.net/en/blog", nil ],
-                 bc["itemListElement"].map { |i| i["item"] }
+                 bc["itemListElement"].map { |i| i["name"] },
+                 "the labels follow the language the page is written in"
+    assert_equal [ "https://slimfile.net/ja", "https://slimfile.net/ja/blog", nil ],
+                 bc["itemListElement"].map { |i| i["item"] },
+                 "a JP episode's parent index is /ja/blog whatever prefix it is canonical at"
+
+    # The rendered trail must say the same thing. They were changed together;
+    # a reader clicking the link is who would find out first if they drifted.
+    assert_select "nav.jp-breadcrumb" do
+      assert_select "a[href='/ja']", text: "Home"
+      assert_select "a[href='/ja/blog']", text: "Blog"
+    end
 
     canonical = utf8_body[%r{<link[^>]+rel="canonical"[^>]+href="([^"]+)"}, 1]
     assert_equal "https://slimfile.net/en/blog/#{post.slug}", canonical,
-                 "premise: this URL really is the canonical one for this post"
+                 "premise: this URL really is the canonical one for this post — the trail " \
+                 "deliberately does NOT follow it"
+
+    # Premise for the whole fix: the listing the old trail pointed at does not
+    # carry this article, and the one it points at now does. Measured, not
+    # asserted in prose — this is the entire reason the change is correct.
+    get "/en/blog"
+    assert_response :success
+    refute_includes utf8_body, "/blog/#{post.slug}",
+                    "/en/blog lists this JP article after all; the premise of this fix is wrong"
+
+    get "/ja/blog"
+    assert_response :success
+    assert_includes utf8_body, "/blog/#{post.slug}",
+                    "/ja/blog does not list this JP article"
   end
 
   # ── 4. the landing pages are no longer orphans ────────────────────────────

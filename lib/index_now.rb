@@ -54,9 +54,41 @@ module IndexNow
   # approach it, and a bound that exists is better than one that is assumed.
   MAX_URLS = 100
 
+  # The same shape the route constraint accepts — character for character.
+  #
+  # ── Why this is validated here and not only at the route ───────────────────
+  #
+  # `config/routes.rb` serves the key file from
+  #   get "/:indexnow_key", constraints: { indexnow_key: /[A-Za-z0-9][A-Za-z0-9_-]{7,127}\.txt/ }
+  # and until S11c this module only checked that ENV["INDEXNOW_KEY"] was
+  # non-blank. A value that is non-blank but outside that shape — a trailing
+  # newline from a here-doc, a quoted string, something under 8 characters —
+  # produced the worst of the three possible outcomes: submission went ahead
+  # and advertised a `keyLocation` that the router would never match, so
+  # /<key>.txt answered 404 and Bing rejected the ownership check. Nothing in
+  # our logs says "refused"; IndexNow returns 202 ("key not yet validated"),
+  # which is also what a perfectly good first submission returns.
+  #
+  # So a malformed key is now the same posture as no key at all: dry run. That
+  # is strictly better than submitting with one, because a dry run is a
+  # recorded status the weekly report prints, and a 202 that never validates is
+  # indistinguishable from success.
+  #
+  # IndexNow's own documentation asks for 8–128 characters of [a-zA-Z0-9-]; the
+  # route's regex additionally allows `_` and requires the first character to be
+  # alphanumeric. Matching the ROUTE rather than the spec is the point: the
+  # route is what decides whether the file can be served, and a key the spec
+  # likes but our own router cannot serve is exactly the failure above.
+  KEY_FORMAT = /\A[A-Za-z0-9][A-Za-z0-9_-]{7,127}\z/
+
   class << self
     def key
-      ENV["INDEXNOW_KEY"].presence
+      raw = ENV["INDEXNOW_KEY"].presence
+      return nil if raw.nil?
+      return raw if KEY_FORMAT.match?(raw)
+
+      warn_malformed_key(raw)
+      nil
     end
 
     def dry_run?
@@ -128,6 +160,28 @@ module IndexNow
     end
 
     private
+
+    # One line, and the VALUE IS NOT IN IT — length only, the same rule `report`
+    # follows and XClient follows for its tokens. The key is public by protocol,
+    # but a rejected key is usually a configuration mistake (a stray quote, a
+    # newline, a paste of the wrong secret) and a log line is the wrong place to
+    # find out which secret somebody pasted.
+    #
+    # Warned once per distinct rejected value rather than on every call: `key`
+    # is consulted five times in one `submit` (dry_run? once, report twice with
+    # two calls each), and five identical lines read as five problems. Keyed on
+    # the value so a corrected-then-broken-again env var warns again.
+    def warn_malformed_key(raw)
+      return if @warned_key_value == raw
+
+      @warned_key_value = raw
+      Rails.logger&.warn(
+        "[IndexNow] INDEXNOW_KEY is set but does not match the shape the key-file route " \
+        "can serve (#{raw.length} chars; needs 8-128 of [A-Za-z0-9_-] starting alphanumeric). " \
+        "Falling back to DRY RUN — submitting with it would advertise a keyLocation that " \
+        "answers 404."
+      )
+    end
 
     # → HTTP status code. Separated out so `submit` can be driven by a stub in
     # tests without stubbing Net::HTTP itself.

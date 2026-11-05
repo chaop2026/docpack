@@ -165,20 +165,31 @@
       ホーム › ブログ › 記事. The Korean track does not get one for the same
       reason as the publisher logo above: its markup does not move this round.
 
-      The trail follows the CANONICAL path, not @url_locale. A Japanese episode
-      with a body_en is canonical at /en/blog/:slug, and a breadcrumb whose
-      first two rungs said /ja while the page said /en would describe a
-      different document's position in the site. Both rungs are real pages
-      (root and the listing exist under each prefix), so nothing here points at
-      a URL that does not resolve — which is the mistake the hreflang work in
-      this repository has already made twice.
+      ⚠️ S11 made the trail follow the CANONICAL prefix, so a Japanese episode
+      with a body_en got ホーム › Blog pointing at /en and /en/blog. The
+      2026-11-04 cross-review rated that AMBER and it was right: /en/blog is a
+      DIFFERENT PUBLICATION. PostsController#index scopes the listing by track
+      — /ja/blog serves Post.jp, while /blog, /en/blog and /es/blog serve the
+      Korean posts — so the old trail said this article's parent index was one
+      that does not and will never list it. A breadcrumb is a claim about where
+      a document sits in the site, and that claim was false.
+      The rungs are therefore fixed on /ja, which is where this publication
+      lives, for every JP episode whatever its canonical prefix. Mixing the
+      prefixes would be worse than either: Home on /en with Blog on /ja/blog
+      describes a hierarchy that exists nowhere.
+      The LABELS still follow the page's language — an English article gets
+      "Home › Blog" — because the reader of that page reads English. The names
+      are a courtesy to the reader; the URLs are a factual claim, and only the
+      second one has to match the site.
+      Both rungs resolve (jp_geo_surface_test fetches them), which is the
+      mistake the hreflang work in this repository has already made twice.
 
       Only two rungs carry `item`. The last one is the current page and Google
       asks that it be left without a URL; naming itself would make the page its
       own ancestor. %>
   <% if @post.primary_locale == "ja" %>
     <% bc_en = canonical_path.start_with?("/en/") %>
-    <% bc_prefix = bc_en ? "/en" : "/ja" %>
+    <% bc_prefix = "/ja" %>
     <% breadcrumb_ld = {
          "@context" => "https://schema.org",
          "@type" => "BreadcrumbList",

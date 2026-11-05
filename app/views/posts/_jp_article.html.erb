@@ -26,10 +26,16 @@
       Rendered rather than only declared: this repository's standing rule is
       that structured data must not announce something the document does not
       contain (the FAQ block below is absent for the same reason when there is
-      no FAQ). `showing_en` is exactly the condition under which the canonical
-      is /en/blog/:slug, so the two trails cannot disagree about the prefix.
-      The current article is plain text, not a link to itself. %>
-  <% bc_prefix = showing_en ? "/en" : "/ja" %>
+      no FAQ). The current article is plain text, not a link to itself.
+
+      S11c — the prefix is /ja for every JP episode, including one shown in
+      English at /en/blog/:slug. /en/blog is the KOREAN publication's listing
+      (PostsController#index scopes by track) and would never contain this
+      article. The visible trail and the JSON-LD are changed together on
+      purpose: the two must not disagree, and a reader who clicks the link is
+      the one who would find out first. `showing_en` still decides the LABELS,
+      which follow the language the page is written in. %>
+  <% bc_prefix = "/ja" %>
   <nav class="jp-breadcrumb" aria-label="<%= showing_en ? "Breadcrumb" : "パンくずリスト" %>">
     <a href="<%= bc_prefix %>"><%= showing_en ? "Home" : "ホーム" %></a>
     <span aria-hidden="true">›</span>
