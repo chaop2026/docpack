@@ -15,7 +15,7 @@ require "test_helper"
 # saw it (/safe, 2026-09-17). So the premise is asserted rather than assumed:
 # there is no public/index.html, and "/" renders a Rails view.
 class SiteVerificationTest < ActionDispatch::IntegrationTest
-  NAVER = "4178937ade37131d7ee81e7a40d14392566d3529".freeze
+  NAVER = "541f515d0df5a153db9d76c689c544a7d88ac2d1".freeze
   GOOGLE = "kgzqmiPFYQX0JWICmT3tB88tsJ7TADz-uyXJdu1pAEw".freeze
 
   test "the root is served by Rails, not by the static file handler" do
