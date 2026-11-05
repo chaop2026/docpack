@@ -2727,9 +2727,116 @@ content/jp` 로 완전 복원(diff 0줄) 후 전체 스위트를 재확인했다
 `/privacy/` → 위반 0) 그 방법이 더 정확했다(생성기는 privacy 페이지를 검사조차 하지 않는다).
 
 ### 남는 공백
-**웹폰트 자체 호스팅**(위) · `author`/`og:site_name`/`WebApplication.name` 브랜드 꼬리
-(한국어 42개 글이 움직이므로 E-1 재취득 한 묶음) · JSON-LD 주입 회귀 테스트(item 8 GREEN) ·
-`/ja/blog` 언어 전환기 · 카테고리 칩 7개 중 1개만 글 있음 · **배포 전 `INDEXNOW_KEY`**
-(없어도 배포는 안 깨진다 — 드라이런) · `public/safe/작업물/` 미해결 · ep04~33 미작성 ·
-Shorts 8편 미게시 · **X 한도 미확인 → `X_API_DRY_RUN=1` 유지** ·
+~~**웹폰트 자체 호스팅**~~ → S12 완료 · ~~`author`/`og:site_name`~~ → S12 완료 ·
+`WebApplication.name` 브랜드 꼬리 · JSON-LD 주입 회귀 테스트(item 8 GREEN) ·
+~~`/ja/blog` 언어 전환기~~ → S12 완료 · 카테고리 칩 7개 중 1개만 글 있음 ·
+**배포 전 `INDEXNOW_KEY`**(없어도 배포는 안 깨진다 — 드라이런) · `public/safe/작업물/` 미해결 ·
+ep04~33 미작성 · Shorts 8편 미게시 · **X 한도 미확인 → `X_API_DRY_RUN=1` 유지** ·
 **일본 변호사 검토는 여전히 없다.**
+
+## S12 — 웹폰트 자체 호스팅 · /ja/blog 언어 전환기 · JP 브랜드명 · 로컬 gem 진단 (2026-11-06)
+
+브랜치 `main`. **미배포·미푸시·실제 게시 0건.** 프로덕션 DB 미접촉. `X_API_DRY_RUN` 줄 무수정
+(`config/deploy.yml` diff **0줄**). `docs/jp/private/`·`public/safe/작업물/` 커밋 0건(추적 0 확인).
+보고 [`docs/jp/s12_report.md`](docs/jp/s12_report.md) · 자율 런 [`docs/autorun/AUTORUN_2026-11-06.md`](docs/autorun/AUTORUN_2026-11-06.md)
+커밋 `c574ae4`(U1) · `ef1c998`(U2) · `88c08cf`(U3)
+
+`bin/rails test` 503→**522 runs / 3,835→3,981 assertions / 0 failures** · 골든 **557/557 불변** ·
+`check_matrix` **188 triple + 10 legal pair 불변** · E-1 **38/38, 스냅샷 파일 미수정** ·
+`jp_landing_check` 169→**172** · `unlocated_check` **19/19** · SW 장애 주입 **9/9** ·
+canonical sweep **6/6** · rubocop **86**(신규 0) · brakeman **12**(증가 0) · 변이 프로브 **10/10 실측**.
+
+### 🔴 U0 — 「일반 터미널에서만 실패」가 아니었다. Docker 대 호스트였다
+지시서의 전제는 셸 환경 차이로 읽혔다. **측정하니 Claude Code 세션에서도 똑같이 실패한다** —
+CLAUDE.md 에 기록된 모든 초록 수치(503 runs 등)는 **컨테이너**에서 나온 것이다.
+2026-09-18 젬 업그레이드가 `Gemfile.lock` 을 올렸지만 `bundle install` 은 컨테이너에서만 돌아,
+호스트 rbenv gem home 이 그 이전에 멈춰 있다(propshaft 1.3.1 vs 요구 1.3.2 · jbuilder 2.14.1 ·
+bootsnap 1.23.0 · msgpack 1.8.0 · minitest 6.0.2). `.bundle/config` 없음 · `BUNDLE_*` 0개 —
+**설정 문제가 아니다.** → 테스트는 `docker compose exec web bin/rails test`.
+
+⚠️ **측정 함정 2개를 걸러냈고, 둘 다 틀린 결론으로 이어진다**: ① `zsh -lc` 는 **비대화형**이라
+`~/.zshrc` 의 rbenv init 이 실행되지 않고 시스템 ruby 2.6.10 이 나온다 — 이것만 보면
+「PATH 에 shims 가 없다」로 오진한다(`zsh -ilc` 로 재야 3.3.9). ② 첫 측정은 내 세션의 PATH 를
+**상속**해 `.zshrc` 가 돈 것처럼 보였다(`env -i` 로 재측정). **셸·Gemfile·lock 무수정.**
+
+### U1 — 글꼴은 스크립트가 아니지만, 요청은 요청이다
+`public/safe/vendor/README.md` 가 스스로 적어둔 다음 항목이다(*"Google Fonts … is the next
+thing to bring in-house"*). IBM Plex Sans KR(400/500/700)+Mono(400/500) → `public/fonts/`,
+**292 파일 / 2.34MB**, `/fonts/fonts.css` 하나를 5개 페이지가 읽는다. §3-1 의 문장을 거짓으로
+만들지는 않았다 — 바뀐 것은 **관측 가능한 사실**이다. 전에는 다섯 페이지를 열 때마다 IP 와
+`Referer` 가 제3자에게 갔고, **자기 네트워크 탭을 보는 독자는 그 요청을 구별할 수 없다.**
+→ privacy §3-1 외부 예외 **2개 → 1개(OCR)**, KO·JA 양쪽. 테스트가 개수 문구와
+`fonts.googleapis.com` **부재**를 함께 단언한다(후자가 없으면 페이지가 더 이상 하지 않는
+요청을 계속 고백하고, 독자는 두 문장 중 어느 쪽이 낡았는지 알 수 없다).
+
+**재서브셋하지 않았다.** Google 의 `unicode-range` 분할(Mono 5 · Sans KR 94/weight)을 그대로
+두면 런타임 트래픽의 모양이 전과 같고 출처만 다르다. 하나로 합치는 것은 **4개 언어 i18n 사전을
+쓰는 페이지에서 어떤 글자가 나타나도 되는지를 내가 정하는** 일이고, 빠진 글자는 요란하게
+실패하지 않는다 — 한 페이지·한 언어에서 조용히 시스템 폰트로 떨어진다.
+
+⚠️ **무결성은 상류 해시가 없다** — Google 은 글꼴에 SRI 를 내지 않아 `vendor/` 가 쓴 「다른
+응답과 대조」가 불가능하다. ① 파일마다 **두 번** fetch 해 sha256 일치 ② 길이가
+`Content-Length` 와 일치 ③ woff2 매직. 「그 URL 이 준 것을 온전히 받았다」는 세우지만
+「그 URL 이 무엇을 줘야 하는가」는 세우지 못한다 — README 가 그렇게 적는다.
+
+SW: `CACHEABLE_CDN` −2(jsdelivr 만 남음) · `CACHE_VERSION` **v3→v4** · `/fonts/fonts.css`
+**만** precache — 292개 woff2 는 각자 range 를 달고 있어, 전부 선캐시하면 첫 페인트 리플로를
+줄이려고 **모든 독자에게 2.34MB** 를 물린다.
+
+> ⚠️ 세 JP 랜딩은 페이지 본문에 `font-family` 선언이 **0개**라 처음엔 「쓰지 않는 글꼴을 받고
+> 있다」로 보였다. 공유 `/safe/jp/jp.css`(`body`+`.mono`)를 보고서야 실사용임을 확인했다 —
+> **페이지 하나만 grep 하면 틀린 결론이 나오는 모양이었다.**
+
+### U2 — 한 규칙의 두 쪽이 갈라져 있었다
+`/ja/blog` 가 「한국어」를 제시하고 그 링크는 `/blog` 로 갔다. 리다이렉트도 에러도 아니다 —
+`/blog` 는 **한국어 간행물**이다. **유일한 증상은 「제목이 전부 바뀌었다」뿐이다.**
+S11 이 hreflang 을, S11c 가 JP **글** 페이지를 좁혔는데 **목록**이 남았다.
+이제 `index` 가 `@switcher_locales = []` 를 주고, 레이아웃은 **전환 대상이 없으면 컨트롤 자체를
+렌더하지 않는다**(빈 메뉴는 없는 것보다 나쁘다 — 고장난 것처럼 보인다).
+곁들여 글 쪽 `[ :ja, :en ]` 하드코딩을 `translated?(:en)` 파생으로 — 8편 전부 `body_en` 이
+있어 **값은 같다**(실측). `post_en.md` 없이 import 된 다음 회차 대비다.
+
+⚠️ **E-1 때문에 JP 픽스처를 추가할 수 없다**: `blog_seo_snapshot_test` 가 `Post.order(:slug)`×4
+프리픽스의 **키 집합**을 단언하므로 한 행이 5개 항목을 늘려 「한국어 트랙 무이동」을 증명하는
+바로 그 테스트를 깬다(S8b 가 반대쪽에서 같은 벽에 부딪혔다). → 글 쪽 파생은 **저장하지 않은
+`Post`** 로 단위 검증. 변경 대상이 요청이 아니라 글이므로 그게 맞는 고도이기도 하다.
+
+### U3 — 이름이 키 한 칸 아래에서 다시 갈라져 있었다
+S11b 가 `publisher` 를 SafeFile 로 바꾸고 `author` 를 남겨, 일본어 글이 **같은 JSON-LD 객체
+안에서** `publisher=SafeFile`·`author=SlimFile` 을 선언했다 — S11b 가 없애려던 「한 엔티티가
+두 이름」의 재현이다. `og:site_name` 도 함께(JSON-LD 를 파싱하지 않는 크롤러와 사람이 보는 자리).
+레이아웃이 `content_for(:og_site_name)` 을 읽고 미설정이면 `"SlimFile"` → **한국어 출력 무변화.**
+
+- 분기는 **`primary_locale`**(글이 쓰인 언어). `@url_locale` 로 하면 `/en/blog/:slug` 에서
+  **같은 글의 발행자가 주소에 따라 바뀐다.**
+- `/ja/blog` 목록까지 넓혔다(지시는 「JP 글」) — 목록을 SlimFile 로 남기면 랜딩=SafeFile ·
+  글=SafeFile · **그 둘을 잇는 색인=SlimFile** 이 되어 같은 표면에 세 번째 이름이 생긴다.
+- `content_for` 는 **APPEND** 하므로 지역변수로 한 번만 읽는다(두 번 부르면 조용히
+  `"SafeFileSafeFile"` — robots 지시어에서 이미 당한 모양).
+- **한국어 무이동을 직접 단언했다** — E-1 은 JSON-LD 를 보지 못하므로 스냅샷이 지킬 수 없다.
+  KO 글의 `author`·`publisher` **해시 전체** + 5개 경로의 `og:site_name=SlimFile`.
+
+### 금지어 — 기존 7건을 전부 설명했다 (신규 0)
+`JpContentGuard.rules[:forbidden]`(22규칙) × 변경 페이지 7개 = 154회 검사, 7건 적중.
+**HEAD 베이스라인과 동일.** ⚠️ 첫 시도는 필드명을 `pattern` 으로 추측해 `new RegExp(undefined)`
+= `/(?:)/` 가 되어 **132/132 전건 적중(빈 매치)** 이 나왔다 — 정본 필드는 `re` 이고, 추측하지
+말고 **레포의 엔진(`JpContentGuard`)으로 돌려야 한다.** 7건의 정체: `100%` ×2 는 인라인 CSS 의
+`-webkit-text-size-adjust`(내 추출기가 `<style>` 을 안 걷어낸 것, 산문 아님) · `nyusatsu` 5건은
+S6b 가 명시적으로 제외한 **팀플랜 로드맵** 구절.
+
+### 골든 하네스의 404 9건은 내 것이 아니다
+`run.mjs` 가 콘솔 404 9건 + SW `PageError` 1건을 보고한다. **HEAD~1 의 `index.html`·`sw.js` 를
+넣고 같은 하네스를 돌려 동일함을 확인했다**(9+1, 557/557). 하네스의 정적 서버 root 는 `public/`
+이라 `/fonts/*` 는 정상 해석된다(실측) — **404 는 글꼴이 아니다.** 「새 변경이 만든 소음」과
+「원래 있던 소음」은 밖에서 같아 보인다.
+
+### 남는 공백
+`WebApplication.name` 은 여전히 사이트 전역 `"SlimFile"` — JP 페이지에서 `og:site_name=SafeFile`
+과 나란히 선다(그 블록은 조직이 아니라 **도구**를 설명하는 다른 엔티티 타입이라 판단이 한 겹 더
+필요하다. `<title>` 기본값·`twitter:title`·상단바 로고도 같은 꼬리) ·
+`scripts/content/templates/` 3개는 Google Fonts 를 계속 받는다(서빙되지 않으므로 약속 밖이지만,
+옮기려면 11-05 에 산출물 45개를 퇴화시킨 생성기를 재실행해야 한다) ·
+글꼴 무결성에 상류 해시 없음 · 호스트 gem 트리가 lock 과 어긋남(U0) ·
+**배포 전 `INDEXNOW_KEY`**(없어도 드라이런) · `public/safe/작업물/` 미해결 ·
+`/ja/blog` 카테고리 칩 7개 중 1개만 글 있음 · ep04~33 미작성 · Shorts 8편 미게시 ·
+**X 한도 미확인 → `X_API_DRY_RUN=1` 유지** · **일본 변호사 검토는 여전히 없다.**
