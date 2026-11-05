@@ -40,8 +40,12 @@
 <meta name="twitter:title" content="SafeFile — 문서 속 개인정보, 1분 안에 지우고 공유">
 <meta name="twitter:description" content="문서를 올리면 원본 모습 그대로 두고 개인정보 위치에만 검은 바를 덮어 새 문서로 만들어 드립니다. 무료, 회원가입 없음.">
 <meta name="twitter:image" content="https://slimfile.net/safe/brand/og_1200x630.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Webfonts served from this origin since S12 (2026-11-06). This is the screen
+     where a 運転免許証 is opened; /privacy/ §3-1 names what it loads from
+     elsewhere, and a font request announcing the reader's IP to a third party
+     was one of two entries on that list. Now there is one (OCR).
+     Same files, same unicode-range split — see public/fonts/README.md. -->
+<link rel="stylesheet" href="/fonts/fonts.css">
 <!-- S11c (2026-11-05). These two used to be loaded from cdnjs. This is the
      screen where someone opens a 運転免許証, and §3-1 of /privacy/ states in
      both languages that the page carries no third-party script — which was

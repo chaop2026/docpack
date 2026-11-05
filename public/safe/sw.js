@@ -16,18 +16,20 @@
  *
  * Libraries. Since S11c (2026-11-05) pdf.js, its worker, mammoth, jsPDF and
  * heic2any are served from THIS origin (/safe/vendor/, see that directory's
- * README for why), so they take the same-origin cache-first path below. The one
- * that is still cross-origin is Tesseract.js — loaded lazily and only for OCR;
- * it keeps the version-pinned CACHE-FIRST treatment, which is safe because the
- * URL is immutable. Google Fonts likewise.
+ * README for why), and since S12 (2026-11-06) the webfonts are too (/fonts/,
+ * see public/fonts/README.md), so all of them take the same-origin cache-first
+ * path below. The one thing still cross-origin is Tesseract.js — loaded lazily
+ * and only for OCR; it keeps the version-pinned CACHE-FIRST treatment, which is
+ * safe because the URL is immutable.
  */
-// Bumped to v3 by S11c: the library URLs moved on-origin, so every runtime
-// cache entry naming cdnjs is now dead weight that nothing will ever request
-// again. A version bump is what evicts it (see activate()).
+// Bumped to v4 by S12: the webfonts moved on-origin, so every runtime cache
+// entry naming fonts.gstatic.com is now dead weight that nothing will ever
+// request again — same reason v3 was cut for cdnjs in S11c. A version bump is
+// what evicts it (see activate()).
 // The build-time token below is replaced with the image build timestamp by the
 // Dockerfile (sed), so every deploy bumps the version even when this file is
 // otherwise unchanged. Unstamped (local dev) it stays a valid, stable literal.
-const CACHE_VERSION = 'v3-__SW_BUILD__';
+const CACHE_VERSION = 'v4-__SW_BUILD__';
 const SHELL_CACHE = `safefile-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `safefile-runtime-${CACHE_VERSION}`;
 
@@ -71,17 +73,31 @@ const OPTIONAL_SHELL_ASSETS = [
   '/safe/vendor/pdf.worker.min.js',
   '/safe/vendor/mammoth.browser.min.js',
   '/safe/vendor/jspdf.umd.min.js',
+
+  // S12 — the webfont stylesheet (8 KB). Only the stylesheet: the 292 woff2
+  // files behind it are NOT precached, and that is the right trade. Each one
+  // carries a unicode-range, so a browser downloads the handful its text
+  // actually needs; precaching all of them would charge every reader 2.34 MB to
+  // save a first-paint reflow. They get cached on first use by the same-origin
+  // cache-first branch in fetch() — the treatment they had while on Google's
+  // CDN, minus the third-party request.
+  //
+  // So an offline shell still renders in the system fallback stack if a font
+  // was never fetched online. That is exactly what happened before this change
+  // too (fonts.gstatic.com is unreachable offline), so nothing regressed.
+  '/fonts/fonts.css',
 ];
 
 // Cross-origin hosts whose (version-pinned) assets we cache-first for revisit
-// speed. cdnjs is gone from this list because nothing is loaded from it any
-// more (S11c) — a host listed here that the page never contacts is a comment
-// claiming a dependency that does not exist. jsdelivr stays for Tesseract.js,
-// the one library still off-origin; see public/safe/vendor/README.md.
+// speed. cdnjs went from this list in S11c and the Google Fonts pair in S12,
+// for the same reason both times — a host listed here that the page never
+// contacts is a comment claiming a dependency that does not exist. The fonts
+// now live in /fonts/ and are handled by the same-origin cache-first branch in
+// fetch(), which is strictly better: they get cached on first use without being
+// named here at all. jsdelivr stays for Tesseract.js, the one library still
+// off-origin; see public/safe/vendor/README.md.
 const CACHEABLE_CDN = [
   'cdn.jsdelivr.net',
-  'fonts.googleapis.com',
-  'fonts.gstatic.com',
 ];
 
 // Precache with cache:'reload' so a stale HTTP-cache entry (e.g. a legacy

@@ -365,12 +365,12 @@ for (const p of PAGES) {
      ctaStatuses.length > 0 && ctaStatuses.every((s) => s === 204),
      ctaStatuses.length ? ctaStatuses.join(',') : 'no /api/safe_events response after the click');
 
-  /* ── third-party hosts (S11) ──────────────────────────────────────────────
-   * Google Fonts was the only cross-origin host these pages loaded. S11 adds
-   * Google Analytics 4 to the three LANDING pages — deliberately, with
-   * Signals and ad personalisation off, and disclosed in Japanese on
-   * /privacy/. So the allowlist grew, and the assertion that used to read
-   * "no third-party host beyond the font CDN" would now be false.
+  /* ── third-party hosts (S11, narrowed in S12) ─────────────────────────────
+   * Google Fonts used to be the only cross-origin host these pages loaded.
+   * S11 added Google Analytics 4 to the three LANDING pages — deliberately,
+   * with Signals and ad personalisation off, and disclosed in Japanese on
+   * /privacy/. S12 then took the two font hosts OFF this list by moving the
+   * woff2 files to /fonts/ on this origin, so GA4 is now the whole of it.
    *
    * What has NOT changed, and what the boundary actually is, is checked in
    * section [2/4] below: /safe/ — the screen where a document is opened —
@@ -380,12 +380,19 @@ for (const p of PAGES) {
    * The list stays explicit rather than becoming a "google.com" wildcard: a
    * new Google host appearing here should be a decision, not a pass. */
   const ALLOWED_HOSTS = [
-    'fonts.googleapis.com', 'fonts.gstatic.com',
     'www.googletagmanager.com', 'www.google-analytics.com',
     'region1.google-analytics.com', 'analytics.google.com'
   ];
   const unexpected = [...hosts].filter((h) => !ALLOWED_HOSTS.includes(h));
-  ok(`${p.slug}: no third-party host beyond fonts + GA4`, unexpected.length === 0, unexpected.join(', '));
+  ok(`${p.slug}: no third-party host beyond GA4`, unexpected.length === 0, unexpected.join(', '));
+  /* The font hosts specifically, called out rather than left to the generic
+   * check above. If someone re-adds a Google Fonts <link> the generic
+   * assertion would already fail — but it would fail with a host name in a
+   * list, and the next reader would have to work out whether that host is
+   * newly forbidden or was always forbidden. This says which. */
+  ok(`${p.slug}: no Google Fonts request (self-hosted since S12)`,
+     !hosts.has('fonts.googleapis.com') && !hosts.has('fonts.gstatic.com'),
+     [...hosts].filter((h) => h.startsWith('fonts.')).join(', '));
   // The positive half: GA has to be LOADED, not merely allowed. Without this
   // the page could lose the tag and the allowlist above would stay green.
   ok(`${p.slug}: GA4 is actually loaded`, hosts.has('www.googletagmanager.com'),

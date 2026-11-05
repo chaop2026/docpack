@@ -7,8 +7,12 @@
 <meta name="description" content="SlimFile과 SafeFile의 개인정보처리방침입니다. 파일은 서버에 저장되지 않으며, 광고 쿠키 사용에 대한 안내를 포함합니다.">
 <link rel="canonical" href="https://slimfile.net/privacy/">
 <meta name="robots" content="index,follow">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<!-- Webfonts served from this origin since S12 (2026-11-06) — see
+     public/fonts/README.md. This page only ever used Sans KR; the shared
+     stylesheet also declares IBM Plex Mono, which costs nothing because an
+     unused @font-face is never downloaded. One stylesheet for all five pages
+     beats five hand-trimmed ones that can drift apart. -->
+<link rel="stylesheet" href="/fonts/fonts.css">
 <style>
 :root{--paper:#F7F5EF;--card:#FFF;--ink:#17140F;--sub:#6B655A;--line:#E6E1D4;--marker:#FFE066;--marker-soft:#FFF3BF;--ok:#2F7D5B}
 *{margin:0;padding:0;box-sizing:border-box}
@@ -102,8 +106,8 @@ footer a{color:var(--sub)}
        exception a reader can check in their network tab is worth more than a
        promise they cannot. -->
   <h2>3-1. アクセス解析（日本語の案内ページのみ） / 접속 분석 (일본어 안내 페이지에만)</h2>
-  <p lang="ja">日本語の案内ページ（<a href="https://slimfile.net/safe/jp/nyusatsu/">入札添付</a>・<a href="https://slimfile.net/safe/jp/honnin-kakunin/">本人確認書類</a>・<a href="https://slimfile.net/safe/jp/ai-mae/">AIに貼る前に</a>）でのみ、Google Analytics 4 によるアクセス解析を利用しています。IPアドレスの匿名化を有効にし、Google シグナル（デバイスを横断した識別）と広告のパーソナライズはいずれも無効に設定しています。<strong>ファイルを開いて処理する画面（<a href="https://slimfile.net/safe/">/safe/</a>）では、アクセス解析も第三者のスクリプトも利用していません。ファイルを処理するライブラリも、このサイトから直接配信しています。</strong>外部から読み込むものは2つだけです。①写真やスキャン画像から文字を読み取る機能（OCR）を使うときに限り、OCRライブラリと言語データを外部のCDN（<code>cdn.jsdelivr.net</code>・<code>tessdata.projectnaptha.com</code>）から読み込みます（合計20MB前後になるため自社配信していません）。②書体（<code>fonts.googleapis.com</code>）。いずれの場合もそのサーバーにIPアドレスの記録は残りますが、読み取った書類の内容が送信されることはありません。解析を止めたい場合は、ブラウザの設定や拡張機能でブロックしていただければ、案内ページの閲覧には影響しません。</p>
-  <p>일본어 안내 페이지(<code>/safe/jp/*</code>) 3곳에서만 Google Analytics 4 접속 분석을 사용합니다. IP 익명화를 켜고 Google 신호(기기 간 식별)와 광고 맞춤화는 모두 끈 상태입니다. <strong>파일을 열어 처리하는 화면(<code>/safe/</code>)에서는 접속 분석도, 제3자 스크립트도 사용하지 않습니다. 파일을 처리하는 라이브러리도 이 사이트에서 직접 제공합니다.</strong> 외부에서 가져오는 것은 두 가지뿐입니다. ① 사진·스캔 이미지에서 글자를 읽는 기능(OCR)을 쓸 때만 OCR 라이브러리와 언어 데이터를 외부 CDN(<code>cdn.jsdelivr.net</code>·<code>tessdata.projectnaptha.com</code>)에서 내려받습니다(합계 20MB 가량이라 자체 제공하지 않습니다). ② 글꼴(<code>fonts.googleapis.com</code>). 두 경우 모두 해당 서버에 접속 IP 기록이 남지만, 읽어 들인 서류 내용이 전송되는 일은 없습니다.</p>
+  <p lang="ja">日本語の案内ページ（<a href="https://slimfile.net/safe/jp/nyusatsu/">入札添付</a>・<a href="https://slimfile.net/safe/jp/honnin-kakunin/">本人確認書類</a>・<a href="https://slimfile.net/safe/jp/ai-mae/">AIに貼る前に</a>）でのみ、Google Analytics 4 によるアクセス解析を利用しています。IPアドレスの匿名化を有効にし、Google シグナル（デバイスを横断した識別）と広告のパーソナライズはいずれも無効に設定しています。<strong>ファイルを開いて処理する画面（<a href="https://slimfile.net/safe/">/safe/</a>）では、アクセス解析も第三者のスクリプトも利用していません。ファイルを処理するライブラリも、このサイトから直接配信しています。</strong>書体もこのサイトから配信しています。外部から読み込むものは1つだけです。写真やスキャン画像から文字を読み取る機能（OCR）を使うときに限り、OCRライブラリと言語データを外部のCDN（<code>cdn.jsdelivr.net</code>・<code>tessdata.projectnaptha.com</code>）から読み込みます（合計20MB前後になるため自社配信していません）。この場合もそのサーバーにIPアドレスの記録は残りますが、読み取った書類の内容が送信されることはありません。解析を止めたい場合は、ブラウザの設定や拡張機能でブロックしていただければ、案内ページの閲覧には影響しません。</p>
+  <p>일본어 안내 페이지(<code>/safe/jp/*</code>) 3곳에서만 Google Analytics 4 접속 분석을 사용합니다. IP 익명화를 켜고 Google 신호(기기 간 식별)와 광고 맞춤화는 모두 끈 상태입니다. <strong>파일을 열어 처리하는 화면(<code>/safe/</code>)에서는 접속 분석도, 제3자 스크립트도 사용하지 않습니다. 파일을 처리하는 라이브러리도 이 사이트에서 직접 제공합니다.</strong> 글꼴도 이 사이트에서 제공합니다. 외부에서 가져오는 것은 한 가지뿐입니다. 사진·스캔 이미지에서 글자를 읽는 기능(OCR)을 쓸 때만 OCR 라이브러리와 언어 데이터를 외부 CDN(<code>cdn.jsdelivr.net</code>·<code>tessdata.projectnaptha.com</code>)에서 내려받습니다(합계 20MB 가량이라 자체 제공하지 않습니다). 이 경우에도 해당 서버에 접속 IP 기록이 남지만, 읽어 들인 서류 내용이 전송되는 일은 없습니다.</p>
 
   <h2>4. 개인정보의 제3자 제공 및 국외 이전</h2>
   <p>당사는 이용자의 개인정보를 제3자에게 판매하거나 제공하지 않습니다. 다만 위 2항의 "AI 정밀 검사"를 사용자가 직접 실행한 경우, 해당 문서 내용이 분석 목적에 한해 Anthropic(미국)의 API로 전송됩니다. Anthropic의 처리 방침은 <a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener">Anthropic 개인정보처리방침</a>을 참고하세요.</p>

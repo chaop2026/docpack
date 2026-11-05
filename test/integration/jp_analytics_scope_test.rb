@@ -273,15 +273,31 @@ class JpAnalyticsScopeTest < ActionDispatch::IntegrationTest
     assert_includes text, "파일을 처리하는 라이브러리도 이 사이트에서 직접 제공합니다"
     assert_includes text, "ファイルを処理するライブラリも、このサイトから直接配信しています"
 
-    # The named exceptions. Checked by HOST string: these are the two origins a
-    # visitor can actually observe, and naming them is what makes the carve-out
-    # auditable rather than a hedge.
-    [ "tessdata.projectnaptha.com", "cdn.jsdelivr.net", "fonts.googleapis.com" ].each do |host|
+    # S12 — the fonts moved on-origin too, so the list of exceptions went from
+    # two to one. Both halves are asserted: the fonts are claimed as ours...
+    assert_includes text, "글꼴도 이 사이트에서 제공합니다"
+    assert_includes text, "書体もこのサイトから配信しています"
+
+    # ...and the remaining exception is still named. Checked by HOST string:
+    # these are the origins a visitor can actually observe, and naming them is
+    # what makes the carve-out auditable rather than a hedge.
+    [ "tessdata.projectnaptha.com", "cdn.jsdelivr.net" ].each do |host|
       assert_includes text, host,
                       "the policy claims no third-party script but does not disclose #{host}"
     end
-    assert_includes text, "외부에서 가져오는 것은 두 가지뿐입니다"
-    assert_includes text, "外部から読み込むものは2つだけです"
+
+    # The count has to move with the list. Leaving "두 가지" while the list says
+    # one would be a page that contradicts itself, and nothing else here would
+    # catch it. The negative half matters as much: the font host must be GONE
+    # from the prose, or the page still discloses a request it no longer makes —
+    # a reader checking their network tab would find the disclosure unfounded
+    # and have no way to tell which of the two statements is stale.
+    assert_includes text, "외부에서 가져오는 것은 한 가지뿐입니다"
+    assert_includes text, "外部から読み込むものは1つだけです"
+    refute_includes text, "fonts.googleapis.com",
+                    "the fonts are self-hosted now; disclosing the host claims a request that is no longer made"
+    refute_includes text, "두 가지뿐입니다"
+    refute_includes text, "2つだけです"
   end
 
   # ── Organization (S11 item 3) ─────────────────────────────────────────────
