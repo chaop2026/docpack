@@ -38,7 +38,19 @@ module PostShowAssigns
     @post_indexable = post.indexable?(url_locale)
     @hreflang_locales = post.indexable_locales
     @xdefault_url = "#{helpers.base_url}#{post.canonical_path_for(post.primary_locale_sym)}"
-    @switcher_locales = [ :ja, :en ] if post.primary_locale == "ja"
+    # The switcher offers only languages this article is actually readable in.
+    #
+    # S11c wrote `[ :ja, :en ]` flat, which is true of every JP episode today
+    # (all eight carry a 2–3k character body_en). S12 derives it instead: a
+    # future episode imported without post_en.md would otherwise be advertised
+    # as having an English edition, and the link would render English chrome
+    # over Japanese prose — the half-translated shape this repository already
+    # fixed once for /ja|es/blog/:slug. Same value as before for current data,
+    # so nothing moves until the data does.
+    #
+    # A lone [ :ja ] makes the layout drop the control — correct, since there is
+    # then nothing to switch to. Korean posts stay unset (all four locales).
+    @switcher_locales = [ :ja, (:en if post.translated?(:en)) ].compact if post.primary_locale == "ja"
     @faq = post.package_faq
   end
 end

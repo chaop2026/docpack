@@ -149,26 +149,42 @@
         </div>
         <div class="top-bar-right">
           <%= link_to t("nav_blog"), blog_path, class: "top-bar-nav-link" %>
-          <details class="lang-dropdown">
-            <summary class="btn-lang" aria-label="Select language"><%= locale_name(I18n.locale) %></summary>
-            <ul class="lang-menu">
-              <%# @switcher_locales narrows the list for a page that does not
-                  exist in every UI language. The JP blog track is the case:
-                  /blog/:slug 301s to /ja/blog/:slug for a Japanese post, so
-                  offering 「한국어」 there produced a link that bounced the reader
-                  straight back to the page they were on — measured by
-                  script/canonical_sweep.rb as an internal link resolving via a
-                  301. Unset → every locale, which is what every other page
-                  still gets. %>
-              <% (@switcher_locales || I18n.available_locales).each do |loc| %>
-                <li>
-                  <%= link_to locale_name(loc), locale_switch_path(loc),
-                        class: "lang-menu-item#{' is-active' if loc == I18n.locale}",
-                        hreflang: loc, rel: (loc == I18n.locale ? nil : "alternate") %>
-                </li>
-              <% end %>
-            </ul>
-          </details>
+          <%# @switcher_locales narrows the list for a page that does not exist
+              in every UI language. The JP blog track is the case:
+              /blog/:slug 301s to /ja/blog/:slug for a Japanese post, so
+              offering 「한국어」 there produced a link that bounced the reader
+              straight back to the page they were on — measured by
+              script/canonical_sweep.rb as an internal link resolving via a
+              301. Unset → every locale, which is what every other page
+              still gets.
+
+              S12: `[]` is a real answer and not the same as unset. /ja/blog is
+              one Japanese document — /blog, /en/blog and /es/blog list the
+              KOREAN posts, a different publication with different headlines
+              (PostsController#index scopes the rows by track and already
+              declares hreflang `[]` for the same reason). So there is no other
+              language of that page to switch to.
+
+              When nothing is left to switch TO, the whole control is dropped
+              rather than rendered empty: a dropdown whose only entry is the
+              language you are already reading is a button that does nothing,
+              and `[]` would otherwise produce an empty menu — worse, because it
+              looks broken instead of absent. %>
+          <% switcher = @switcher_locales || I18n.available_locales %>
+          <% if (switcher - [ I18n.locale ]).any? %>
+            <details class="lang-dropdown">
+              <summary class="btn-lang" aria-label="Select language"><%= locale_name(I18n.locale) %></summary>
+              <ul class="lang-menu">
+                <% switcher.each do |loc| %>
+                  <li>
+                    <%= link_to locale_name(loc), locale_switch_path(loc),
+                          class: "lang-menu-item#{' is-active' if loc == I18n.locale}",
+                          hreflang: loc, rel: (loc == I18n.locale ? nil : "alternate") %>
+                  </li>
+                <% end %>
+              </ul>
+            </details>
+          <% end %>
         </div>
       </div>
     </header>

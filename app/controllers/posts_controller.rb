@@ -37,6 +37,23 @@ class PostsController < ApplicationController
     # app/views/pages/sitemap.xml.erb carries the same split. A page and a
     # sitemap disagreeing about hreflang is its own documented failure here.
     @hreflang_locales = @url_locale == :ja ? [] : (I18n.available_locales - [ :ja ])
+
+    # ── the language switcher follows the same split (S12) ──────────────────
+    #
+    # hreflang was narrowed in S11; the visible control in the header was not,
+    # so /ja/blog still offered 「한국어」 and that link went to /blog — the
+    # Korean listing. Not a redirect and not an error: a reader looking for this
+    # page in Korean landed on a different publication, and the only signal that
+    # anything was wrong was that every headline had changed.
+    #
+    # S11c fixed the article pages (PostShowAssigns) and left the listing, which
+    # is how the two halves of one rule drift apart. Same set as hreflang, for
+    # the same reason, and `[]` makes the layout drop the control rather than
+    # render an empty menu.
+    #
+    # The Korean listing keeps all four: /blog, /en/blog and /es/blog really are
+    # one listing in three UI languages.
+    @switcher_locales = [] if @url_locale == :ja
     # page_meta lives in index.html.erb — a controller-side call is a silent
     # no-op here. See the comment at the top of that view.
   end
