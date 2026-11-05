@@ -68,7 +68,16 @@
     <% end %>
 
     <meta property="og:type" content="website">
-    <meta property="og:site_name" content="SlimFile">
+    <%# The JP track names itself SafeFile (S12). A page sets this by calling
+        `content_for :og_site_name` from its VIEW — not from a controller, where
+        content_for never reaches the layout head (a trap this file's other
+        comments already record twice).
+
+        Unset → "SlimFile", so every Korean page's byte output is unchanged.
+        Read once into a local because `content_for` APPENDS: two calls would
+        silently produce "SafeFileSafeFile" rather than failing. %>
+    <% og_site_name = content_for(:og_site_name).presence || "SlimFile" %>
+    <meta property="og:site_name" content="<%= og_site_name %>">
     <meta property="og:title" content="<%= content_for(:meta_title) || content_for(:title) || 'SlimFile' %>">
     <meta property="og:description" content="<%= content_for(:meta_description) || t('seo.default_description') %>">
     <meta property="og:url" content="<%= content_for(:meta_url) || "#{base_url}#{request.path}" %>">

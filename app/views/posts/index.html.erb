@@ -20,6 +20,10 @@
 
 <% if jp_track %>
   <% page_meta(title: jp_t.("title"), description: jp_t.("meta_description"), path: "/blog") %>
+  <%# og:site_name follows the publication, not the site (S12). The articles in
+      this listing declare publisher/author = SafeFile, so a listing that calls
+      itself SlimFile would put a third name on the same JP surface. %>
+  <% content_for :og_site_name, "SafeFile" %>
 <% else %>
   <% page_meta(
        title: t("blog.title"),

@@ -327,6 +327,17 @@ class JpGeoSurfaceTest < ActionDispatch::IntegrationTest
                  article["publisher"],
                  "the JP track's publisher is SafeFile, matching the landings' Organization")
 
+    # S12. S11b renamed `publisher` and left `author`, so this same object said
+    # publisher=SafeFile and author=SlimFile — two names for one entity, one key
+    # apart. Asserted as the whole hash for the same reason as above.
+    assert_equal({ "@type" => "Organization", "name" => "SafeFile" },
+                 article["author"],
+                 "the JP track's author must match its publisher")
+
+    # ...and the Open Graph name, which is the other place a reader (or a
+    # crawler that does not parse JSON-LD) sees the publication named.
+    assert_select "meta[property='og:site_name'][content='SafeFile']", 1
+
     bc = blocks.find { |b| b["@type"] == "BreadcrumbList" }
     assert bc, "no BreadcrumbList block"
     assert_equal [ "ホーム", "ブログ", post.title(:ja) ],
@@ -380,9 +391,52 @@ class JpGeoSurfaceTest < ActionDispatch::IntegrationTest
     assert_equal({ "@type" => "Organization", "name" => "SlimFile", "url" => "https://slimfile.net" },
                  article["publisher"],
                  "the Korean track's publisher block moved")
+    # S12 — same guarantee for the two fields this round renamed on the JP side.
+    # These are the assertions that make the ternaries in show.html.erb a change
+    # to the source and not to the output.
+    assert_equal({ "@type" => "Organization", "name" => "SlimFile" },
+                 article["author"],
+                 "the Korean track's author block moved")
+    assert_select "meta[property='og:site_name'][content='SlimFile']", 1
     assert_nil blocks.find { |b| b["@type"] == "BreadcrumbList" },
                "the Korean track gained a BreadcrumbList"
     refute_includes utf8_body, "jp-breadcrumb"
+  end
+
+  test "the Japanese listing names itself SafeFile too" do
+    # /ja/blog carries no Article block, so the only place it names the
+    # publication is Open Graph. Left as SlimFile it would put a third name on
+    # the JP surface: SafeFile on the landings, SafeFile on the articles,
+    # SlimFile on the index that links them.
+    get "/ja/blog"
+    assert_response :success
+    assert_select "meta[property='og:site_name'][content='SafeFile']", 1
+  end
+
+  test "the Korean listings are untouched by the rename" do
+    # The no-op half. Without it, `content_for :og_site_name` could be hoisted
+    # into the layout unconditionally and every assertion above would still pass
+    # while all 42 Korean posts and every other page silently changed name.
+    [ "/blog", "/en/blog", "/es/blog", "/", "/faq" ].each do |path|
+      get path
+      assert_response :success, path
+      assert_select "meta[property='og:site_name'][content='SlimFile']", 1,
+                    "#{path} changed its og:site_name"
+    end
+  end
+
+  test "an English-URL Japanese article keeps SafeFile as its publisher" do
+    # og:site_name is keyed on primary_locale, not on @url_locale. The English
+    # edition of a Japanese episode is still published by SafeFile; keying on
+    # the URL would make one article change publishers depending on which of its
+    # addresses was opened.
+    post = create_jp_post(ep: 85, slug: "jp-ep85-brand-en", body_en: "English body")
+    get "/en/blog/#{post.slug}"
+    assert_response :success
+    assert_select "meta[property='og:site_name'][content='SafeFile']", 1
+    article = ld_blocks(utf8_body).find { |b| b["@type"] == "Article" }
+    assert_equal "SafeFile", article.dig("author", "name")
+    assert_equal "SafeFile", article.dig("publisher", "name")
   end
 
   test "an English-URL Japanese article points its breadcrumb at the Japanese listing" do
