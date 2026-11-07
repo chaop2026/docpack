@@ -573,6 +573,13 @@ footer .foot-jp{margin-top:8px;font-size:12px;opacity:.85}
 /* ───────── i18n ───────── */
 const I18N = {
 ko:{
+  /* The browser-tab title. The static <title> in <head> stays Korean — it is
+     what a crawler and a cold page load see, and this page's canonical locale
+     is ko — but the tab of a visitor who arrived from a Japanese landing page
+     was still in Korean after the whole UI had switched. applyLang() sets
+     document.title from this key; the ko value must stay byte-identical to the
+     <title> tag so the Korean tab does not change. */
+  tabTitle:'SafeFile — 문서 속 개인정보, 1분 안에 지우고 공유',
   badge:'무료 · 가입 없음', navHome:'← SlimFile',
   heroPre:'문서 속 ', heroPost:'만<br>가리고 원본 그대로 공유하세요',
   cycle:['주민등록번호','전화번호','집 주소','계좌번호','이름'],
@@ -633,6 +640,7 @@ ko:{
   types:{rrn:'주민등록번호',ssn:'SSN(미국)',passport:'여권번호',license:'운전면허번호',card:'카드번호',account:'계좌번호',phone:'전화번호',email:'이메일',birth:'생년월일',address:'주소',name:'이름',company:'회사·소속',title:'직책',ip:'IP 주소',url:'SNS·URL',health:'건강·민감정보',other:'기타',manual:'직접 선택'}
 },
 en:{
+  tabTitle:'SafeFile — Black out the personal info in a document, in your browser',
   badge:'Free · No signup', navHome:'← SlimFile',
   heroPre:'Redact only the ', heroPost:'<br>and share your document as-is',
   cycle:['ID numbers','phone numbers','home address','account numbers','names'],
@@ -693,6 +701,7 @@ en:{
   types:{rrn:'Korean RRN',ssn:'SSN (US)',passport:'Passport no.',license:"Driver's license",card:'Card number',account:'Bank account',phone:'Phone',email:'Email',birth:'Date of birth',address:'Address',name:'Name',company:'Company',title:'Job title',ip:'IP address',url:'Social · URL',health:'Health / sensitive',other:'Other',manual:'Manual'}
 },
 ja:{
+  tabTitle:'SafeFile — 書類の個人情報を、ブラウザだけで黒塗り',
   badge:'無料 · 登録不要', navHome:'← SlimFile',
   heroPre:'文書内の', heroPost:'だけ隠して<br>元の見た目のまま共有',
   cycle:['身分証番号','電話番号','自宅住所','口座番号','氏名'],
@@ -753,6 +762,7 @@ ja:{
   types:{rrn:'住民登録番号(韓国)',ssn:'SSN(米国)',passport:'パスポート番号',license:'運転免許番号',card:'カード番号',account:'口座番号',phone:'電話番号',email:'メール',birth:'生年月日',address:'住所',name:'氏名',company:'会社・所属',title:'役職',ip:'IPアドレス',url:'SNS・URL',health:'健康・センシティブ情報',other:'その他',manual:'手動選択'}
 },
 es:{
+  tabTitle:'SafeFile — Tacha los datos personales de un documento, en tu navegador',
   badge:'Gratis · Sin registro', navHome:'← SlimFile',
   heroPre:'Oculta solo los ', heroPost:'<br>y comparte el documento tal cual',
   cycle:['datos de identidad','números de teléfono','domicilio','números de cuenta','nombres'],
@@ -931,6 +941,38 @@ const TYPES = {
   other:{icon:'📌',risk:'ok'}
 };
 Object.keys(TYPES).forEach(t=>{catEnabled[t]=true;catDefault[t]=TYPES[t].risk;});
+/* ── which categories the list OFFERS before a document exists, and in what
+   order ──────────────────────────────────────────────────────────────────────
+   DETECTION IS NOT TOUCHED BY THIS. Every type is still scanned on every
+   document in every language, and renderList's `hits` branch always shows a
+   type that was actually FOUND (see `catOrdered` there). What this governs is
+   the list a visitor reads *before* uploading anything — and that list is a
+   claim about who the tool is for. On the Japanese entry point the first two
+   rows were 住民登録番号(韓国) and SSN(米国): two identifiers that cannot appear
+   in a Japanese submission, at the top of the page a tender clerk lands on from
+   /safe/jp/nyusatsu/. The order below is the reading order of a Japanese form
+   (氏名 → 生年月日 → 住所 → 連絡先 → 番号類).
+   CAT_ORDER is a preference, CAT_HIDE is a removal: a type absent from
+   CAT_ORDER still appears (appended), so adding a TYPES entry can never make it
+   vanish from the Japanese UI silently — only CAT_HIDE can hide one, and that
+   is a line someone has to write. */
+const CAT_ORDER = {
+  ja: ['name','birth','address','phone','email','account','card','license','passport','health','company','title','ip','url','other'],
+};
+const CAT_HIDE = { ja: ['rrn','ssn'] };
+// Every category, in this language's reading order (hidden ones included —
+// they come back the moment a document actually contains one).
+function catOrdered(){
+  const all = Object.keys(TYPES).filter(ty=>ty!=='manual');
+  const order = CAT_ORDER[LANG];
+  if (!order) return all;
+  return [...order.filter(ty=>all.includes(ty)), ...all.filter(ty=>!order.includes(ty))];
+}
+// …minus the ones this language does not offer up front.
+function catOffered(){
+  const hide = CAT_HIDE[LANG] || [];
+  return catOrdered().filter(ty=>!hide.includes(ty));
+}
 /* `e.legal` = a band the Japanese legal matrix grounds in statute (番号法 /
    告知要求制限 / 住民基本台帳法). It is NOT governed by the general category
    checkboxes: 二次元コード and 裏面全体 map to the catch-all 'other' type, so
@@ -958,6 +1000,11 @@ setInterval(()=>{cw=(cw+1)%T().cycle.length;const el=$('cycleWord');if(el)el.tex
 /* ───────── apply language ───────── */
 function applyLang(){
   document.documentElement.lang=LANG;
+  // The tab title is not reachable through [data-i18n] (<title> has no text
+  // node we re-render), so it is set explicitly. Guarded with a fallback: a
+  // language whose dict is missing the key must keep the <head> title rather
+  // than put the string "undefined" in the visitor's tab.
+  if (T().tabTitle) document.title = T().tabTitle;
   try { localStorage.setItem('safefile_lang', LANG); } catch(e){}
   const sel=$('langSel'); if(sel) sel.value=LANG;
   document.querySelectorAll('[data-i18n]').forEach(el=>{
@@ -2482,7 +2529,57 @@ since April 1, 2019.
 
 Payroll account: 123456-04-789012
 Emergency contact: Sarah Miller 010-9876-5432`;
-$('btnSample').addEventListener('click',()=>loadFromText(LANG==='ko'?SAMPLE_KO:SAMPLE_EN, LANG==='ko'?'샘플_재직증명서.txt':'sample_certificate.txt'));
+/* 健康保険 資格確認書 — a FICTIONAL specimen, for the Japanese UI.
+   Why this document and not a translated 재직증명서: the sample is the first
+   thing a visitor who arrived from /safe/jp/nyusatsu/ clicks, and what it has
+   to demonstrate is the 告知要求制限 preset — 保険者番号 family banded, 氏名・
+   生年月日・事業所名称 left for the recipient. An employment certificate
+   demonstrates the Korean/US regexes (주민등록번호, SSN) and nothing Japanese.
+
+   Nothing here is real, and each number is fictional for a stated reason:
+     保険者番号 99123456 — 法別番号 99 is not an assigned 制度 code
+     記号 MH99 / 番号 7654321 / 枝番 01 — invented, no 保険者 issues this set
+     見本 花子 / 見本 太郎 / 架空健康保険組合 / 株式会社ミホンソフト — 架空
+     東京都千代田区見本町 — 見本町 does not exist in 千代田区
+   「見本」 is in the title, the filename and the standing notice, so the specimen
+   says what it is on every surface the visitor sees. This is a text sample, not
+   a card image: it is not a forgery substrate, and it produces no new binary.
+
+   Layout notes that the detection depends on — change with care:
+   · ONE field per line. Every value rule anchors at the SEGMENT HEAD
+     (jpExtract forces headOnly), and a text line becomes one segment, so a
+     second 「label value」 pair on the same line can never anchor.
+   · The separator is an ideographic space, which renderTextPages splits on, so
+     the label is its own item and the band lands on the value only.
+   · Long prose is split into space-separated chunks: renderTextPages only wraps
+     BETWEEN words, so a single 46+ character run would overflow the canvas. */
+const SAMPLE_JA=`健康保険　資格確認書（見本）
+
+※ この見本は架空のサンプルです。 実在の人物・団体・番号とは関係がありません。 本人確認や提出には使用できません。
+
+保険者番号　99123456
+記号　MH99
+番号　7654321
+枝番　01
+氏名　見本　花子
+生年月日　平成2年4月1日
+性別　女
+住所　東京都千代田区見本町1-2-3　見本ハイツ401号
+資格取得年月日　令和4年4月1日
+有効期限　令和9年3月31日
+保険者名　架空健康保険組合
+事業所名称　株式会社ミホンソフト
+一部負担金の割合　3割
+
+交付日　令和6年4月1日
+架空健康保険組合　理事長　見本　太郎`;
+// en/es keep the English specimen: they are not a market with its own preset,
+// and a wrong-market sample is better than an untranslated Japanese one there.
+const SAMPLES={ ko:[SAMPLE_KO,'샘플_재직증명서.txt'], ja:[SAMPLE_JA,'見本_資格確認書.txt'] };
+$('btnSample').addEventListener('click',()=>{
+  const [text,name]=SAMPLES[LANG]||[SAMPLE_EN,'sample_certificate.txt'];
+  loadFromText(text,name);
+});
 
 // Persistent inline notice inside the dropzone (data-i18n so applyLang re-localises
 // it on language switch). Used for the office save-as-PDF path, which is too long
@@ -2957,13 +3054,15 @@ function renderList(){
   $('catHint').textContent = pages.length? t.hintAfter : t.hintBefore;
   const groups={};
   for(const e of autoE){(groups[e.type]=groups[e.type]||[]).push(e);}
-  const all=Object.keys(TYPES).filter(ty=>ty!=='manual');
+  // `hits` is drawn from EVERY type, `misses` only from the offered ones: a
+  // category this language does not advertise up front still has to appear the
+  // moment the document contains it (that is what makes hiding it cost nothing).
   if(!pages.length){
-    list.innerHTML = all.map(ty=>catRowHtml(ty,[])).join('');
+    list.innerHTML = catOffered().map(ty=>catRowHtml(ty,[])).join('');
     return;
   }
-  const hits=all.filter(ty=>groups[ty]&&groups[ty].length);
-  const misses=all.filter(ty=>!groups[ty]||!groups[ty].length);
+  const hits=catOrdered().filter(ty=>groups[ty]&&groups[ty].length);
+  const misses=catOffered().filter(ty=>!groups[ty]||!groups[ty].length);
   let html=hits.map(ty=>catRowHtml(ty,groups[ty])).join('');
   if(misses.length){
     html+=`<button class="more-cats" id="moreCats">${showAllCats? t.moreHide : t.moreShow(misses.length)}</button>`;

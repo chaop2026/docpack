@@ -1114,5 +1114,72 @@
         "_why": "The other half of Codex 6b-5, and the one that makes the digit-run rule load-bearing. Here the neighbouring LABEL is unreadable \u2014 which is the measured normal on these forms: 保険者番号 OCRs as RREES/REEES/WREEES on 3 of 5 alpha fixtures \u2014 so the tail boundary has nothing to stop at. What keeps the number out of 保険者名's claim is the rule that a keep-only field never consumes a 4+ digit run. Mutation-checked: with that rule disabled the number is NOT banded while the boundary alone still passes the case above. The claim is withheld from `used`, from the entity's BOXES and from its displayed VALUE together \u2014 a band in the output with the number still printed in the sidebar list would be the list contradicting the page."
       }
     ]
+  },
+
+  "_samples_why": "S13. 「サンプル文書で試す」 is the first button a visitor who arrived from /safe/jp/nyusatsu/ presses, and it handed a Japanese tender clerk an American employment certificate (James Miller, an SSN, a Seoul address). The failure was invisible to every existing gate: detection ran, bands appeared, the output carried no extractable text — it was correct redaction of the wrong country's document. These cases drive the REAL #btnSample click rather than loadFromText(), because the wiring (LANG → which specimen, which filename) is the part that was wrong. The ja specimen is a fictional 健康保険 資格確認書 whose numbers are invented for stated reasons (法別番号 99 is unassigned; 見本町 does not exist in 千代田区) and which says 「見本」 in its title, its filename and a standing notice.",
+  "samples": {
+    "cases": [
+      {
+        "lang": "ja",
+        "file": "見本_資格確認書.txt",
+        "text_has": ["資格確認書", "見本", "保険者番号", "枝番", "事業所名称", "使用できません"],
+        "text_hasnt": ["주민등록번호", "SSN", "James Miller", "Seoul", "재직증명서"],
+        "expect_doc": "shikaku_kakuninsho",
+        "purpose": "bid_attachment",
+        "required_auto": ["hokensha_bango", "kigo", "bango", "edaban"],
+        "require_banded": ["hokensha_bango", "kigo", "bango", "edaban"],
+        "require_keep": ["name", "birth", "jigyosho", "address", "expiry", "hokensha_name", "shikaku_date"],
+        "_why_these": "入札添付 is the purpose the nyusatsu landing preselects, and under it the 告知要求制限 covers the whole 保険者番号 family (保険者番号・記号・番号・枝番) while 氏名・生年月日・事業所名称 are what the tender desk is checking — banding them would get the submission rejected. require_banded is paired with a per-glyph ink test because every one of these four values is a digit string: 60% of the area can leave a leading digit outside the band, and has."
+      },
+      {
+        "lang": "ko",
+        "file": "샘플_재직증명서.txt",
+        "text_has": ["재직증명서", "주민등록번호", "김민준"],
+        "expect_doc": null,
+        "min_auto": 5,
+        "must_mask": ["900315-1234567", "minjun.kim@hanmail.net", "010-2345-6789"],
+        "_why": "Regression: the Korean specimen and its filename must not have moved, and no Japanese preset may fire on it. min_auto/must_mask are the half that stops 'no jp class' from passing because detection stopped."
+      },
+      {
+        "lang": "en",
+        "file": "sample_certificate.txt",
+        "text_has": ["CERTIFICATE OF EMPLOYMENT", "James Miller"],
+        "expect_doc": null,
+        "min_auto": 4,
+        "must_mask": ["123-45-6789", "james.miller@gmail.com"]
+      },
+      {
+        "lang": "es",
+        "file": "sample_certificate.txt",
+        "text_has": ["CERTIFICATE OF EMPLOYMENT"],
+        "expect_doc": null,
+        "min_auto": 4,
+        "must_mask": ["123-45-6789"],
+        "_why": "es has no specimen of its own and falls back to the English one — asserted so the fallback is a decision on record rather than an accident."
+      }
+    ]
+  },
+
+  "_ja_ui_why": "S13 items 2 and 3. Two things a Japanese visitor read before uploading anything: a browser tab still titled in Korean, and a category list whose first two rows were 住民登録番号(韓国) and SSN(米国) — two identifiers that cannot appear in a Japanese submission. Neither was measured by anything, and neither is cosmetic to the person reading it. pre_upload_cats is asserted as an ORDERED, EXACT list: a ceiling or a subset cannot tell 'the Japanese reading order' from 'some order that happens to omit rrn'.",
+  "ja_ui": {
+    "tab_titles": {
+      "ko": "SafeFile — 문서 속 개인정보, 1분 안에 지우고 공유",
+      "en": "SafeFile — Black out the personal info in a document, in your browser",
+      "ja": "SafeFile — 書類の個人情報を、ブラウザだけで黒塗り",
+      "es": "SafeFile — Tacha los datos personales de un documento, en tu navegador"
+    },
+    "pre_upload_cats": {
+      "ko": ["rrn", "ssn", "passport", "license", "card", "account", "phone", "email", "birth", "address", "name", "company", "title", "ip", "url", "health", "other"],
+      "en": ["rrn", "ssn", "passport", "license", "card", "account", "phone", "email", "birth", "address", "name", "company", "title", "ip", "url", "health", "other"],
+      "ja": ["name", "birth", "address", "phone", "email", "account", "card", "license", "passport", "health", "company", "title", "ip", "url", "other"]
+    },
+    "hidden_but_found": [
+      {
+        "lang": "ja",
+        "text": "Employment record\n주민등록번호 900315-1234567\nSSN 123-45-6789\n",
+        "expect_types": ["rrn", "ssn"],
+        "_why": "The half that stops the list assertion from being satisfied by deleting the detection. 'hidden up front' and 'never detected' look identical from the outside, and only one of them is what was asked for: a Japanese user who really is handed a Korean document still has to see the row."
+      }
+    ]
   }
 }

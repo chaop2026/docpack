@@ -189,6 +189,43 @@ const PAGE_HELPERS = () => {
         rects: rects.length, inMask: rects.length > 0 && rects.every(r => mr.some(m => m.pi === r.pi && same(m, r))) };
     });
   };
+  /* Pixel facts about a field's OWN boxes, for the cases that have no fixture
+     box table (the built-in Japanese sample is text, laid out by the page
+     itself, so there are no PNG coordinates to compare against).
+       __fieldCoverage — area fraction of the field's boxes covered by ANY
+         active band. `require_clear` asserts the field's own band is absent;
+         this catches a NEIGHBOURING band's padding bleeding onto a keep field,
+         which is a different failure and the one bandRect() can produce.
+       __fieldInk — per-glyph ink coverage of the field's boxes (the same test
+         JP_INK uses). For a value that is a digit string, an area fraction says
+         how much was painted and never WHERE: a leading digit outside the band
+         has measured 96% before. `components: 0` means there was no ink to
+         check, i.e. the assertion would be vacuous. */
+  window.__fieldBoxes = function (field) {
+    const out = [];
+    for (const e of entities) {
+      if (!e.jp || e.jp.field !== field) continue;
+      for (const b of (e.boxes || [])) out.push({ pi: b.page, x: b.x, y: b.y, w: b.w, h: b.h });
+    }
+    return out;
+  };
+  window.__fieldCoverage = function (field) {
+    let worst = 0;
+    for (const r of window.__fieldBoxes(field)) worst = Math.max(worst, window.__coverage(r));
+    return worst;
+  };
+  window.__fieldInk = function (field) {
+    const rs = window.__fieldBoxes(field);
+    if (!rs.length) return null;
+    let components = 0, worst = 1;
+    for (const r of rs) {
+      const ic = window.__inkCover(r);
+      if (!ic) continue;
+      components += ic.components;
+      if (ic.components && ic.worst < worst) worst = ic.worst;
+    }
+    return { components, worst };
+  };
   window.__jpState = function () {
     const warnEl = document.getElementById('jpWarn'), emptyEl = document.getElementById('jpEmpty');
     return { cls: jpState.cls && { doc: jpState.cls.doc, side: jpState.cls.side || null, score: jpState.cls.score, low: !!jpState.cls.low },
@@ -1194,6 +1231,151 @@ async function checkJpWarn(page) {
   }
 }
 
+/* ── the built-in sample document, per language (S13) ───────────────────────
+   「サンプル文書で試す」 is the first thing a visitor who arrived from
+   /safe/jp/nyusatsu/ presses, and until S13 it handed a Japanese tender clerk
+   an American employment certificate (James Miller, an SSN, a Seoul address).
+   Nothing was broken in a way the page could show: the detection ran, bands
+   appeared, the output was safe — it was safe redaction of the wrong country's
+   document, which only a reader notices.
+
+   These cases drive the REAL BUTTON rather than loadFromText(), because the
+   wiring (LANG → which specimen, which filename) is the thing that was wrong.
+   The ko/en cases are regression: the specimen those languages get, and the
+   fact that no Japanese preset fires on it, must not have moved. */
+async function checkSamples(page) {
+  const S = SPECS.samples; if (!S) return;
+  for (const c of S.cases) {
+    const tag = `(sample ${c.lang})`;
+    await page.evaluate(L => { LANG = L; applyLang(); }, c.lang);
+    await page.evaluate(() => { if (typeof pages !== 'undefined' && pages.length) resetAll(); });
+    await page.click('#btnSample');
+    await page.waitForFunction(() => Array.isArray(pages) && pages.length > 0
+        && document.getElementById('docWrap').style.display === 'flex', { timeout: 40000 });
+    await page.waitForTimeout(300);
+    await page.evaluate(PAGE_HELPERS);
+    const got = await page.evaluate(() => ({
+      file: document.getElementById('fileName').textContent,
+      text: docText,
+      // Nothing may run off the canvas: renderTextPages wraps only BETWEEN
+      // words, so one long unbroken run would be clipped — and a clipped line
+      // is text the visitor cannot read AND the detector cannot box.
+      overflow: pages.flatMap((p, pi) => (p.items || []).filter(it => it.x + it.w > p.w).map(it => `p${pi}:${it.str}`)),
+    }));
+    rec(tag, 'SAMPLE_FILE', 'file name', c.file, got.file, got.file === c.file);
+    rec(tag, 'SAMPLE_FIT', 'no item past page width', '0 overflow',
+      got.overflow.length ? got.overflow.slice(0, 2).join(' ') : '0 overflow', got.overflow.length === 0);
+    for (const s of (c.text_has || []))
+      rec(tag, 'SAMPLE_TEXT', s, 'present', got.text.includes(s) ? 'present' : 'MISSING', got.text.includes(s));
+    // The other direction: the Japanese specimen must not carry the Korean /
+    // American identifiers that were the whole complaint.
+    for (const s of (c.text_hasnt || []))
+      rec(tag, 'SAMPLE_TEXT', 'no "' + s + '"', 'absent', got.text.includes(s) ? 'PRESENT' : 'absent', !got.text.includes(s));
+
+    const st0 = await page.evaluate(() => window.__jpState());
+    rec(tag, 'SAMPLE_CLASS', 'jp classification', c.expect_doc || '(none)',
+      st0.cls ? st0.cls.doc + ' sc=' + st0.cls.score : '(none)',
+      (st0.cls ? st0.cls.doc : null) === (c.expect_doc || null));
+    if (!c.expect_doc) {
+      // A ko/en specimen is the regression half: its own regexes still fire, so
+      // "no Japanese preset" is not passing because detection stopped entirely.
+      const n = await page.evaluate(() => entities.filter(e => e.kind === 'auto').length);
+      rec(tag, 'SAMPLE_AUTO', `auto>=${c.min_auto}`, `>=${c.min_auto}`, String(n), n >= c.min_auto);
+      for (const v of (c.must_mask || [])) {
+        const m = await page.evaluate(x => window.__isMasked(x), v);
+        rec(tag, 'SAMPLE_MASK', v, 'masked', m ? 'masked' : 'NOT masked', m);
+      }
+      continue;
+    }
+    if (c.purpose) {
+      await page.evaluate(p => jpSetPurpose(p), c.purpose);
+      const now = await page.evaluate(() => jpState.purpose);
+      rec(tag, 'SAMPLE_PURPOSE', c.purpose, c.purpose, now, now === c.purpose);
+    }
+    if (c.required_auto) {
+      const af = await page.evaluate(() => window.__autoFields());
+      const gotA = [...new Set(af)].sort(), want = [...new Set(c.required_auto)].sort();
+      rec(tag, 'SAMPLE_AUTO_SET', 'auto fields == expected set', want.join(','), gotA.join(',') || '(none)',
+        want.length === gotA.length && want.every((f, i) => f === gotA[i]));
+    }
+    for (const f of (c.require_banded || [])) {
+      const bs = await page.evaluate(x => window.__fieldBands(x), f);
+      const ok = bs.length > 0 && bs.every(b => b.located && b.on && b.mode !== 'ok' && b.inMask);
+      rec(tag, 'SAMPLE_BANDED', f, 'located+on+in-maskrects',
+        !bs.length ? 'MISSING' : ok ? `banded ×${bs.length}` : 'NOT BANDED', ok);
+      // …and the band actually covers every glyph of the number. 60% of the
+      // area can hide four digits of five.
+      const ink = await page.evaluate(x => window.__fieldInk(x), f);
+      rec(tag, 'SAMPLE_INK', f, 'every glyph covered',
+        !ink || !ink.components ? 'NO INK TO CHECK' : `${ink.components} comp, worst ${(ink.worst * 100).toFixed(0)}%`,
+        !!ink && ink.components > 0 && ink.worst >= 0.99);
+    }
+    for (const f of (c.require_keep || [])) {
+      const bs = await page.evaluate(x => window.__fieldBands(x), f);
+      const clear = bs.length > 0 && bs.every(b => b.mode === 'ok' && !b.inMask);
+      rec(tag, 'SAMPLE_KEEP', f, 'detected+clear', !bs.length ? 'MISSING' : clear ? `clear ×${bs.length}` : 'BANDED', clear);
+      const cov = await page.evaluate(x => window.__fieldCoverage(x), f);
+      rec(tag, 'SAMPLE_KEEP_PX', f, `<=${JP_KEEP_MAX * 100}% grazed`, `${(cov * 100).toFixed(0)}%`, cov <= JP_KEEP_MAX);
+    }
+  }
+  await page.evaluate(() => { LANG = 'ko'; applyLang(); });
+}
+
+/* ── the Japanese entry point's own chrome (S13 items 2 & 3) ────────────────
+   Two things a Japanese visitor read before uploading anything: a tab still
+   titled in Korean, and a category list whose first two rows were
+   住民登録番号(韓国) and SSN(米国). Both were cosmetic in the sense that no
+   measurement caught them, and neither was cosmetic to the person reading. */
+async function checkJaUi(page) {
+  const U = SPECS.ja_ui; if (!U) return;
+  for (const [lang, want] of Object.entries(U.tab_titles)) {
+    await page.evaluate(L => { LANG = L; applyLang(); }, lang);
+    const t = await page.title();
+    rec('(ja ui)', 'TAB_TITLE', lang, want, t, t === want);
+  }
+  // The static <title> is what a crawler and a cold load see, and this page's
+  // canonical locale is ko — so it must still BE the Korean string. Asserted
+  // from the raw bytes, because applyLang() has already overwritten the DOM.
+  {
+    const raw = fs.readFileSync(path.join(PUBLIC, 'safe', 'index.html'), 'utf8');
+    const m = raw.match(/<title>([^<]*)<\/title>/);
+    const want = U.tab_titles.ko;
+    rec('(ja ui)', 'TAB_TITLE', 'static <title> still ko', want, m ? m[1] : 'MISSING', !!m && m[1] === want);
+  }
+  for (const [lang, want] of Object.entries(U.pre_upload_cats)) {
+    await page.evaluate(L => { LANG = L; applyLang(); }, lang);
+    await page.evaluate(() => { if (typeof pages !== 'undefined' && pages.length) resetAll(); });
+    const got = await page.evaluate(() => [...document.querySelectorAll('#piiList input[data-cat]')].map(i => i.dataset.cat));
+    rec('(ja ui)', 'CAT_LIST', lang + ' pre-upload list', want.join(','), got.join(',') || '(empty)',
+      want.length === got.length && want.every((t, i) => t === got[i]));
+  }
+  /* The half that stops the assertion above from being satisfied by deleting
+     the detection: a type the Japanese list does not OFFER must come back the
+     moment a document actually contains one. "hidden up front" and "not
+     detected" look identical from the outside, and only one of them is what
+     was asked for. */
+  for (const c of (U.hidden_but_found || [])) {
+    await page.evaluate(L => { LANG = L; applyLang(); }, c.lang);
+    await page.evaluate(() => { if (typeof pages !== 'undefined' && pages.length) resetAll(); });
+    await page.evaluate(t => loadFromText(t, 'probe.txt'), c.text);
+    await page.waitForFunction(() => Array.isArray(pages) && pages.length > 0
+        && document.getElementById('docWrap').style.display === 'flex', { timeout: 40000 });
+    await page.waitForTimeout(200);
+    const got = await page.evaluate(() => ({
+      types: [...new Set(entities.filter(e => e.kind === 'auto').map(e => e.type))].sort(),
+      rows: [...document.querySelectorAll('#piiList input[data-cat]')].map(i => i.dataset.cat),
+    }));
+    for (const ty of c.expect_types) {
+      rec('(ja ui)', 'CAT_DETECT', `${c.lang}: ${ty} still detected`, 'detected',
+        got.types.includes(ty) ? 'detected' : 'MISSING', got.types.includes(ty));
+      rec('(ja ui)', 'CAT_REAPPEAR', `${c.lang}: ${ty} row shown once found`, 'row present',
+        got.rows.includes(ty) ? 'row present' : 'ROW MISSING: ' + got.rows.join(','), got.rows.includes(ty));
+    }
+  }
+  await page.evaluate(() => { LANG = 'ko'; applyLang(); });
+  await page.evaluate(() => { if (typeof pages !== 'undefined' && pages.length) resetAll(); });
+}
+
 function printTable() {
   const pad = (s, n) => { s = String(s); return s.length > n ? s.slice(0, n - 1) + '…' : s.padEnd(n); };
   let lastDoc = '';
@@ -1256,6 +1438,8 @@ function printTable() {
   if (!onlyArg || onlyArg === '(jp synth)') { process.stderr.write('… jp merged rows\n'); await checkJpSynth(page); }
   if (!onlyArg || onlyArg === '(jp unlabelled)') { process.stderr.write('… jp unlabelled block\n'); await checkJpUnlabelled(page); }
   if (!onlyArg || onlyArg === '(jp warn)') { process.stderr.write('… jp classification warning\n'); await checkJpWarn(page); }
+  if (!onlyArg || onlyArg === '(sample)') { process.stderr.write('… built-in samples\n'); await checkSamples(page); }
+  if (!onlyArg || onlyArg === '(ja ui)') { process.stderr.write('… ja ui chrome\n'); await checkJaUi(page); }
   if (!onlyArg || onlyArg === '7_resume_dark.pdf') { process.stderr.write('… ai_inject\n'); await checkAiInject(page); }
   if (!onlyArg || onlyArg === '7_resume_dark.pdf') { process.stderr.write('… ai_cat_state\n'); await checkAiCatState(page); }
   if (!onlyArg || onlyArg === (SPECS.candidate_dedup && SPECS.candidate_dedup._doc)) { process.stderr.write('… candidate_dedup\n'); await checkCandidateDedup(page); }
