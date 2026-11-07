@@ -5,9 +5,16 @@ on:
   push:
     branches: [ main ]
 
+# 같은 ref 에 새 push 가 오면 진행 중인 런을 취소한다.
+# 근거: ~/.claude/ci-policy.md 6항 (사용량과 무관하게 적용).
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   scan_ruby:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout code
@@ -24,6 +31,7 @@ jobs:
 
   scan_js:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout code
@@ -40,6 +48,7 @@ jobs:
 
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -55,6 +64,10 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    # 최근 성공한 test 잡 10건의 중앙값 61초(측정 2026-11-07, 최소 49s / 최대 87s)의
+    # 약 2배는 2분이지만, 정책의 하한 15분을 적용한다. 번들러 캐시 미스나
+    # apt-get 지연이 겹치면 2분은 정상 런도 끊는다.
+    timeout-minutes: 15
 
     services:
       postgres:

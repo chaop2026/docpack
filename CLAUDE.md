@@ -1,5 +1,13 @@
 # DocPack - Project Guide
 
+## 규칙 (앞으로의 행동)
+
+- **push·CI 는 `~/.claude/ci-policy.md` 를 따른다.** 이 리포는 그 문서의 「main 직접 커밋
+  리포」다 — push 전에 로컬 전체 테스트를 통과시키고(4항), 커밋마다 push 하지 않고 작업
+  단위가 끝날 때 한 번에 push 한다(2항). 클라우드 CI 를 테스트 러너로 쓰지 않는다(1항).
+  완료 보고에는 로컬 검사 명령과 결과를 적는다 — 「CI 초록」만으로 완료를 주장하지 않는다(7항).
+  이 문서 아래쪽의 날짜별 작업 기록은 그때의 기록이며, 지금의 규칙은 이 줄이다.
+
 ## Design System: Bento Soft Grid
 
 All UI must follow the Bento Soft design system. Reference this when creating or modifying any frontend code.
