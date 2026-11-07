@@ -10,9 +10,9 @@
   `https://slimfile.net` 서비스 중. 이미지 압축 · PDF 변환 · SNS 리사이즈 3개 서비스.
 - **Rails 8.1.4.1 업그레이드 · 배포 대기 (2026-11-07).** 8.0 보안지원 종료일이 그날이었다.
   `load_defaults` 는 **8.0 유지**(8.1 전환은 별도 작업). 테스트 565/4183 0F · brakeman 12→11
-  (EOLRails 소멸·신규 0) · Codex RED 0. **배포 전 사람 확인 5건은
-  `docs/review/CROSS_REVIEW_TRIAGE_2026-11-07_rails81.md` §2 가 정본**(특히 프로덕션
-  Active Storage 스키마 SQL 3개 — 마이그레이션 거부 판단의 유일한 미검증 전제).
+  (EOLRails 소멸·신규 0) · Codex RED 0. **배포 절차서 = `docs/deploy/DEPLOY_2026-11-08_rails81.md`**
+  (⓪~⑥ 붙여넣기 순서 + 단계별 멈출 조건. ⓪-a 는 🔴 **배포 전용 폴더 없음 — 만들기 전 배포
+  금지**, ② 는 마이그레이션 거부 판단의 유일한 미검증 전제인 운영 스키마 SQL 3건).
 - **배포 파이프라인 복구 완료 (2026-08-25).** 이제 `kamal deploy` 만 치면 된다.
   자세한 내용은 CLAUDE.md "Deploy note" / "Kamal secrets parser trap" 절.
 - **드래그앤드롭 + 업로드 목록 완료 (`6b42ec8` 외, 2026-08-25, 배포됨).**
