@@ -1,13 +1,18 @@
 # STATE — DocPack / SlimFile
 
-> 마지막 갱신: 2026-10-22 (JP S6·S7 — 일본어 랜딩·파일럿 폼·익명 계측·콘텐츠 파이프라인)
+> 마지막 갱신: 2026-11-07 (Rails 8.1.4.1 보안 업그레이드 · 배포 대기)
 > 이 파일은 **자유롭게 덮어쓴다** — 과거 상태는 git 이 기억한다. **100줄 이내 유지**
 > (넘으면 끝난 것을 지운다. 역사 보존용 파일이 아니다).
 
 ## 지금 상태
 
-- Rails 8.0.4 + PostgreSQL 16, Hotwire/Propshaft/Importmap. Kamal 으로 `5.223.92.4` 에 배포,
+- Rails **8.1.4.1** + PostgreSQL 16, Hotwire/Propshaft/Importmap. Kamal 으로 `5.223.92.4` 에 배포,
   `https://slimfile.net` 서비스 중. 이미지 압축 · PDF 변환 · SNS 리사이즈 3개 서비스.
+- **Rails 8.1.4.1 업그레이드 · 배포 대기 (2026-11-07).** 8.0 보안지원 종료일이 그날이었다.
+  `load_defaults` 는 **8.0 유지**(8.1 전환은 별도 작업). 테스트 565/4183 0F · brakeman 12→11
+  (EOLRails 소멸·신규 0) · Codex RED 0. **배포 전 사람 확인 5건은
+  `docs/review/CROSS_REVIEW_TRIAGE_2026-11-07_rails81.md` §2 가 정본**(특히 프로덕션
+  Active Storage 스키마 SQL 3개 — 마이그레이션 거부 판단의 유일한 미검증 전제).
 - **배포 파이프라인 복구 완료 (2026-08-25).** 이제 `kamal deploy` 만 치면 된다.
   자세한 내용은 CLAUDE.md "Deploy note" / "Kamal secrets parser trap" 절.
 - **드래그앤드롭 + 업로드 목록 완료 (`6b42ec8` 외, 2026-08-25, 배포됨).**
@@ -45,25 +50,20 @@
   GSC 지명 3개 · 트레일링/반복 슬래시. 한 URL = 한 주소가 `lib/canonical_path_redirect.rb`
   (Rack 301, `ActionDispatch::Static` 앞) + self-referencing canonical 로 보장된다.
   CLAUDE.md 의 해당 4개 절. 언어별 `/xx/safe/` 는 존재하지 않는다(전부 404).
-- **젬 업그레이드 완료 (2026-09-18, 브랜치 `chore/gem-upgrades`, 미배포·미머지).**
-  minitest 핀을 원인 제거로 풀었다(rails 8.0.5.1 · minitest 6.0.6 · Ruby 3.3.9). dependabot
-  12건 중 7젬+Actions 2건 반영, 3건(image_processing 2.x · puma 8 · kamal 2.12) 보류.
-  자세한 내용은 CLAUDE.md "젬 업그레이드" 절, 판단 기준은 DECISIONS.md 2026-09-18.
-  ⚠️ **CI 는 이 작업 전부터 빨간색이다** — `lint`(rubocop 86) · `scan_ruby`(brakeman exit 3).
-  어느 브랜치도 그 숫자를 바꾸지 않았다(S6b 재측정에서도 86/6 동일).
-  교차검증 (a) 3건은 전부 **검증 스크립트** 결함 —
-  `docs/review/CROSS_REVIEW_TRIAGE_2026-09-18_gems.md`. 그중 a-3(`middleware_probe.sh` 의
-  임시 이니셜라이저가 남으면 Static 이 프로덕션 스택에서 사라진다)은 **배포 전 처리 권장**.
-- 블로그 자동화(주제 100개 → Claude API 생성 → MWF 09:00 KST 발행 + Gmail 알림)는
-  2026-04 검증 이후 **실제 현재 동작 상태 확인 필요** (마지막 발행일·남은 주제 수 미확인).
+- **젬 업그레이드 (2026-09-18).** Rails 부분은 위 8.1.4.1 항목이 대체했다. 아직 유효한 것:
+  보류 3건(image_processing 2.x · puma 8 · kamal 2.12, 각각 **별도 배포**) · 판단 기준
+  DECISIONS.md 2026-09-18 · `middleware_probe.sh` 의 임시 이니셜라이저가 남으면 Static 이
+  프로덕션 스택에서 사라진다(a-3, **배포 전 처리 권장**. 그 스크립트는 `rm` 을 품고 있어
+  2026-11-07 세션은 측정을 손으로 재현했다 — 3개 구성 전부 8.0.5.1 때와 동일).
+  ⚠️ **CI 의 `lint`(rubocop 86)·`scan_ruby`(brakeman exit 3)는 이 작업 전부터 빨갛다**
+  (2026-11-07 재측정도 86 / 11경고 동일 — Rails 업그레이드가 바꾼 것은 EOLRails 1건뿐).
+- 블로그 자동화(주제 100 → Claude API → MWF 09:00 KST + Gmail)는 2026-04 이후 미재검증(아래 5번).
 
 ## 다음 할 일
 
--1. **`chore/gem-upgrades` 를 머지·배포.** SEO 작업(0번)과 **같은 배포에 섞을지 정할 것** —
-   섞으면 문제가 났을 때 Rails 업그레이드 탓인지 URL 정규화 탓인지 구분이 안 된다.
-   배포 후 확인: `/`·`/blog` 200, `kamal app exec 'bin/rails blog:stuck'`, 응답 헤더.
-   보류한 3건은 **각각 별도 배포**로: ① `config/puma.rb` 바인드 명시 → 배포 → puma 8
+-1. **보류 젬 3건은 각각 별도 배포로**: ① `config/puma.rb` 바인드 명시 → 배포 → puma 8
    ② `gem "ruby-vips"` 선행 + 이미지 품질 전/후 비교 → image_processing 2.x ③ kamal 단독.
+   Rails 8.1.4.1 과 **같은 배포에 섞지 않는다** — 섞으면 문제의 원인을 구분할 수 없다.
 
 0~1. **배포 → GSC 재크롤링 요청.** SEO 정본 URL 작업이 전부 배포 대기 중이다. 내역은
    **CLAUDE.md 의 해당 절들**(여기서 반복하지 않는다). 요지: 미색인 126개 noindex 는

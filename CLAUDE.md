@@ -2857,3 +2857,122 @@ S6b 가 명시적으로 제외한 **팀플랜 로드맵** 구절.
 **배포 전 `INDEXNOW_KEY`**(없어도 드라이런) · `public/safe/작업물/` 미해결 ·
 `/ja/blog` 카테고리 칩 7개 중 1개만 글 있음 · ep04~33 미작성 · Shorts 8편 미게시 ·
 **X 한도 미확인 → `X_API_DRY_RUN=1` 유지** · **일본 변호사 검토는 여전히 없다.**
+
+## Rails 8.0.5.1 → 8.1.4.1 보안 업그레이드 (2026-11-07)
+
+브랜치 `main`. **미배포.** 프로덕션 DB·`.env*`·`.kamal/secrets` 미접촉.
+Dockerfile · `.ruby-version` · `config/deploy.yml` · `.kamal/` **diff 0줄**.
+패키지 [`CODEX_REVIEW_PACKAGE_2026-11-07_rails81.md`](docs/review/CODEX_REVIEW_PACKAGE_2026-11-07_rails81.md) ·
+대조 [`CROSS_REVIEW_TRIAGE_2026-11-07_rails81.md`](docs/review/CROSS_REVIEW_TRIAGE_2026-11-07_rails81.md)
+
+Rails 8.0 의 보안 지원이 **2026-11-07 에 끝났다**(brakeman 이 그 날짜를 그대로 보고하고 있었다).
+8.1.4.1 / 8.0.5.2 는 2026-11-04 보안 릴리스(CVE 21건)다. 8.1 지원은 2027-10-10 까지.
+
+`bin/rails test` **565 runs / 4183 assertions / 0 failures / 0 errors**(전후 동일) ·
+`test:system` 0 runs(전후 동일, `test/system` 없음) · **deprecation 경고 0건** ·
+brakeman **12 → 11**(EOLRails 1건 소멸, **신규 0**) · rubocop **86**(동일) ·
+`zeitwerk:check` All is good · `assets:precompile`(production, SECRET_KEY_BASE_DUMMY) 성공 ·
+프로덕션 미들웨어 스택 **3개 구성 전부 8.0.5.1 과 동일** · `canonical_sweep.rb` **6/6** ·
+Codex **RED 0 · AMBER 3 · GREEN 5**.
+
+### 하한을 올렸다 — 핀이 아니라 다른 제약으로 바뀐 것
+`gem "rails", "~> 8.0.5"` → **`"~> 8.1.4"`**(8.2 천장은 그대로). 옛 하한 8.0.5 의 이유는
+minitest 였다 — railties 8.0.5 가 `Minitest::VERSION` 분기를 처음 들고 온 릴리스였다.
+그 이유는 **흡수됐지만 `minitest "< 7"` 상한은 자기 이유를 그대로 갖는다**:
+설치된 railties 8.1.4.1 의 `lib/rails/test_unit/line_filtering.rb` 를 **직접 읽어**
+`/^5/`·`/^6/` 분기가 유지되고 **`else` 가 여전히 없음**을 확인했다. 즉 minitest 7 은
+LineFiltering 이 **안 붙어 줄 필터링이 조용히 죽는다**(크래시가 아니라 오답).
+lock 의 minitest 는 6.0.6 → **6.1.0**.
+
+`bundle update rails` 가 올린 것은 rails 계열 + 그 전이 의존뿐이고, **2026-09-18 에 의도적으로
+보류한 젬은 하나도 움직이지 않았다**(실측: puma 7.2.0 · image_processing 1.14.0 · kamal 2.11.0 ·
+ruby-vips 2.3.0 · solid_* 그대로). **신규 의존 `action_text-trix 2.1.19`** 는 8.1 이 trix 를
+별도 젬으로 분리한 결과이고 `actiontext`(= `rails` 메타젬 구성요소)의 의존이라 피할 수 없다 —
+**8.0 에서도 trix 에셋은 actiontext 안에 있었으므로 precompile 산출물은 달라지지 않는다.**
+이 앱은 Action Text 를 쓰지 않는다(`has_rich_text`·`rich_text_area` 0건, `action_text_*` 테이블 없음).
+
+### `app:update` — 「전부 skip 했다」는 안전성의 근거가 아니다
+모든 conflict 를 skip 해 리포 고유 설정을 보존했고 `load_defaults` 는 **8.0 유지**,
+`new_framework_defaults_8_1.rb` 는 **활성 줄 0개**(7개 항목 전부 주석).
+그런데 **skip 했다는 사실 자체는 「skip 해도 됐다」를 증명하지 않는다.** 그래서 컨테이너
+`/tmp`(저장소 **밖** — `rails new` 는 Rails 앱 안에서 거부한다)에 **순정 8.1.4.1 앱을 생성해
+6개 파일을 전부 diff 했다.** 순정에만 있고 우리에게 없는 항목은 **셋뿐이고 전부 필수가 아니다**:
+개발 전용 `action_dispatch.verbose_redirect_logs`·`assets.quiet`, 그리고 CSP 파일의
+`content_security_policy_nonce_auto` **주석**. 나머지 차이는 전부 의도된 리포 설정이었다
+(`Docpack` 모듈명 · `port 3001` · solid_cache/queue · `assume_ssl`/`force_ssl` · Gmail SMTP ·
+SafeFile `filter_parameters` · `plugin :solid_queue if ENV.fetch(…,"false") == "true"` —
+순정은 `if ENV[…]` 이고 우리 쪽이 더 엄격하다. 2026-04-07 에 이 값이 문자열 `false` 여서
+recurring job 이 아예 안 돌던 사고의 수정이다).
+
+### 🔴 `app:update` 가 조용히 끼워 넣은 것 — 마이그레이션 3건
+`railties:install:migrations` 가 Active Storage 마이그레이션 3개를 복사했다
+(`add_service_name_to…` · `create_active_storage_variant_records` · `remove_not_null_on…checksum`).
+세 최종 상태는 **이미 `db/schema.rb` 에 있다**(`service_name` null:false `schema.rb:32` ·
+variant 테이블 `:39` · `checksum` nullable `:34`) — 기존 통합 마이그레이션
+`20260324143948_create_active_storage_tables` 가 적용했고, 개별 버전이 `schema_migrations` 에
+기록되지 않아 매번 다시 복사된다.
+
+> 🔴 **내가 적은 거부 근거가 틀렸고 교차검증이 잡았다.** 「커밋하면 `db:migrate` 가
+> PG::DuplicateColumn / DuplicateTable 로 실패한다」고 썼는데, **파일을 직접 읽어 보니 전부
+> 멱등 no-op** 이다: `unless column_exists?` · `create_table …, if_not_exists: true` ·
+> 이미 nullable 인 컬럼에 `change_column_null(…, true)`, 셋 다 `return unless table_exists?`
+> 로도 감싸여 있다. **거부 결론은 유지하되 근거를 교체했다**: ① 이 작업의 범위는
+> Gemfile·Gemfile.lock·config/ 이고 마이그레이션을 커밋하면 `schema.rb` 의 version 까지
+> 올라가 범위를 넘는다 ② 이 스키마에서 전부 no-op 이라 기능적 이득이 0이고 얻는 것은
+> 「이력 수렴」뿐인데 그건 프로덕션 `schema_migrations` 를 건드리는 별도 결정이다
+> ③ 보안 패치 커밋의 안전한 기본값은 DB 에 대해 아무것도 바꾸지 않는 것이다.
+> **교환**: 커밋하지 않는 동안 다음 `app:update` 가 또 복사한다.
+> ⚠️ **거부의 전제(프로덕션 스키마가 dev 와 같다)는 검증되지 않았다** — 프로덕션 DB 를
+> 접촉하지 않았으므로 **배포 전 읽기전용 SQL 3개**가 트리아지 §2 의 1번이다.
+
+같이 거부한 것(전부 삭제하지 않고 gitignore 된 `tmp/oldstack/appupdate_rejected/` 로 **이동**):
+`config/ci.rb`+`bin/ci`(8.1 신규 CI 러너 — 이 리포는 `.github/workflows/ci.yml` +
+`~/.claude/ci-policy.md` 로 CI 가 이미 정의돼 있어 **두 번째 정의 지점**이 생긴다. `bin/` 은
+이번 범위 밖) · `public/icon.svg`(자체 favicon/OG 세트를 관리한다).
+
+### ⚠️ 유일한 테스트 실패는 업그레이드가 만든 것이 아니었다 — 시계와 경주하던 단언
+업그레이드 직후 전체 런에서 `AdminStaleSessionTest#test_the_boundary_is_…SESSION_MAX_AGE`
+1건이 깨졌다(기준선은 0 failures). **업그레이드 탓으로 적기 전에 재현을 재봤다**:
+`admin_session_live?` 는 `Time.current.to_i - issued_at.to_i > SESSION_MAX_AGE.to_i` 를 보고,
+테스트는 `max.ago.to_i` 를 계산한 **뒤** 요청을 보낸다 — 그 사이에 벽시계가 1초만 넘어가면
+차이가 `max + 1` 이 되어 만료로 읽힌다. **단언이 「경계가 어디인가」가 아니라 「요청이
+얼마나 빨랐는가」를 재고 있었다.**
+
+실측: 8.1.4.1 에서 5회 중 **1회 통과**(= 레이스, 의미 변경 아님). 결정적으로, 옛 Gemfile/lock
+사본을 `BUNDLE_GEMFILE` 로 물려 **8.0.5.1 스택에서 같은 테스트를 5회 돌리니 3회 실패**했다
+(`bundle list` 로 그 프로브가 진짜 8.0.5.1 임을 확인). **즉 기준선의 초록은 운이었다.**
+→ `freeze_time` 으로 감쌌다(이 파일 125줄에 이미 쓰이는 헬퍼). 양 스택 **13/13 통과**.
+**변이 프로브로 판별력 확인**: 컨트롤러의 `>` 를 `>=` 로 바꾸니 그 단언이 실패하고(= 여전히
+off-by-one 을 잡는다) 컨트롤러는 원복해 diff 0줄.
+
+### 운영 메모
+- **`script/middleware_probe.sh` 는 이번에 실행하지 않았다** — 내부에 영구 삭제 명령이 있어
+  전역 삭제 정책(b)의 「스크립트 파일에 적어 실행」 경로에 해당한다. 세 구성의 측정을
+  **손으로 재현**하고, 설정 3 의 임시 이니셜라이저는 지우지 않고 `tmp/` 로 **이동**했다
+  (`config/initializers/` 에 남으면 프로덕션에서 `ActionDispatch::Static` 이 사라진다 — a-3).
+- 그 스크립트를 처음에 **호스트에서** 돌려 빈 출력을 받았다. `2>/dev/null` 이 에러를 삼켜
+  「미들웨어 없음」처럼 보였지만 실제 원인은 **호스트 gem 트리가 lock 과 어긋난 것**(S12 U0).
+  헤더가 「컨테이너에서 실행」이라고 적고 있다. **빈 출력은 통과가 아니다.**
+- `canonical_sweep.rb` 는 컨테이너 안에서 `http://localhost:3000` 이다(호스트는 3001 매핑).
+- `assets:precompile` 전 `public/assets` 는 **ABSENT** 였고, 실행 후 생성물 32개를 `tmp/` 로
+  옮겨 원상복구했다(삭제하지 않았다).
+- 이 절을 heredoc 으로 쓰려다 **삭제 방지 훅의 오탐**에 걸렸다(본문이 삭제 명령 문자열을
+  설명하고 있었다). 전역 정책대로 승인을 구하지 않고 **Edit 도구로 방법을 바꿨다.**
+
+### GitHub 자동 보안 업데이트 (실측 전후)
+`vulnerability-alerts` **404(미사용) → 204(사용)** · `automated-security-fixes`
+**`{"enabled":false,"paused":true}` → `{"enabled":true,"paused":false}`**(PUT 직후엔
+`paused:true` 였고 5초 뒤 재조회에서 `false` 로 바뀌었다 — 재조회해서 실제 값을 적었다).
+`.github/dependabot.yml` 은 이미 있었다(버전 업데이트용이고 보안 업데이트와는 별개).
+
+### 남는 공백
+- **`load_defaults 8.1` 전환은 별도 작업.** 7개 항목 중 `action_on_path_relative_redirect = :raise`
+  와 `raise_on_missing_required_finder_order_columns = true` 는 **동작을 바꾼다**(후자는 8.2 에서
+  기본값이 되고 현재 동작이 deprecated).
+- **프로덕션은 `report_deprecations = false`**(`production.rb:46`) — 8.1 의 런타임 deprecation 은
+  운영에서 보이지 않는다. 「565 테스트 + deprecation 0」은 강한 근거지만 증명이 아니다.
+- 8.1 이 제거한 **선행 대괄호 파라미터·세미콜론 query separator** 구형 처리: 우리 표면은 전부
+  평면 스칼라이고(`params[:…]` 26개 전수, 중첩·대괄호 0) `/api` 3개는 JSON 전용 POST 라 무관.
+  **제3자 발신만 코드로 확인 불가** → 배포 전 로그 확인.
+- Active Storage 마이그레이션 3건의 이력 수렴 여부(위) · `test/system` 0개라 업로드·variant
+  경로는 자동 검증되지 않는다(기준선부터).

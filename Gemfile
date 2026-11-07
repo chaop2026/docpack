@@ -2,13 +2,18 @@ source "https://rubygems.org"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
 #
-# Floor raised to 8.0.5 on 2026-09-18. railties 8.0.5 is the first release whose
-# rails/test_unit/line_filtering.rb branches on Minitest::VERSION and ships a
-# 3-arity `run` for minitest 6; 8.0.4 and earlier only prepend a 2-arity `run`,
-# so resolving minitest 6 alongside them kills the whole test suite before a
-# single assertion runs. This is a floor, not a pin — the cause is gone, so the
-# minitest pin that used to suppress the symptom is gone too (see :test group).
-gem "rails", "~> 8.0.5"
+# Floor raised to 8.1.4 on 2026-11-07. Rails 8.0's security support ENDED
+# 2026-11-07; 8.1 is supported to 2027-10-10. 8.1.4.1 / 8.0.5.2 (2026-11-04)
+# carried 21 CVEs, so the floor is the patched release, not plain 8.1.4.
+#
+# The 8.0.5 floor this replaces was about minitest: railties 8.0.5 was the first
+# release whose rails/test_unit/line_filtering.rb branches on Minitest::VERSION
+# and ships a 3-arity `run` for minitest 6. That reason is subsumed — 8.1.4.1
+# keeps the /^5/ and /^6/ branches (verified in the installed gem, not assumed),
+# so the `minitest "< 7"` ceiling in the :test group still carries its own
+# separate reason: neither branch matches 7, and there is still no `else`, so
+# minitest 7 would silently disable line filtering rather than fail loudly.
+gem "rails", "~> 8.1.4"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
 # Use postgresql as the database for Active Record

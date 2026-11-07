@@ -335,17 +335,28 @@ class AdminStaleSessionTest < ActionController::TestCase
 
   # The boundary is the constant, not a number copied into the test: a change to
   # SESSION_MAX_AGE should move both sides of this assertion together.
+  #
+  # `freeze_time` is load-bearing, not tidiness. `admin_session_live?` compares
+  # `Time.current.to_i - issued_at.to_i > SESSION_MAX_AGE.to_i`, so "exactly at
+  # the limit" is only exact while the clock stands still. Without the freeze,
+  # any wall-clock tick between computing `max.ago` here and reading
+  # `Time.current` inside the request pushes the difference to max + 1 and the
+  # session reads as expired — the assertion then measures how fast the request
+  # was, not where the boundary is. Measured 2026-11-07: racy on BOTH stacks
+  # (8.0.5.1 failed 3/5, 8.1.4.1 failed 4/5); the green baseline run was luck.
   test "the boundary is Admin::BaseController::SESSION_MAX_AGE" do
     max = Admin::BaseController::SESSION_MAX_AGE
 
-    session[:admin_authenticated] = true
-    session[:admin_authenticated_at] = max.ago.to_i
-    get :index
-    assert_response :success, "exactly at the limit is still live"
+    freeze_time do
+      session[:admin_authenticated] = true
+      session[:admin_authenticated_at] = max.ago.to_i
+      get :index
+      assert_response :success, "exactly at the limit is still live"
 
-    session[:admin_authenticated] = true
-    session[:admin_authenticated_at] = (max + 1.second).ago.to_i
-    get :index
-    assert_redirected_to admin_login_path
+      session[:admin_authenticated] = true
+      session[:admin_authenticated_at] = (max + 1.second).ago.to_i
+      get :index
+      assert_redirected_to admin_login_path
+    end
   end
 end
