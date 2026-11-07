@@ -1376,6 +1376,175 @@ async function checkJaUi(page) {
   await page.evaluate(() => { if (typeof pages !== 'undefined' && pages.length) resetAll(); });
 }
 
+/* ── S14: what a Japanese visitor can read off the screen ───────────────────
+   Three things the detection was already getting right and the screen was not
+   saying: which identifier the category is (a Japanese 個人番号 was filed under
+   the KOREAN resident-registration type), which field each covered row is, and
+   whose market the footer is for. None of it changes what gets masked, which is
+   why none of the existing 631 assertions moved. */
+async function checkJpUiS14(page) {
+  const U = SPECS.jp_ui_s14; if (!U) return;
+  const tag = '(jp ui)';
+
+  /* ① 個人番号 has its own type — and the point is not the label, it is that a
+     type IS the off switch (`isOn` → catEnabled[type]). Both halves are
+     asserted: the Japanese band survives unticking the Korean category, and the
+     Korean one survives unticking the Japanese category. Either assertion alone
+     passes on the OLD shared-type code in one direction. */
+  for (const [lang, want] of Object.entries(U.type_labels)) {
+    await page.evaluate(L => { LANG = L; applyLang(); }, lang);
+    const got = await page.evaluate(() => tLabel('jp_mynumber'));
+    rec(tag, 'JP_TYPE_LABEL', lang, want, got, got === want);
+  }
+  {
+    const map = await page.evaluate(() => ({ my_number: JP_TYPE.my_number, jumin_code: JP_TYPE.jumin_code, rrn_rule: (REGEX_RULES.find(r => r.type === 'rrn') || {}).type }));
+    for (const f of ['my_number', 'jumin_code'])
+      rec(tag, 'JP_TYPE_MAP', f, 'jp_mynumber', map[f], map[f] === 'jp_mynumber');
+    // The Korean regex rule is untouched — the complaint was the shared type,
+    // not the detector, and a "fix" that moved the detector would be a different
+    // (and wrong) change.
+    rec(tag, 'JP_TYPE_MAP', 'korean rrn rule still exists', 'rrn', map.rrn_rule || 'MISSING', map.rrn_rule === 'rrn');
+  }
+
+  /* ② Every field the JP engine can emit has a label in every language.
+     Derived from the engine's own tables, not from a hand-written list: S14
+     found three fields (shikaku_date / hokensha_name / jigyosho) that had a
+     keep rule, a detection rule and NO label — invisible until a row started
+     printing the field name, at which point it printed the raw key to a
+     Japanese user. A list copied by hand would have copied that gap too. */
+  {
+    const fields = await page.evaluate(() => {
+      const set = new Set();
+      for (const doc of Object.keys(JP_RULES)) for (const f of Object.keys(JP_RULES[doc])) set.add(f);
+      for (const doc of Object.keys(JP_FIELD_RULES)) for (const r of JP_FIELD_RULES[doc]) set.add(r.field);
+      for (const doc of Object.keys(JP_REGION_LABELS)) for (const r of JP_REGION_LABELS[doc]) set.add(r.field);
+      return [...set].sort();
+    });
+    rec(tag, 'JP_FIELD_LABEL', 'fields discovered', `>=${U.min_fields}`, String(fields.length), fields.length >= U.min_fields);
+    for (const lang of Object.keys(U.type_labels)) {
+      await page.evaluate(L => { LANG = L; applyLang(); }, lang);
+      const bad = await page.evaluate(fs => fs.filter(f => { const v = jpFieldLabel(f); return !v || v === f; }), fields);
+      rec(tag, 'JP_FIELD_LABEL', `${lang}: every field named`, '0 unnamed',
+        bad.length ? 'RAW KEY: ' + bad.join(',') : '0 unnamed', bad.length === 0);
+    }
+  }
+
+  // ③ The covered rows name their field. Driven through the real sample.
+  await page.evaluate(() => { LANG = 'ja'; applyLang(); });
+  await page.evaluate(() => { if (typeof pages !== 'undefined' && pages.length) resetAll(); });
+  await page.click('#btnSample');
+  await page.waitForFunction(() => Array.isArray(pages) && pages.length > 0
+      && document.getElementById('docWrap').style.display === 'flex', { timeout: 40000 });
+  await page.waitForTimeout(300);
+  await page.evaluate(PAGE_HELPERS);
+  {
+    const rows = await page.evaluate(() => ({
+      legalFld: [...document.querySelectorAll('#piiList .sec-legal .fld')].map(n => n.textContent),
+      legalVal: [...document.querySelectorAll('#piiList .sec-legal .val')].map(n => n.textContent),
+      keepFld: [...document.querySelectorAll('#piiList .sec-keep .fld')].map(n => n.textContent),
+      plainFld: [...document.querySelectorAll('#piiList .cat-items .fld')].map(n => n.textContent),
+    }));
+    const w = U.sample_legal_fields;
+    rec(tag, 'JP_ROW_NAME', 'legal rows name their field', w.join(','), rows.legalFld.join(',') || '(none)',
+      w.length === rows.legalFld.length && w.every((f, i) => f === rows.legalFld[i]));
+    // …and the VALUE is still covered. A row that names the field AND prints the
+    // number would be a worse screen than the one this replaced.
+    const allBlocks = rows.legalVal.length === w.length && rows.legalVal.every(v => /^■+$/.test(v));
+    rec(tag, 'JP_ROW_NAME', 'legal values still covered', 'all ■',
+      allBlocks ? 'all ■' : JSON.stringify(rows.legalVal).slice(0, 40), allBlocks);
+    for (const f of U.sample_keep_fields)
+      rec(tag, 'JP_ROW_NAME', 'keep row: ' + f, 'named', rows.keepFld.includes(f) ? 'named' : 'MISSING: ' + rows.keepFld.join(','), rows.keepFld.includes(f));
+  }
+
+  /* ④ Category independence, measured. This is the assertion the label cannot
+     make: before S14 both the Japanese and the Korean identifier answered to
+     ONE checkbox, so unticking 「住民登録番号(韓国)」 switched off a 住民票コード
+     band. jumin_code is the probe because it is the one that is NOT `legal` —
+     legal bands bypass the category checkboxes entirely, so they could not show
+     the coupling either way. */
+  for (const c of (U.category_independence || [])) {
+    await page.evaluate(L => { LANG = L; applyLang(); }, c.lang);
+    await page.evaluate(() => { if (typeof pages !== 'undefined' && pages.length) resetAll(); });
+    await page.evaluate(t => loadFromText(t, 'probe.txt'), c.text);
+    await page.waitForFunction(() => Array.isArray(pages) && pages.length > 0
+        && document.getElementById('docWrap').style.display === 'flex', { timeout: 40000 });
+    await page.waitForTimeout(200);
+    /* Counted in three buckets, not two. `jp_mynumber` entities split by
+       `legal`, because the two halves answer to different things: a legal band
+       bypasses the category checkboxes entirely (S3b), so only the NON-legal
+       one (住民票コード here) can demonstrate the switch — and the legal one
+       surviving the untick is itself the S3b rule, pinned here for free.
+       Writing this as a two-bucket test is how the first version of it failed:
+       it expected 個人番号 to go to zero and read the legal band as a leak. */
+    const tally = () => ({
+      jp: entities.filter(e => e.type === 'jp_mynumber' && !e.legal && isOn(e)).length,
+      jpLegal: entities.filter(e => e.type === 'jp_mynumber' && e.legal && isOn(e)).length,
+      kr: entities.filter(e => e.type === 'rrn' && isOn(e)).length,
+    });
+    const TALLY = tally.toString();
+    const base = await page.evaluate(src => ({
+      ...eval('(' + src + ')')(),
+      doc: jpState.cls && jpState.cls.doc,
+      // the 個人番号 entity itself: its type, the label that type renders, and
+      // the field name its row prints
+      mn: entities.filter(e => e.jp && e.jp.field === 'my_number').map(e => ({ t: e.type, lbl: tLabel(e.type) })),
+      rowFlds: [...document.querySelectorAll('#piiList .fld')].map(n => n.textContent),
+    }), TALLY);
+    const show = o => `jp=${o.jp} jpLegal=${o.jpLegal} kr=${o.kr}`;
+    rec(tag, 'JP_CAT_INDEP', c.label + ': classified', c.expect_doc, base.doc || '(none)', base.doc === c.expect_doc);
+    rec(tag, 'JP_TYPE_LABEL', c.label + ': 個人番号 entity type', `jp_mynumber / ${c.expect_mn_label}`,
+      base.mn.length ? `${base.mn[0].t} / ${base.mn[0].lbl}` : 'NO my_number ENTITY',
+      base.mn.length > 0 && base.mn.every(m => m.t === 'jp_mynumber' && m.lbl === c.expect_mn_label));
+    for (const f of (c.expect_row_fields || []))
+      rec(tag, 'JP_ROW_NAME', c.label + ': row named ' + f, 'named',
+        base.rowFlds.includes(f) ? 'named' : 'MISSING: ' + base.rowFlds.join(','), base.rowFlds.includes(f));
+    const haveAll = base.jp >= 1 && base.jpLegal >= 1 && base.kr >= 1;
+    rec(tag, 'JP_CAT_INDEP', c.label + ': all three present', '>=1 each', show(base), haveAll);
+    if (!haveAll) continue;
+    // Flip one category off, read the tally, put it back. catEnabled is module
+    // state that neither resetAll() nor a fresh load restores (S3b), so the
+    // restore happens inside the same evaluate and is asserted below.
+    const off = ty => page.evaluate(([t, src]) => {
+      const was = { ...catEnabled };
+      catEnabled[t] = false; renderAll();
+      const out = eval('(' + src + ')')();
+      for (const k of Object.keys(was)) catEnabled[k] = was[k];
+      renderAll();
+      out.restored = Object.keys(catEnabled).filter(k => catEnabled[k] === false).length === 0;
+      return out;
+    }, [ty, TALLY]);
+    const offKr = await off('rrn'), offJp = await off('jp_mynumber');
+    rec(tag, 'JP_CAT_INDEP', c.label + ': untick 韓国 → only 韓国 goes', `jp=${base.jp} jpLegal=${base.jpLegal} kr=0`,
+      show(offKr), offKr.jp === base.jp && offKr.jpLegal === base.jpLegal && offKr.kr === 0);
+    rec(tag, 'JP_CAT_INDEP', c.label + ': untick 個人番号 → 韓国 stays', `jp=0 jpLegal=${base.jpLegal} kr=${base.kr}`,
+      show(offJp), offJp.jp === 0 && offJp.kr === base.kr);
+    // The legal band is NOT a category: unticking its own category must not
+    // remove it either (S3b). Same measurement, opposite expectation.
+    rec(tag, 'JP_CAT_INDEP', c.label + ': legal band ignores its category', `jpLegal=${base.jpLegal}`,
+      `jpLegal=${offJp.jpLegal}`, offJp.jpLegal === base.jpLegal);
+    rec(tag, 'JP_CAT_INDEP', c.label + ': categories restored', 'none off',
+      offKr.restored && offJp.restored ? 'none off' : 'STILL OFF', offKr.restored && offJp.restored);
+  }
+
+  /* ⑤ The footer. Asserted as VISIBILITY, not DOM presence: the cards are
+     hidden by a CSS rule on html[lang], so counting elements would pass with
+     the rule deleted. The ko/en/es direction is the regression half. */
+  await page.evaluate(() => { if (typeof pages !== 'undefined' && pages.length) resetAll(); });
+  for (const [lang, want] of Object.entries(U.partner_cards)) {
+    await page.evaluate(L => { LANG = L; applyLang(); }, lang);
+    const got = await page.evaluate(() => [...document.querySelectorAll('.partner-card')]
+      .filter(a => a.offsetParent !== null).map(a => (a.querySelector('strong') || {}).textContent.replace(/^\W+\s*/, '')));
+    rec(tag, 'PARTNERS', lang, want.join(','), got.join(',') || '(none)',
+      want.length === got.length && want.every((n, i) => n === got[i]));
+    // …and the grid is not three columns with two holes in it.
+    if (lang === 'ja') {
+      const cols = await page.evaluate(() => getComputedStyle(document.querySelector('.partner-grid')).gridTemplateColumns.split(/\s+/).length);
+      rec(tag, 'PARTNERS', 'ja grid columns', '1', String(cols), cols === 1);
+    }
+  }
+  await page.evaluate(() => { LANG = 'ko'; applyLang(); });
+}
+
 function printTable() {
   const pad = (s, n) => { s = String(s); return s.length > n ? s.slice(0, n - 1) + '…' : s.padEnd(n); };
   let lastDoc = '';
@@ -1440,6 +1609,7 @@ function printTable() {
   if (!onlyArg || onlyArg === '(jp warn)') { process.stderr.write('… jp classification warning\n'); await checkJpWarn(page); }
   if (!onlyArg || onlyArg === '(sample)') { process.stderr.write('… built-in samples\n'); await checkSamples(page); }
   if (!onlyArg || onlyArg === '(ja ui)') { process.stderr.write('… ja ui chrome\n'); await checkJaUi(page); }
+  if (!onlyArg || onlyArg === '(jp ui)') { process.stderr.write('… jp ui naming\n'); await checkJpUiS14(page); }
   if (!onlyArg || onlyArg === '7_resume_dark.pdf') { process.stderr.write('… ai_inject\n'); await checkAiInject(page); }
   if (!onlyArg || onlyArg === '7_resume_dark.pdf') { process.stderr.write('… ai_cat_state\n'); await checkAiCatState(page); }
   if (!onlyArg || onlyArg === (SPECS.candidate_dedup && SPECS.candidate_dedup._doc)) { process.stderr.write('… candidate_dedup\n'); await checkCandidateDedup(page); }

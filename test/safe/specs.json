@@ -1171,7 +1171,7 @@
     "pre_upload_cats": {
       "ko": ["rrn", "ssn", "passport", "license", "card", "account", "phone", "email", "birth", "address", "name", "company", "title", "ip", "url", "health", "other"],
       "en": ["rrn", "ssn", "passport", "license", "card", "account", "phone", "email", "birth", "address", "name", "company", "title", "ip", "url", "health", "other"],
-      "ja": ["name", "birth", "address", "phone", "email", "account", "card", "license", "passport", "health", "company", "title", "ip", "url", "other"]
+      "ja": ["name", "birth", "address", "phone", "email", "jp_mynumber", "account", "card", "license", "passport", "health", "company", "title", "ip", "url", "other"]
     },
     "hidden_but_found": [
       {
@@ -1181,5 +1181,37 @@
         "_why": "The half that stops the list assertion from being satisfied by deleting the detection. 'hidden up front' and 'never detected' look identical from the outside, and only one of them is what was asked for: a Japanese user who really is handed a Korean document still has to see the row."
       }
     ]
+  },
+
+  "_jp_ui_s14_why": "S14. Three things the detection was already getting right and the SCREEN was not saying, on the page 156 Japanese 行政書士 receive a link to. (a) A Japanese 個人番号 was filed under the type `rrn` — the KOREAN resident-registration number. The label was the visible half and the smaller one: a found 個人番号 is always `legal` or `keep`, so it renders in a section rather than under a category header (measured 2026-11-07 on jp/juminhyo/zenin_mynumber.png). The half that bit is that a type IS the off switch — `isOn` reads catEnabled[type] — so the checkbox reading 住民登録番号(韓国) was the control for a Japanese 住民票コード band. (b) Every covered row read ■■■ plus a reason and refused to say WHICH field it was; the same fixture rendered three identical ten-block rows. (c) Two of three footer cards are Korean-market products. None of this changes what is masked, which is why the 631 existing assertions did not move.",
+  "jp_ui_s14": {
+    "min_fields": 25,
+    "_min_fields_why": "The field list is derived from JP_RULES / JP_FIELD_RULES / JP_REGION_LABELS at run time, not copied here — a hand-copied list would have copied the gap it found (shikaku_date, hokensha_name and jigyosho had a keep rule, a detection rule and no label in any language). The floor exists so that a broken derivation reports 0 fields and FAILS instead of passing with nothing to check.",
+    "type_labels": {
+      "ja": "個人番号（マイナンバー）",
+      "ko": "일본 개인번호(마이넘버)",
+      "en": "My Number (Japan)",
+      "es": "My Number (Japón)"
+    },
+    "sample_legal_fields": ["保険者番号", "記号", "番号", "枝番"],
+    "sample_keep_fields": ["氏名", "生年月日", "事業所名称", "住所", "有効期限", "保険者名", "資格取得年月日"],
+    "category_independence": [
+      {
+        "label": "住民票 + 한국 주민등록번호",
+        "lang": "ja",
+        "text": "住民票の写し\n世帯主 見本 太郎\n個人番号 123456789012\n住民票コード 12345678901\n備考 참고 주민등록번호 900315-1234567\n",
+        "expect_doc": "juminhyo",
+        "expect_mn_label": "個人番号（マイナンバー）",
+        "expect_row_fields": ["個人番号", "住民票コード"],
+        "_why": "One document carrying BOTH identifiers, which is the only state that can tell the two categories apart. The probe for the switch is 住民票コード rather than 個人番号 because 個人番号 is `legal` on this document and legal bands bypass the category checkboxes entirely — it could not show the coupling in either direction. Fictional: 12345678901 / 123456789012 are sequential fillers and 900315-1234567 is the number the Korean sample already uses. Test-only — this is not a screen specimen."
+      }
+    ],
+    "partner_cards": {
+      "ko": ["SlimFile", "Schooljob", "HelloKorean"],
+      "en": ["SlimFile", "Schooljob", "HelloKorean"],
+      "es": ["SlimFile", "Schooljob", "HelloKorean"],
+      "ja": ["SlimFile"]
+    },
+    "_partner_cards_why": "Asserted as VISIBILITY (offsetParent), not as DOM presence: the two cards are hidden by a CSS rule on html[lang=ja], so counting elements would stay green with the rule deleted. ko/en/es is the regression half — the cards are unchanged there, and a one-sided assertion would pass if ja hid them by removing them for everyone."
   }
 }

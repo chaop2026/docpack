@@ -145,6 +145,10 @@ header{border-bottom:1px solid var(--line);background:var(--paper);position:stic
 .cat-row.sec-manual .cl{color:var(--ink)}
 .pii-item.is-cand{background:#fff}
 .pii-item .val-wrap{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+/* Field name + (covered) value on one line. The name is the only thing a hidden
+   row can honestly say about itself — see jpRowLabel. */
+.pii-item .val-line{display:flex;align-items:baseline;gap:6px;min-width:0;flex:1}
+.pii-item .fld{font-size:11.5px;font-weight:700;color:var(--ink);opacity:.68;white-space:nowrap;flex-shrink:0}
 .pii-item .reason{font-size:10.5px;color:var(--half);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .file-meta{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px;color:var(--sub);flex-wrap:wrap}
 .file-meta .chip{background:var(--marker-soft);padding:2px 9px;border-radius:14px;color:var(--ink);font-weight:500;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -277,6 +281,13 @@ body.rv-lock{overflow:hidden}
 .partners h4{font-size:13px;color:var(--sub);text-align:center;margin-bottom:14px;font-weight:500}
 .partner-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 @media(max-width:700px){.partner-grid{grid-template-columns:1fr}}
+/* Japanese UI: only the language-neutral card remains (see the markup comment).
+   The grid is re-declared rather than left at 3 columns — one card stretched
+   across a third of the width with two empty cells reads as a broken layout,
+   which is a worse first impression than the cards it replaced. The cap keeps
+   the single card from spanning the whole page. */
+html[lang="ja"] .partner-card[data-market="kr"]{display:none}
+html[lang="ja"] .partner-grid{grid-template-columns:minmax(0,420px);justify-content:center}
 .partner-card{border:1px solid var(--line);border-radius:12px;padding:15px;background:var(--card);text-decoration:none;color:var(--ink);transition:.15s;display:block}
 .partner-card:hover{border-color:var(--ink)}
 .partner-card strong{font-size:14px;display:block;margin-bottom:4px}
@@ -529,8 +540,15 @@ footer .foot-jp{margin-top:8px;font-size:12px;opacity:.85}
     <h4 data-i18n="partners">SafeFile이 추천하는 서비스</h4>
     <div class="partner-grid">
       <a class="partner-card" href="https://slimfile.net" target="_blank" rel="noopener"><strong>🗜 SlimFile</strong><span data-i18n="pSlim">이미지 압축과 PDF 변환, 2MB 이하로 간단하게.</span></a>
-      <a class="partner-card" href="https://schooljob.site" target="_blank" rel="noopener"><strong>🎓 Schooljob</strong><span data-i18n="pSchool">선생님을 위한 채용 정보, 딱 맞는 학교 찾기.</span></a>
-      <a class="partner-card" href="https://hellokorean.org" target="_blank" rel="noopener"><strong>🌏 HelloKorean</strong><span data-i18n="pHello">한국어 배우기, 오늘부터 시작하세요.</span></a>
+      <!-- data-market="kr": products whose users are Korean-speaking (teacher
+           jobs in Korea, learning Korean). On the Japanese UI they are the two
+           out of three cards that tell a 行政書士 this is somebody else's site,
+           on the page they were sent a link to. Hidden by CSS on html[lang=ja]
+           rather than removed from the DOM: the markup stays one document for
+           four languages, and applyLang already owns <html lang>. SlimFile
+           stays — same operator, and image compression is language-neutral. -->
+      <a class="partner-card" data-market="kr" href="https://schooljob.site" target="_blank" rel="noopener"><strong>🎓 Schooljob</strong><span data-i18n="pSchool">선생님을 위한 채용 정보, 딱 맞는 학교 찾기.</span></a>
+      <a class="partner-card" data-market="kr" href="https://hellokorean.org" target="_blank" rel="noopener"><strong>🌏 HelloKorean</strong><span data-i18n="pHello">한국어 배우기, 오늘부터 시작하세요.</span></a>
     </div>
   </div>
 </div>
@@ -629,7 +647,7 @@ ko:{
   notLocated:'위치 못 찾음',
   btnSelect:'🖐 영역 직접 선택', selHint:'가릴 영역을 손가락이나 마우스로 드래그하세요 (사진·서명·도장·이름 등)',
   manualSection:'직접 선택한 영역', candSection:'확인 필요 — 이것도 가릴까요?', manualItem:'직접 선택한 영역',
-  jpFields:{address_loose:'문서 내 주소',tel:'전화·FAX',doc_shikaku_kakuninsho:'資格確認書(자격확인서)', doc_unten_menkyo:'運転免許証(운전면허증)', doc_mynumber_card:'マイナンバーカード(마이넘버카드)', doc_juminhyo:'住民票(주민표)', side_front:'앞면', side_back:'뒷면', purpose_identity_submit:'本人確認 제출', purpose_my_number_procedure:'個人番号 절차', purpose_bid_attachment:'입찰 첨부', purpose_consult_share:'상담용 공유', back_all:'뒷면 전체', my_number:'개인번호', jumin_code:'주민표 코드', hokensha_bango:'보험자번호', kigo:'기호', bango:'번호', edaban:'가지번호', hihokensha_bango:'피보험자번호', qr:'2차원 코드', license_no:'면허증번호', biko_change:'비고란(변경 기재)', organ_donor:'장기기증 의사표시란', setaiin:'다른 세대원', honseki:'본적', hittosha:'필두자', sex:'성별', name:'성명', birth:'생년월일', address:'주소', expiry:'유효기간', issue:'교부일', issuer:'발행자'},
+  jpFields:{address_loose:'문서 내 주소',tel:'전화·FAX',doc_shikaku_kakuninsho:'資格確認書(자격확인서)', doc_unten_menkyo:'運転免許証(운전면허증)', doc_mynumber_card:'マイナンバーカード(마이넘버카드)', doc_juminhyo:'住民票(주민표)', side_front:'앞면', side_back:'뒷면', purpose_identity_submit:'本人確認 제출', purpose_my_number_procedure:'個人番号 절차', purpose_bid_attachment:'입찰 첨부', purpose_consult_share:'상담용 공유', back_all:'뒷면 전체', my_number:'개인번호', jumin_code:'주민표 코드', hokensha_bango:'보험자번호', kigo:'기호', bango:'번호', edaban:'가지번호', hihokensha_bango:'피보험자번호', qr:'2차원 코드', license_no:'면허증번호', biko_change:'비고란(변경 기재)', organ_donor:'장기기증 의사표시란', setaiin:'다른 세대원', honseki:'본적', hittosha:'필두자', sex:'성별', name:'성명', birth:'생년월일', address:'주소', expiry:'유효기간', issue:'교부일', issuer:'발행자', shikaku_date:'자격취득 연월일', hokensha_name:'보험자명', jigyosho:'사업소 명칭'},
   jpPurposeLabel:'제출 목적', jpBackNotice:'신원확인이 목적이라면 앞면만 제출하세요. 번호법상 법령이 인정한 사무 외의 목적으로 個人番号를 복사·보관하는 것은 제한될 수 있습니다. 「個人番号 절차」는 제출처 안내문이 個人番号(뒷면) 제출을 명시적으로 요구하는 경우에만 선택하세요.', jpKeepWarn:'제출처가 요구하는 항목입니다. 가리면 접수되지 않을 수 있습니다.', jpWarnUnclassified:'문서 종류를 특정하지 못해 자동 마스킹을 적용하지 않았습니다. 가릴 영역을 직접 선택하세요.', jpWarnLowconf:'문서 종류의 확신도가 낮아 후보 항목에 기본값으로 띠를 적용했습니다. 반드시 확인하세요.', jpEmptyPurpose:'이 문서에서 찾은 항목에는 이 목적에 적용되는 규칙이 없습니다. 가릴 영역을 직접 선택하세요.', jpMnConfirm:'제출처 안내문에서 個人番号(뒷면) 제출을 명시적으로 요구하는 것을 확인했습니다. 요구가 없으면 해제하지 마세요.', jpLegalSection:'법령·제출처 규칙 (法令・提出先ルール)', jpLegalWarn:'법령에 근거가 있는 항목입니다. 해제하면 법령상 수집·보관이 제한될 수 있는 정보가 그대로 나갑니다.', keepSection:'남겨야 하는 항목',
   reasons:{name:'이름일 수 있음', jp_auto:'법적 근거로 자동 가림', jp_gate:'목적에 따라 자동 가림', jp_recommend:'가리는 것을 권장', jp_optional:'선택 가능', jp_keep:'제출처가 요구 — 가리지 마세요', addr:'주소일 수 있음', addr_contact:'주소일 수 있음 · 연락처 영역', addr_edge:'주소일 수 있음 · 문서 상·하단', addr_kw:'주소일 수 있음 · 지명·주소어'},
   tManualAdded:'영역을 추가했어요', tManualRemoved:'영역을 삭제했어요', tSelSmall:'너무 작아요. 조금 더 크게 드래그하세요.', btnSelectOn:'✓ 선택 모드 (끄기)',
@@ -637,7 +655,7 @@ ko:{
   wmPresets:['○○ 제출용','본인확인용으로만 사용','전용(轉用) 금지','{date} ○○에 제출'],
   wmQR:'⚠ 워터마크가 QR코드·바코드·도장을 가리지 않았는지 결과 미리보기에서 꼭 확인하세요. (하단 여백은 자동으로 비웁니다)',
   pasted:'붙여넣은 텍스트', aiChars:n=>`${n}자 (AI 추출)`, chars:n=>`${n}자`, pages:n=>`${n}페이지`,
-  types:{rrn:'주민등록번호',ssn:'SSN(미국)',passport:'여권번호',license:'운전면허번호',card:'카드번호',account:'계좌번호',phone:'전화번호',email:'이메일',birth:'생년월일',address:'주소',name:'이름',company:'회사·소속',title:'직책',ip:'IP 주소',url:'SNS·URL',health:'건강·민감정보',other:'기타',manual:'직접 선택'}
+  types:{rrn:'주민등록번호',jp_mynumber:'일본 개인번호(마이넘버)',ssn:'SSN(미국)',passport:'여권번호',license:'운전면허번호',card:'카드번호',account:'계좌번호',phone:'전화번호',email:'이메일',birth:'생년월일',address:'주소',name:'이름',company:'회사·소속',title:'직책',ip:'IP 주소',url:'SNS·URL',health:'건강·민감정보',other:'기타',manual:'직접 선택'}
 },
 en:{
   tabTitle:'SafeFile — Black out the personal info in a document, in your browser',
@@ -690,7 +708,7 @@ en:{
   notLocated:'not located',
   btnSelect:'🖐 Select area manually', selHint:'Drag with your finger or mouse over the area to hide (photo, signature, stamp, name…)',
   manualSection:'Manually selected areas', candSection:'Please review — hide these too?', manualItem:'Selected area',
-  jpFields:{address_loose:'Address in body',tel:'Phone / FAX',doc_shikaku_kakuninsho:'Qualification certificate (資格確認書)', doc_unten_menkyo:'Driver\'s licence (運転免許証)', doc_mynumber_card:'My Number card', doc_juminhyo:'Residence record (住民票)', side_front:'front', side_back:'back', purpose_identity_submit:'Identity verification', purpose_my_number_procedure:'My Number procedure', purpose_bid_attachment:'Tender attachment', purpose_consult_share:'Sharing for advice', back_all:'Entire back face', my_number:'My Number', jumin_code:'Residence code', hokensha_bango:'Insurer number', kigo:'Symbol', bango:'Number', edaban:'Branch number', hihokensha_bango:'Insured number', qr:'2-D code', license_no:'Licence number', biko_change:'Remarks (changes)', organ_donor:'Organ donation section', setaiin:'Other household members', honseki:'Registered domicile', hittosha:'Head of register', sex:'Sex', name:'Name', birth:'Date of birth', address:'Address', expiry:'Valid until', issue:'Issued', issuer:'Issuer'},
+  jpFields:{address_loose:'Address in body',tel:'Phone / FAX',doc_shikaku_kakuninsho:'Qualification certificate (資格確認書)', doc_unten_menkyo:'Driver\'s licence (運転免許証)', doc_mynumber_card:'My Number card', doc_juminhyo:'Residence record (住民票)', side_front:'front', side_back:'back', purpose_identity_submit:'Identity verification', purpose_my_number_procedure:'My Number procedure', purpose_bid_attachment:'Tender attachment', purpose_consult_share:'Sharing for advice', back_all:'Entire back face', my_number:'My Number', jumin_code:'Residence code', hokensha_bango:'Insurer number', kigo:'Symbol', bango:'Number', edaban:'Branch number', hihokensha_bango:'Insured number', qr:'2-D code', license_no:'Licence number', biko_change:'Remarks (changes)', organ_donor:'Organ donation section', setaiin:'Other household members', honseki:'Registered domicile', hittosha:'Head of register', sex:'Sex', name:'Name', birth:'Date of birth', address:'Address', expiry:'Valid until', issue:'Issued', issuer:'Issuer', shikaku_date:'Date of entitlement', hokensha_name:'Insurer name', jigyosho:'Workplace name'},
   jpPurposeLabel:'Purpose of submission', jpBackNotice:'If identity is what needs checking, submit the front face only. Under the My Number Act, copying or keeping a My Number for anything other than a task the law recognises may be restricted. Choose “My Number procedure” only when the recipient’s own instructions explicitly ask for the My Number (back face).', jpKeepWarn:'The recipient asks for this field. Hiding it may get your submission rejected.', jpWarnUnclassified:'The document type could not be identified, so no automatic redaction was applied. Please select the areas to cover by hand.', jpWarnLowconf:'Confidence in the document type is low, so candidate bands were applied by default. Please check them.', jpEmptyPurpose:'None of the fields found in this document has a rule for this purpose. Select the areas to cover by hand.', jpMnConfirm:'I have checked that the recipient’s instructions explicitly ask for the My Number (back face). Do not release this if they do not.', jpLegalSection:'Statutory / recipient rules', jpLegalWarn:'This band has a legal basis. Releasing it sends data whose collection or retention may be restricted by law.', keepSection:'Fields to keep visible',
   reasons:{name:'Possibly a name', jp_auto:'Hidden automatically (legal basis)', jp_gate:'Hidden for this purpose', jp_recommend:'Recommended to hide', jp_optional:'Optional', jp_keep:'Recipient needs this — keep it', addr:'Possibly an address', addr_contact:'Possibly an address · near contact info', addr_edge:'Possibly an address · header/footer', addr_kw:'Possibly an address · place/street term'},
   tManualAdded:'Area added', tManualRemoved:'Area removed', tSelSmall:'Too small — drag a bit larger.', btnSelectOn:'✓ Selecting (turn off)',
@@ -698,7 +716,7 @@ en:{
   wmPresets:['For submission to ○○','For identity verification only','Not for any other use','Submitted to ○○ on {date}'],
   wmQR:'⚠ Check the result preview to ensure the watermark does not cover any QR code, barcode, or stamp. (The bottom margin is kept clear automatically.)',
   pasted:'Pasted text', aiChars:n=>`${n} chars (AI extracted)`, chars:n=>`${n} chars`, pages:n=>`${n} pages`,
-  types:{rrn:'Korean RRN',ssn:'SSN (US)',passport:'Passport no.',license:"Driver's license",card:'Card number',account:'Bank account',phone:'Phone',email:'Email',birth:'Date of birth',address:'Address',name:'Name',company:'Company',title:'Job title',ip:'IP address',url:'Social · URL',health:'Health / sensitive',other:'Other',manual:'Manual'}
+  types:{rrn:'Korean RRN',jp_mynumber:'My Number (Japan)',ssn:'SSN (US)',passport:'Passport no.',license:"Driver's license",card:'Card number',account:'Bank account',phone:'Phone',email:'Email',birth:'Date of birth',address:'Address',name:'Name',company:'Company',title:'Job title',ip:'IP address',url:'Social · URL',health:'Health / sensitive',other:'Other',manual:'Manual'}
 },
 ja:{
   tabTitle:'SafeFile — 書類の個人情報を、ブラウザだけで黒塗り',
@@ -751,7 +769,7 @@ ja:{
   notLocated:'位置不明',
   btnSelect:'🖐 範囲を手動で選択', selHint:'隠したい範囲を指またはマウスでドラッグしてください（写真・署名・印鑑・氏名など）',
   manualSection:'手動で選択した範囲', candSection:'要確認 — これも隠しますか？', manualItem:'選択した範囲',
-  jpFields:{address_loose:'本文中の住所',tel:'電話・FAX',doc_shikaku_kakuninsho:'資格確認書', doc_unten_menkyo:'運転免許証', doc_mynumber_card:'マイナンバーカード', doc_juminhyo:'住民票の写し', side_front:'表面', side_back:'裏面', purpose_identity_submit:'本人確認提出', purpose_my_number_procedure:'個人番号手続', purpose_bid_attachment:'入札添付', purpose_consult_share:'相談用共有', back_all:'裏面全体', my_number:'個人番号', jumin_code:'住民票コード', hokensha_bango:'保険者番号', kigo:'記号', bango:'番号', edaban:'枝番', hihokensha_bango:'被保険者番号', qr:'二次元コード', license_no:'免許証番号', biko_change:'備考欄（変更記載）', organ_donor:'臓器提供意思表示欄', setaiin:'本人以外の世帯員', honseki:'本籍', hittosha:'筆頭者', sex:'性別', name:'氏名', birth:'生年月日', address:'住所', expiry:'有効期限', issue:'交付日', issuer:'発行者'},
+  jpFields:{address_loose:'本文中の住所',tel:'電話・FAX',doc_shikaku_kakuninsho:'資格確認書', doc_unten_menkyo:'運転免許証', doc_mynumber_card:'マイナンバーカード', doc_juminhyo:'住民票の写し', side_front:'表面', side_back:'裏面', purpose_identity_submit:'本人確認提出', purpose_my_number_procedure:'個人番号手続', purpose_bid_attachment:'入札添付', purpose_consult_share:'相談用共有', back_all:'裏面全体', my_number:'個人番号', jumin_code:'住民票コード', hokensha_bango:'保険者番号', kigo:'記号', bango:'番号', edaban:'枝番', hihokensha_bango:'被保険者番号', qr:'二次元コード', license_no:'免許証番号', biko_change:'備考欄（変更記載）', organ_donor:'臓器提供意思表示欄', setaiin:'本人以外の世帯員', honseki:'本籍', hittosha:'筆頭者', sex:'性別', name:'氏名', birth:'生年月日', address:'住所', expiry:'有効期限', issue:'交付日', issuer:'発行者', shikaku_date:'資格取得年月日', hokensha_name:'保険者名', jigyosho:'事業所名称'},
   jpPurposeLabel:'提出目的', jpBackNotice:'身元確認が目的なら表面のみ提出してください。番号法上、法令で認められた事務以外で個人番号を複写・保管することは制限される場合があります。「個人番号手続」は、提出先の案内で個人番号（裏面）の提出が明示的に求められている場合にのみ選んでください。', jpKeepWarn:'提出先が受付できない可能性があります（本人特定事項）。', jpWarnUnclassified:'文書の種類を特定できなかったため自動黒塗りは適用していません。手動で範囲を選択してください。', jpWarnLowconf:'文書の種類の確信度が低いため、候補の黒塗りを既定で適用しました。必ず確認してください。', jpEmptyPurpose:'この文書で検出した項目には、この目的に適用されるルールがありません。手動で範囲を選択してください。', jpMnConfirm:'提出先の案内で、個人番号（裏面）の提出が明示的に求められていることを確認しました。求められていない場合は解除しないでください。', jpLegalSection:'法令・提出先ルール', jpLegalWarn:'法令に根拠がある項目です。解除すると、法令上、収集・保管が制限される場合がある情報がそのまま出力されます。', keepSection:'残す項目',
   reasons:{name:'氏名の可能性', jp_auto:'法令根拠により自動で黒塗り', jp_gate:'この目的では自動で黒塗り', jp_recommend:'黒塗りを推奨', jp_optional:'任意', jp_keep:'提出先が必要とする項目', addr:'住所の可能性', addr_contact:'住所の可能性 · 連絡先の近く', addr_edge:'住所の可能性 · 文書の上部・下部', addr_kw:'住所の可能性 · 地名・住所語'},
   tManualAdded:'範囲を追加しました', tManualRemoved:'範囲を削除しました', tSelSmall:'小さすぎます。もう少し大きくドラッグしてください。', btnSelectOn:'✓ 選択モード（オフ）',
@@ -759,7 +777,7 @@ ja:{
   wmPresets:['○○ 提出用','本人確認のみに使用','転用禁止','{date} ○○ に提出'],
   wmQR:'⚠ ウォーターマークがQRコード・バーコード・印鑑を隠していないか、結果プレビューで必ずご確認ください。（下部の余白は自動で空けます）',
   pasted:'貼り付けたテキスト', aiChars:n=>`${n}文字（AI抽出）`, chars:n=>`${n}文字`, pages:n=>`${n}ページ`,
-  types:{rrn:'住民登録番号(韓国)',ssn:'SSN(米国)',passport:'パスポート番号',license:'運転免許番号',card:'カード番号',account:'口座番号',phone:'電話番号',email:'メール',birth:'生年月日',address:'住所',name:'氏名',company:'会社・所属',title:'役職',ip:'IPアドレス',url:'SNS・URL',health:'健康・センシティブ情報',other:'その他',manual:'手動選択'}
+  types:{rrn:'住民登録番号(韓国)',jp_mynumber:'個人番号（マイナンバー）',ssn:'SSN(米国)',passport:'パスポート番号',license:'運転免許番号',card:'カード番号',account:'口座番号',phone:'電話番号',email:'メール',birth:'生年月日',address:'住所',name:'氏名',company:'会社・所属',title:'役職',ip:'IPアドレス',url:'SNS・URL',health:'健康・センシティブ情報',other:'その他',manual:'手動選択'}
 },
 es:{
   tabTitle:'SafeFile — Tacha los datos personales de un documento, en tu navegador',
@@ -812,7 +830,7 @@ es:{
   notLocated:'sin ubicar',
   btnSelect:'🖐 Seleccionar área manualmente', selHint:'Arrastra con el dedo o el ratón sobre el área a ocultar (foto, firma, sello, nombre…)',
   manualSection:'Áreas seleccionadas manualmente', candSection:'Revisar — ¿ocultar también esto?', manualItem:'Área seleccionada',
-  jpFields:{address_loose:'Dirección en el texto',tel:'Teléfono / FAX',doc_shikaku_kakuninsho:'Certificado de cobertura (資格確認書)', doc_unten_menkyo:'Permiso de conducir (運転免許証)', doc_mynumber_card:'Tarjeta My Number', doc_juminhyo:'Certificado de residencia (住民票)', side_front:'anverso', side_back:'reverso', purpose_identity_submit:'Verificación de identidad', purpose_my_number_procedure:'Trámite de My Number', purpose_bid_attachment:'Anexo de licitación', purpose_consult_share:'Compartir para consulta', back_all:'Todo el reverso', my_number:'My Number', jumin_code:'Código de residencia', hokensha_bango:'N.º de aseguradora', kigo:'Símbolo', bango:'Número', edaban:'N.º de rama', hihokensha_bango:'N.º de asegurado', qr:'Código 2D', license_no:'N.º de permiso', biko_change:'Observaciones (cambios)', organ_donor:'Apartado de donación de órganos', setaiin:'Otros miembros del hogar', honseki:'Domicilio registral', hittosha:'Titular del registro', sex:'Sexo', name:'Nombre', birth:'Fecha de nacimiento', address:'Dirección', expiry:'Válido hasta', issue:'Emitido', issuer:'Emisor'},
+  jpFields:{address_loose:'Dirección en el texto',tel:'Teléfono / FAX',doc_shikaku_kakuninsho:'Certificado de cobertura (資格確認書)', doc_unten_menkyo:'Permiso de conducir (運転免許証)', doc_mynumber_card:'Tarjeta My Number', doc_juminhyo:'Certificado de residencia (住民票)', side_front:'anverso', side_back:'reverso', purpose_identity_submit:'Verificación de identidad', purpose_my_number_procedure:'Trámite de My Number', purpose_bid_attachment:'Anexo de licitación', purpose_consult_share:'Compartir para consulta', back_all:'Todo el reverso', my_number:'My Number', jumin_code:'Código de residencia', hokensha_bango:'N.º de aseguradora', kigo:'Símbolo', bango:'Número', edaban:'N.º de rama', hihokensha_bango:'N.º de asegurado', qr:'Código 2D', license_no:'N.º de permiso', biko_change:'Observaciones (cambios)', organ_donor:'Apartado de donación de órganos', setaiin:'Otros miembros del hogar', honseki:'Domicilio registral', hittosha:'Titular del registro', sex:'Sexo', name:'Nombre', birth:'Fecha de nacimiento', address:'Dirección', expiry:'Válido hasta', issue:'Emitido', issuer:'Emisor', shikaku_date:'Fecha de alta', hokensha_name:'Nombre de la aseguradora', jigyosho:'Nombre del centro de trabajo'},
   jpPurposeLabel:'Finalidad del envío', jpBackNotice:'Si lo que hay que verificar es la identidad, envía solo el anverso. La Ley My Number puede restringir copiar o conservar un My Number para fines distintos de los trámites reconocidos por la ley. Elige «Trámite de My Number» solo si las instrucciones del destinatario piden expresamente el My Number (reverso).', jpKeepWarn:'El destinatario pide este dato. Ocultarlo puede provocar el rechazo del envío.', jpWarnUnclassified:'No se ha podido identificar el tipo de documento, por lo que no se aplicó ningún tachado automático. Selecciona a mano las zonas que quieras cubrir.', jpWarnLowconf:'La confianza en el tipo de documento es baja, así que se aplicaron bandas de candidatos por defecto. Compruébalas.', jpEmptyPurpose:'Ninguno de los campos encontrados en este documento tiene una regla para esta finalidad. Selecciona a mano las zonas que quieras cubrir.', jpMnConfirm:'He comprobado que las instrucciones del destinatario piden expresamente el My Number (reverso). No lo liberes si no lo piden.', jpLegalSection:'Reglas legales / del destinatario', jpLegalWarn:'Esta banda tiene base legal. Al liberarla envías datos cuya recogida o conservación puede estar restringida por ley.', keepSection:'Campos que deben quedar visibles',
   reasons:{name:'Puede ser un nombre', jp_auto:'Oculto automáticamente (base legal)', jp_gate:'Oculto para esta finalidad', jp_recommend:'Se recomienda ocultar', jp_optional:'Opcional', jp_keep:'El destinatario lo necesita', addr:'Puede ser una dirección', addr_contact:'Puede ser una dirección · cerca del contacto', addr_edge:'Puede ser una dirección · encabezado/pie', addr_kw:'Puede ser una dirección · término de lugar/calle'},
   tManualAdded:'Área añadida', tManualRemoved:'Área eliminada', tSelSmall:'Demasiado pequeña — arrastra un poco más.', btnSelectOn:'✓ Seleccionando (desactivar)',
@@ -820,7 +838,7 @@ es:{
   wmPresets:['Para presentar a ○○','Solo para verificar la identidad','Prohibido otro uso','Presentado a ○○ el {date}'],
   wmQR:'⚠ Revisa la vista previa del resultado para que la marca de agua no cubra ningún código QR, de barras o sello. (El margen inferior se deja libre automáticamente.)',
   pasted:'Texto pegado', aiChars:n=>`${n} caracteres (extraído por IA)`, chars:n=>`${n} caracteres`, pages:n=>`${n} páginas`,
-  types:{rrn:'RRN de Corea',ssn:'SSN (EE. UU.)',passport:'N.º de pasaporte',license:'Permiso de conducir',card:'N.º de tarjeta',account:'Cuenta bancaria',phone:'Teléfono',email:'Correo',birth:'Fecha de nacimiento',address:'Dirección',name:'Nombre',company:'Empresa',title:'Cargo',ip:'Dirección IP',url:'Redes · URL',health:'Salud / sensible',other:'Otro',manual:'Manual'}
+  types:{rrn:'RRN de Corea',jp_mynumber:'My Number (Japón)',ssn:'SSN (EE. UU.)',passport:'N.º de pasaporte',license:'Permiso de conducir',card:'N.º de tarjeta',account:'Cuenta bancaria',phone:'Teléfono',email:'Correo',birth:'Fecha de nacimiento',address:'Dirección',name:'Nombre',company:'Empresa',title:'Cargo',ip:'Dirección IP',url:'Redes · URL',health:'Salud / sensible',other:'Otro',manual:'Manual'}
 }
 };
 const LANGS = ['ko','en','ja','es'];
@@ -929,7 +947,24 @@ const setProg=(v)=>{const p=$('prog');if(v==null||v<=0){p.classList.remove('on')
    freedom. Every type that used to default to the partial mode now defaults to
    'no' (strictly more covering, never less). */
 const TYPES = {
-  rrn:{icon:'🪪',risk:'no'}, ssn:{icon:'🪪',risk:'no'}, passport:{icon:'🛂',risk:'no'},
+  rrn:{icon:'🪪',risk:'no'},
+  /* 個人番号 / 住民票コード. Its own type because it was sharing `rrn` — the
+     KOREAN resident registration number — and a type is not only a label: it is
+     the checkbox that switches the band off (`isOn` → catEnabled[type]). So the
+     box reading 「住民登録番号(韓国)」/「주민등록번호」 was the control for a Japanese
+     住民票コード band, and the two could not be set apart. (The *label* was less
+     visible than it sounds: a found 個人番号 is always `legal` or `keep`, so it
+     renders in a section, not under a category header — measured 2026-11-07 on
+     jp/juminhyo/zenin_mynumber.png. The coupling is the part that bit.)
+     `only` = which UI languages OFFER this row up front; detection and the
+     found-row are language-independent, exactly as for CAT_HIDE.
+     住民票コード is filed here too. It is NOT a 個人番号 — different statute,
+     11 digits not 12 — and the honest reason it can share this row is that the
+     row is a default-level preference, never a header over a found value, while
+     the value's own row now names the field (jpRowLabel). Flagged for a human:
+     a second type, or a broader label, is a one-line change. */
+  jp_mynumber:{icon:'🪪',risk:'no',only:['ja']},
+  ssn:{icon:'🪪',risk:'no'}, passport:{icon:'🛂',risk:'no'},
   license:{icon:'🚗',risk:'no'}, card:{icon:'💳',risk:'no'}, account:{icon:'🏦',risk:'no'},
   phone:{icon:'📞',risk:'no'}, email:{icon:'✉️',risk:'no'}, birth:{icon:'🎂',risk:'no'},
   address:{icon:'📍',risk:'no'}, name:{icon:'👤',risk:'no'},
@@ -957,7 +992,7 @@ Object.keys(TYPES).forEach(t=>{catEnabled[t]=true;catDefault[t]=TYPES[t].risk;})
    vanish from the Japanese UI silently — only CAT_HIDE can hide one, and that
    is a line someone has to write. */
 const CAT_ORDER = {
-  ja: ['name','birth','address','phone','email','account','card','license','passport','health','company','title','ip','url','other'],
+  ja: ['name','birth','address','phone','email','jp_mynumber','account','card','license','passport','health','company','title','ip','url','other'],
 };
 const CAT_HIDE = { ja: ['rrn','ssn'] };
 // Every category, in this language's reading order (hidden ones included —
@@ -968,10 +1003,16 @@ function catOrdered(){
   if (!order) return all;
   return [...order.filter(ty=>all.includes(ty)), ...all.filter(ty=>!order.includes(ty))];
 }
-// …minus the ones this language does not offer up front.
+// …minus the ones this language does not offer up front. Two ways a type can be
+// absent, and they are different statements: CAT_HIDE says "this language does
+// not open with that row" (the detector is unchanged), `only` says "this row
+// exists for one market" (個人番号 in a Korean or Spanish list would be noise in
+// the same way SSN is noise in a Japanese one). Both are offer-side only —
+// `catOrdered` keeps every type, so a FOUND value always gets its row.
 function catOffered(){
   const hide = CAT_HIDE[LANG] || [];
-  return catOrdered().filter(ty=>!hide.includes(ty));
+  return catOrdered().filter(ty=>!hide.includes(ty)
+    && (!TYPES[ty].only || TYPES[ty].only.includes(LANG)));
 }
 /* `e.legal` = a band the Japanese legal matrix grounds in statute (番号法 /
    告知要求制限 / 住民基本台帳法). It is NOT governed by the general category
@@ -2313,7 +2354,7 @@ function jpApply(){
   jpRenderBar();
   renderAll();
 }
-const JP_TYPE = { address_loose:'address', tel:'phone', my_number:'rrn', jumin_code:'rrn', hokensha_bango:'health', kigo:'health',
+const JP_TYPE = { address_loose:'address', tel:'phone', my_number:'jp_mynumber', jumin_code:'jp_mynumber', hokensha_bango:'health', kigo:'health',
   bango:'health', edaban:'health', hihokensha_bango:'health', license_no:'license', qr:'other',
   back_all:'other', biko_change:'address', organ_donor:'health', setaiin:'name', honseki:'address',
   hittosha:'name', sex:'other', name:'name', birth:'birth', address:'address', expiry:'other', issue:'other' };
@@ -2395,6 +2436,28 @@ function jpRenderBar(){
 const maskBlockText=v=>'■'.repeat(Math.min(Math.max(Math.round(v.replace(/\s/g,'').length*0.8),3),12));
 // live value shown next to the toggle
 function displayValue(e){ return e.mode==='ok' ? e.value : maskBlockText(e.value); }
+/* ── what a hidden row is allowed to say about itself ────────────────────────
+   A band's value is covered, which is the point — so a row read
+   「■■■■■■■■■■  法令根拠により自動で黒塗り」 and nothing else. Measured on
+   jp/juminhyo/zenin_mynumber.png (2026-11-07): THREE rows, all identical, all
+   ten blocks wide. The submitter is being asked to check the output against the
+   recipient's instructions and is given no way to tell which field each row is.
+   The JP engine already knows — every finding carries `jp.field` — so the row
+   names the FIELD while the VALUE stays covered. A regex entity has a type, not
+   a form field, so it has nothing truthful to add and is left as it was.
+   A 欄/二次元コード band already carries its own label AS its value (see the
+   `add(...)` call in jpApply), so naming it again would print a masked copy of
+   the name next to the name. Those rows show the name once, unmasked — it is a
+   region, not a secret. */
+function jpRowLabel(e){ return (e.jp && e.jp.field) ? jpFieldLabel(e.jp.field) : ''; }
+function jpRowSelfLabelled(e){ return !!(e.jp && e.value === jpFieldLabel(e.jp.field)); }
+function rowValueHtml(e, extraClass){
+  const lbl = jpRowLabel(e);
+  const name = lbl ? `<span class="fld">${escapeHtml(lbl)}</span>` : '';
+  const val = (lbl && jpRowSelfLabelled(e)) ? ''
+    : `<span class="val ${extraClass||''}" title="${escapeHtml(e.value)}">${escapeHtml(displayValue(e))}</span>`;
+  return `<div class="val-line">${name}${val}</div>`;
+}
 
 /* ───────── coordinate index & box matching ───────── */
 function buildIndex(page){
@@ -3006,7 +3069,7 @@ function catRowHtml(type,items){
     </div>
     ${items.length?`<div class="cat-items">${items.map(e=>`
       <div class="pii-item${located(e)?'':' nolocate'}">
-        <span class="val mono" title="${escapeHtml(e.value)}">${escapeHtml(displayValue(e))}</span>
+        ${rowValueHtml(e,'mono')}
         ${located(e)?'':`<span class="nl">${t.notLocated}</span>`}
         <div class="seg" role="radiogroup">
           <button class="${e.mode==='ok'?'on-ok':''}" data-id="${e.id}" data-mode="ok">${t.segOk}</button>
@@ -3028,7 +3091,9 @@ function sectionHtml(kind,title,items){
     <div class="cat-items">${items.map(e=>`
       <div class="pii-item${cand?' is-cand':''}">
         <div class="val-wrap">
-          <span class="val ${cand?'':'mono'}" title="${escapeHtml(e.value)}">${escapeHtml(kind==='manual'? t.manualItem : displayValue(e))}</span>
+          ${kind==='manual'
+            ? `<div class="val-line"><span class="val mono">${escapeHtml(t.manualItem)}</span></div>`
+            : rowValueHtml(e, cand?'':'mono')}
           ${(cand||kind==='keep'||kind==='legal')?`<span class="reason">${(TYPES[e.type]||{}).icon||''} ${t.reasons[e.reason]||(e.jp?t.reasons.jp_keep:t.reasons.name)}</span>`:''}
         </div>
         <div class="seg" role="radiogroup">
