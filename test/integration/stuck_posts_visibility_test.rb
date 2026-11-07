@@ -17,7 +17,7 @@ require_relative "../support/rake_task_helper"
 class StuckPostsVisibilityTest < ActionDispatch::IntegrationTest
   include RakeTaskHelper
 
-  ADMIN_PASSWORD = ENV.fetch("ADMIN_PASSWORD", "docpack2025")
+  ADMIN_PASSWORD = ENV.fetch("ADMIN_PASSWORD")
 
   def login
     post admin_login_path, params: { password: ADMIN_PASSWORD }

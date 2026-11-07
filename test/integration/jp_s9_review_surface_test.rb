@@ -13,7 +13,7 @@ class JpS9ReviewSurfaceTest < ActionDispatch::IntegrationTest
   EP = 77
 
   def login
-    post admin_login_path, params: { password: ENV.fetch("ADMIN_PASSWORD", "docpack2025") }
+    post admin_login_path, params: { password: ENV.fetch("ADMIN_PASSWORD") }
   end
 
   def make_package(**overrides)

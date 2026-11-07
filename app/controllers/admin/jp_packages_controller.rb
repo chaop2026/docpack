@@ -128,7 +128,11 @@ module Admin
     private
 
     def require_admin_or_404
-      return if session[:admin_authenticated]
+      # Admin::BaseController#admin_session_live? — the SAME rule the redirect
+      # branch uses, including the twelve-hour expiry (S15). Reading
+      # `session[:admin_authenticated]` here instead would make this the one
+      # admin surface an expired session can still reach.
+      return if admin_session_live?
 
       # ActionController::RoutingError, so the request is handled by the same
       # 404 path as a genuinely unknown URL — identical status, identical body.

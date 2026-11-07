@@ -90,8 +90,17 @@ All styles are in `app/assets/stylesheets/application.css` using CSS custom prop
 ## Admin
 
 - Path: `/admin` (redirects to `/admin/banners`)
-- Login: `/admin/login`, password from `ENV["ADMIN_PASSWORD"]` (default: `docpack2025`)
-- Session-based auth via `Admin::BaseController`
+- Login: `/admin/login`, password from `ENV["ADMIN_PASSWORD"]` — **no default** since S15
+  (2026-11-07). An unset/blank value refuses every login; the old `docpack2025` fallback is
+  gone (it is in this PUBLIC repo's git history). Tests supply their own value from
+  `test/test_helper.rb`.
+- Session-based auth via `Admin::BaseController`. `secure_compare`, 5 logins/minute/IP (429),
+  `reset_session` on success, and a **12-hour** session measured from issue — a session with no
+  `admin_authenticated_at` counts as expired. One rule (`admin_session_live?`) for both the
+  redirect branch and `JpPackagesController#preview`'s 404 branch.
+- Password rotation: **`bin/admin-password-reset`** → `docs/ADMIN_PASSWORD_RESET.md`.
+  Never prints the value (pbcopy only), backs up `.env.production.local`, verifies the other
+  lines by SHA-256, and contains no `rm`.
 
 ## Blog System
 
