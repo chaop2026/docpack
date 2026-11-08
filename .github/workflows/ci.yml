@@ -13,7 +13,9 @@ concurrency:
 
 jobs:
   scan_ruby:
-    runs-on: ubuntu-latest
+    # 2026-11-08 ubuntu-latest=26.04 에 Ruby 미제공 → 고정.
+    # 내일앨범·hellokorean-rails 가 같은 원인으로 CI 가 깨졌다.
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
 
     steps:
@@ -30,7 +32,9 @@ jobs:
         run: bin/brakeman --no-pager
 
   scan_js:
-    runs-on: ubuntu-latest
+    # 2026-11-08 ubuntu-latest=26.04 에 Ruby 미제공 → 고정.
+    # 내일앨범·hellokorean-rails 가 같은 원인으로 CI 가 깨졌다.
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
 
     steps:
@@ -47,7 +51,9 @@ jobs:
         run: bin/importmap audit
 
   lint:
-    runs-on: ubuntu-latest
+    # 2026-11-08 ubuntu-latest=26.04 에 Ruby 미제공 → 고정.
+    # 내일앨범·hellokorean-rails 가 같은 원인으로 CI 가 깨졌다.
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Checkout code
@@ -63,7 +69,9 @@ jobs:
         run: bin/rubocop -f github
 
   test:
-    runs-on: ubuntu-latest
+    # 2026-11-08 ubuntu-latest=26.04 에 Ruby 미제공 → 고정.
+    # 내일앨범·hellokorean-rails 가 같은 원인으로 CI 가 깨졌다.
+    runs-on: ubuntu-24.04
     # 최근 성공한 test 잡 10건의 중앙값 61초(측정 2026-11-07, 최소 49s / 최대 87s)의
     # 약 2배는 2분이지만, 정책의 하한 15분을 적용한다. 번들러 캐시 미스나
     # apt-get 지연이 겹치면 2분은 정상 런도 끊는다.

@@ -13,7 +13,11 @@
 # so CI — which reads .ruby-version via ruby/setup-ruby — tested on a different
 # interpreter than production ran. Every green CI run was evidence about 3.3.9
 # and none about 3.3.0. Same 3.3 series, so this is a patch-level alignment.
-ARG RUBY_VERSION=3.3.9
+#
+# 2026-11-08: 3.3.9 -> 3.3.13, the latest 3.3-series security patch (confirmed
+# on ruby-lang.org/en/downloads/releases/). Three places move together or the
+# 2026-09-18 defect comes back: .ruby-version, this ARG, and Dockerfile.dev.
+ARG RUBY_VERSION=3.3.13
 FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
 
 # Rails app lives here
