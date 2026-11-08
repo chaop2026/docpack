@@ -1,5 +1,43 @@
 # 배포 절차서 — slimfile.net / Rails 8.1.4.1 + Ruby 3.3.13 (2026-11-08)
 
+## ✅ 2026-11-08 배포 완료 · 결과
+
+**운영 버전 = `235762dbb4b4c0c4f43b42e8afa8c99b73f38ab7`** (Rails 8.1.4.1 · Ruby 3.3.13).
+`kamal deploy` 최종 exit 0, 64.7초. **롤백하지 않았다.**
+
+| 단계 | 결과 |
+|---|---|
+| ③ pending | `db/` diff **0파일**(3aacdfc↔235762d) · `db:migrate:status` **down 0 / up 48** |
+| ④ 배포 | **3회 시도 중 3번째 성공**(아래 「실패 2회」) |
+| ⑤-1 버전 | `{rails: "8.1.4.1", ruby: "3.3.13", env: "production", defaults: 8.0}` |
+| ⑤-2 DB 4연결 | `primary=1 · queue_jobs=32 · cache_roundtrip=1 · cable_messages=0` |
+| ⑤-3 SMTP | `SENT` — `chaop2026@gmail.com` 1통(`raise_delivery_errors=true` 라 실패 시 예외) |
+| ⑤-4 업로드→다운로드 | PNG `1038x66` 업로드 → conversion **#340** → 다운로드 **200 / 1,702 B / image/jpeg**, vips 로 `1038x66` 디코드 확인 |
+| ⑤-5 에셋 | importmap **12개 전부 200** · `/up` 200 · `/safe/brand/*` 4개 200 · 주요 8경로 200 |
+
+> ⚠️ **에셋 검사에서 내 정규식이 거짓 404 를 냈다.** `/assets/[A-Za-z0-9._-]+` 가 `/` 에서 끊겨
+> `/assets/controllers` 라는 **존재하지 않는 URL** 을 만들어 404 를 보고했다. 실제 importmap
+> 항목(`/assets/controllers/upload_controller-f6e4563d.js` 등) 12개는 전부 200 이고, 페이지
+> HTML 에 맨 `/assets/controllers` 참조는 **0건**이다. 다음에는 importmap 블록에서 뽑는다.
+
+### 실패 2회 — 둘 다 운영에 닿지 않았다
+
+1. **1차: 빌드 실패.** buildx 컨테이너 안에서 `bundle install` 이 `rubygems.org` DNS 해석 실패
+   (`Socket::ResolutionError`). 같은 빌드의 apt 단계는 `#9 DONE`(캐시 아님)으로 성공했고, 직후
+   빌더 안에서 `nslookup rubygems.org` 가 정상 응답했다 → **일시적 DNS 장애**. 이미지가 만들어지지
+   않았으므로 **푸시도 부팅도 0건**.
+2. **2차: 부팅 실패.** `Missing 'secret_key_base'` — `config/master.key` 가 배포 폴더에 없었다
+   (위 🔴 정정). kamal 이 **트래픽을 넘기지 않고** 새 컨테이너를 정지, 락 해제.
+
+**두 실패 모두 운영은 `3aacdfc` 로 계속 서빙했다**(각 실패 직후 `/`·`/up`·`/compress`·`/blog`·
+`/safe/` 5경로 200 + `kamal app version` 으로 확인). **그래서 롤백이 필요하지 않았다** —
+kamal 의 헬스체크 게이트가 설계대로 동작했다.
+
+> 🔴 **운영 메모 — `kamal deploy` 의 종료코드를 직접 봐야 한다.** 배포를 백그라운드로 돌리고
+> `echo "EXIT=$?"` 를 **뒤에 이어 붙였더니**, 하네스는 그 합성 명령의 성공(0)을 보고했고
+> 1차·2차 실패가 「완료(exit 0)」로 보였다. 로그의 `KAMAL_DEPLOY_EXIT` 줄을 읽어서야 `=1` 을
+> 알았다. **래퍼의 종료코드는 kamal 의 종료코드가 아니다.**
+
 배포 대상 커밋 **`235762d`** — Ruby 3.3.13 범프 커밋(아래 「배포 대상」 표 참조).
 **실행은 사람(Justin)이 한다.** 이 문서를 쓴 세션은 운영 서버·운영 DB·kamal 명령을 하나도
 실행하지 않았다 — 모든 명령은 이 리포의 기록과 설정 파일에서만 끌어온 것이다.
@@ -77,12 +115,35 @@ git clone https://github.com/chaop2026/docpack.git docpack-deploy && cd docpack-
 
 | # | 경로 (개발 폴더 = 실체) | 추적 | 배포에 필요한가 |
 |---|---|---|---|
-| 1 | `/Users/sunghoon/Projects/docpack/.env.production.local` | gitignore | ✅ **필요.** `.kamal/secrets` 가 이 파일에서 9개 값을 읽는다 |
-| 2 | `/Users/sunghoon/Projects/docpack/.kamal/secrets` | **git 추적** | 클론에 **이미 있다** — 링크하지 않는다 |
-| 3 | `/Users/sunghoon/Projects/docpack/config/master.key` | gitignore | ❌ 불필요. `RAILS_MASTER_KEY` 는 ①번 파일에서 `.kamal/secrets` 를 통해 전달되고, 이미지 빌드는 `SECRET_KEY_BASE_DUMMY=1` 로 precompile 한다(`Dockerfile:65`) |
+| 1 | `/Users/sunghoon/Projects/docpack/.env.production.local` | gitignore | ✅ **필요.** `.kamal/secrets` 가 이 파일에서 **8개** 값을 읽는다 |
+| 2 | `/Users/sunghoon/Projects/docpack/config/master.key` | gitignore | ✅ **필요.** `RAILS_MASTER_KEY` 의 **유일한 출처**다 — 아래 🔴 참조 |
+| 3 | `/Users/sunghoon/Projects/docpack/.kamal/secrets` | **git 추적** | 클론에 **이미 있다** — 링크하지 않는다 |
 | 4 | `/Users/sunghoon/Projects/docpack/.env` | gitignore | ❌ **넣지 않는다.** 로컬 개발용 `DB_PASSWORD=postgres` 가 들어 있어 배포를 오염시킨다(CLAUDE.md 에 기록된 사고) |
 
-①번 파일이 공급하는 9개 변수 이름은 `config/deploy.yml` 에서 읽을 수 있다 —
+> 🔴 **2026-11-08 정정 — 이 표의 2번은 처음에 「❌ 불필요」였고, 그것이 배포를 한 번 실패시켰다.**
+> ~~`RAILS_MASTER_KEY` 는 `.env.production.local` 에서 `.kamal/secrets` 를 통해 전달된다~~ —
+> **거짓이었다.** 실측: `.env.production.local` 에 정의된 변수는 8개이고
+> (`ADMIN_PASSWORD`·`ANTHROPIC_API_KEY`·`DB_PASSWORD`·`GMAIL_PASSWORD`·`GMAIL_USERNAME`·
+> `INDEXNOW_KEY`·`KAMAL_REGISTRY_PASSWORD`·`X_API_DRY_RUN`) **`RAILS_MASTER_KEY` 는 그중에 없다**
+> (`grep -c "^RAILS_MASTER_KEY=" → 0`). `.kamal/secrets` 가 그 값을 **`config/master.key` 에서**
+> 가져온다. 그리고 `.dockerignore:14` 가 `/config/master.key` 를 제외하므로 **이미지에도 안 들어간다** —
+> 런타임 env 로만 들어갈 수 있다.
+>
+> **증상이 조용하다.** Kamal 의 `$(...)` 치환은 backtick+chomp 라 **파일이 없어도 에러를 올리지 않고
+> 빈 문자열을 넘긴다**(CLAUDE.md S11 에 같은 성질이 기록돼 있다). 그래서 배포는 빌드·푸시까지
+> 정상으로 진행되고 **부팅에서** 터진다:
+> `ArgumentError: Missing 'secret_key_base' for 'production' environment` → 컨테이너 unhealthy →
+> kamal 이 트래픽을 넘기지 않고 새 컨테이너를 정지. **운영은 멀쩡했지만 배포는 실패한다.**
+>
+> 왜 개발 폴더에서는 보이지 않았나 — 거기엔 `config/master.key` 가 **실제로 있다.** 배포 폴더를
+> 쓰기 시작한 이번이 처음으로 그 의존을 드러낸 것이다. `teachermatch-deploy` 가 이 파일을
+> **이미 심볼릭 링크로 갖고 있었다**(§ 아래 실측 블록의 세 번째 줄) — 그 증거가 눈앞에 있었는데
+> 「불필요」로 적었다.
+>
+> ⚠️ `POSTGRES_PASSWORD` 도 `.env.production.local` 에 없다(`.kamal/secrets` 가 파생시킨다).
+> 즉 **`env.secret` 이름을 세어 `.env.production.local` 과 맞추는 방식으로는 검증할 수 없다.**
+
+①번 파일과 ②번 파일이 함께 공급하는 이름은 `config/deploy.yml` 에서 읽을 수 있다 —
 `env.secret` 7개(`RAILS_MASTER_KEY`·`DB_PASSWORD`·`ANTHROPIC_API_KEY`·`GMAIL_USERNAME`·
 `GMAIL_PASSWORD`·`ADMIN_PASSWORD`·`INDEXNOW_KEY`) + `registry.password` 의
 `KAMAL_REGISTRY_PASSWORD` + accessory db 의 `POSTGRES_PASSWORD`.
@@ -113,11 +174,15 @@ config/master.key    -> /Users/sunghoon/Projects/teachermatch/config/master.key
 > **배포에 안 간다**」(`PAYMENT_OPEN_RUNBOOK.md:64`). 링크는 그 상태를 만들 수 없다.
 
 > **[기존 터미널]** 폴더: `/Users/sunghoon/Projects/docpack-deploy` — 로컬 Mac, 일반 터미널
-> — 비밀 파일 1개를 심볼릭 링크로 연결하고, 링크가 실제로 읽히는지 확인
+> — 비밀 파일 **2개**를 심볼릭 링크로 연결하고, 둘 다 실제로 읽히는지 확인
 
 ```
-ln -s /Users/sunghoon/Projects/docpack/.env.production.local /Users/sunghoon/Projects/docpack-deploy/.env.production.local && ls -l .env.production.local && test -r .env.production.local && echo "READABLE OK" && git status --porcelain && echo "CLEAN-IF-NOTHING-ABOVE"
+ln -s /Users/sunghoon/Projects/docpack/.env.production.local /Users/sunghoon/Projects/docpack-deploy/.env.production.local && ln -s /Users/sunghoon/Projects/docpack/config/master.key /Users/sunghoon/Projects/docpack-deploy/config/master.key && ls -l .env.production.local config/master.key && test -r .env.production.local && test -s config/master.key && echo "BOTH READABLE AND NON-EMPTY" && git status --porcelain && echo "CLEAN-IF-NOTHING-ABOVE"
 ```
+
+**멈출 조건 추가**: **`BOTH READABLE AND NON-EMPTY` 가 출력되지 않으면 배포하지 않는다.**
+`config/master.key` 가 없거나 비어 있으면 빌드·푸시는 **성공하고** 부팅에서
+`Missing 'secret_key_base'` 로 실패한다(위 🔴). `test -s` 가 그것을 **배포 전에** 잡는다.
 
 **기대 결과**: 심볼릭 링크 1줄이 보이고, `git status --porcelain` 출력이 **비어 있다**
 (`.env.production.local` 은 gitignore 되어 있음 — 실측 확인).
@@ -494,15 +559,16 @@ kamal rollback <이전버전>
 
 ---
 
-## 이 문서에서 «확인 필요» 로 남긴 것
+## «확인 필요» 의 처리 — 2026-11-08 배포로 대부분 해소됨
 
-| 위치 | 무엇 | 왜 추측으로 채우지 않았나 |
+| 위치 | 무엇 | 상태 |
 |---|---|---|
-| ⓪-a | **배포 전용 폴더 없음 — 다만 만드는 방법은 이제 구체적이다** | 전역 규칙(2026-11-03)은 전용 폴더를 요구하는데 `~/Projects/docpack-deploy` 가 **없다**(실측). **만들기 전 배포 금지.** 2026-11-08 갱신: clone 명령 · 필요한 미추적 파일 경로 목록(4개 중 ✅1·❌3) · `teachermatch-deploy` 의 심볼릭 링크 방식을 넣었으므로 **「무엇을 해야 하는지」는 더 이상 미확인이 아니다**. 남은 미확인은 「아직 실행되지 않았다」뿐이다 |
-| ③ | 멀티 DB `db:migrate:status` 출력 모양 | production 연결이 4개인데 `db/{queue,cache,cable}_migrate` 디렉터리가 **없다**. DB 별로 나뉘어 출력되는지가 리포 기록에 없다 |
-| ⑤-3 | SMTP 확인 명령 | 리포에 메일 발송 태스크가 **0건**. 명령은 기록된 설정(수신자·발신자·SMTP)만으로 **조립**한 것이라고 밝혔다 |
-| ⑤-4 | 「variant 생성」 | **해당 없음.** Active Storage variant/representation 호출이 `app/`·`lib/` 에 0건. 없는 기능의 확인 단계를 적지 않고, 실제 제품 경로로 대체했다 |
-| ① · ② | ssh 사용자 `root@5.223.92.4` | 사용자 `root` 와 프롬프트 모양은 `docs/jp/s8b_report.md` §5 ⓪ 에서, 호스트는 `config/deploy.yml:7`·`STATE.md` 에서 가져와 **두 출처를 합쳤다**. 한 곳에 같이 적힌 기록은 없다 |
+| ⓪-a | 배포 전용 폴더 | ✅ **해소.** `~/Projects/docpack-deploy` 생성·링크·배포까지 실제로 돌았다. 🔴 그 과정에서 **필요 파일 목록이 틀렸음**이 드러나 고쳤다(`config/master.key` ❌→✅) |
+| ③ | 멀티 DB `db:migrate:status` 출력 모양 | ✅ **해소(실측).** `database:` 블록이 **4개**로 나뉘어 출력되고 **네 블록 모두 `docpack_production`** 이다(같은 물리 DB). **첫 블록(primary)만 실제 마이그레이션 이름**을 보이고, 나머지 3개는 전 행이 `********** NO FILE **********` — `db/{queue,cache,cable}_migrate` 디렉터리가 없어 파일을 못 찾기 때문이다(버전은 공유 `schema_migrations` 에 있다). 합계 **up 48 = 12 × 4, down 0**. ⚠️ primary 블록의 `001` 도 `NO FILE` 인데 이는 파일 없는 레거시 버전으로 기존부터 그렇다 |
+| ⑤-3 | SMTP 확인 명령 | ✅ **해소.** 조립한 명령이 운영에서 그대로 동작했다(`SENT`). 이번에는 수신자를 **`chaop2026@gmail.com`** 으로 지정해 보냈다 — 메일러들이 하드코딩한 `chaop2@gmail.com` 과 **다른 주소**이니, 다음에 쓸 때 어느 쪽으로 보낼지 정하고 쓸 것 |
+| ⑤-4 | 「variant 생성」 | ⚠️ **여전히 해당 없음**(variant/representation 호출 0건). 다만 대체 경로를 **운영에서 실제로 통과**시켰다 — 업로드→압축→다운로드가 `image/jpeg` 1,702 B 로 끝까지 성공(conversion #340) |
+| ① · ② | ssh 사용자 `root@5.223.92.4` | ✅ **해소.** 사람이 ①·② 를 그 주소로 실제 실행해 백업과 확인 SQL 3건을 끝냈다(두 출처를 합친 추론이 맞았다) |
+| — | **남은 것** | `kamal rollback` 경로는 **이번에 실행되지 않았다**(필요가 없었다). ⑥ 의 명령 형태는 여전히 kamal 2.11.0 젬 소스를 읽은 것이고 **운영에서 실측된 적이 없다** |
 
 ## 근거 (전부 이 리포 안)
 
