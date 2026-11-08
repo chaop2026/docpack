@@ -6,13 +6,13 @@
 
 ## 지금 상태
 
-- Rails **8.1.4.1** + PostgreSQL 16, Hotwire/Propshaft/Importmap. Kamal 으로 `5.223.92.4` 에 배포,
-  `https://slimfile.net` 서비스 중. 이미지 압축 · PDF 변환 · SNS 리사이즈 3개 서비스.
-- **Rails 8.1.4.1 업그레이드 · 배포 대기 (2026-11-07).** 8.0 보안지원 종료일이 그날이었다.
-  `load_defaults` 는 **8.0 유지**(8.1 전환은 별도 작업). 테스트 565/4183 0F · brakeman 12→11
-  (EOLRails 소멸·신규 0) · Codex RED 0. **배포 절차서 = `docs/deploy/DEPLOY_2026-11-08_rails81.md`**
-  (⓪~⑥ 붙여넣기 순서 + 단계별 멈출 조건. ⓪-a 는 🔴 **배포 전용 폴더 없음 — 만들기 전 배포
-  금지**, ② 는 마이그레이션 거부 판단의 유일한 미검증 전제인 운영 스키마 SQL 3건).
+- Rails **8.1.4.1** · Ruby **3.3.13** + PostgreSQL 16, Hotwire/Propshaft/Importmap. Kamal 으로
+  `5.223.92.4` 에 배포, `https://slimfile.net` 서비스 중. 압축·PDF·SNS 3개 서비스.
+- **Rails 8.1.4.1 + Ruby 3.3.13 · 배포 대기 (2026-11-07~08).** 둘 다 보안 패치(Rails 8.0 지원
+  종료 11-07 / Ruby 3.3 계열 최신). `load_defaults` 는 **8.0 유지**(별도 작업). 테스트 565/4183
+  0F · brakeman 11 (신규 0) · Codex RED 0 · amd64 프로덕션 이미지 로컬 빌드 확인(네이티브 확장
+  + PNG/JPEG/**HEIC**). **배포 절차서 = `docs/deploy/DEPLOY_2026-11-08_rails81.md`**
+  (⓪~⑥ + 멈출 조건 + 부록 A. ⓪-a 는 🔴 **배포 전용 폴더 없음 — 만들기 전 배포 금지**).
 - **배포 파이프라인 복구 완료 (2026-08-25).** 이제 `kamal deploy` 만 치면 된다.
   자세한 내용은 CLAUDE.md "Deploy note" / "Kamal secrets parser trap" 절.
 - **드래그앤드롭 + 업로드 목록 완료 (`6b42ec8` 외, 2026-08-25, 배포됨).**
@@ -53,11 +53,11 @@
 - **젬 업그레이드 (2026-09-18).** Rails 부분은 위 8.1.4.1 항목이 대체했다. 아직 유효한 것:
   보류 3건(image_processing 2.x · puma 8 · kamal 2.12, 각각 **별도 배포**) · 판단 기준
   DECISIONS.md 2026-09-18 · `middleware_probe.sh` 의 임시 이니셜라이저가 남으면 Static 이
-  프로덕션 스택에서 사라진다(a-3, **배포 전 처리 권장**. 그 스크립트는 `rm` 을 품고 있어
-  2026-11-07 세션은 측정을 손으로 재현했다 — 3개 구성 전부 8.0.5.1 때와 동일).
-  ⚠️ **CI 의 `lint`(rubocop 86)·`scan_ruby`(brakeman exit 3)는 이 작업 전부터 빨갛다**
-  (2026-11-07 재측정도 86 / 11경고 동일 — Rails 업그레이드가 바꾼 것은 EOLRails 1건뿐).
-- 블로그 자동화(주제 100 → Claude API → MWF 09:00 KST + Gmail)는 2026-04 이후 미재검증(아래 5번).
+  프로덕션 스택에서 사라진다(a-3, **배포 전 처리 권장**. 그 스크립트는 영구 삭제 명령을 품고
+  있어 11-07 세션이 측정을 손으로 재현했다 — 3개 구성 전부 8.0.5.1 때와 동일).
+  ⚠️ **CI 의 `lint`(rubocop 86)·`scan_ruby`는 이 작업 전부터 빨갛다**(11-08 재측정 86/11 동일).
+  `scan_ruby` 는 이제 **exit 5** — `bin/brakeman` 의 `--ensure-latest` + 8.1.0 공개(lock 8.0.6).
+  스캔 내용이 아니라 버전 비교 실패다. 젬을 올릴지는 사람 결정.
 
 ## 다음 할 일
 
