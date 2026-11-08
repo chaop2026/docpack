@@ -1,18 +1,41 @@
-# 배포 절차서 — slimfile.net / Rails 8.1.4.1 (2026-11-08)
+# 배포 절차서 — slimfile.net / Rails 8.1.4.1 + Ruby 3.3.13 (2026-11-08)
 
-배포 대상 커밋 **`9da567f`** (`chore: upgrade Rails to 8.1.x security patch (8.0 EOL 2026-11-07)`).
+배포 대상 커밋 **`235762d`** — Ruby 3.3.13 범프 커밋(아래 「배포 대상」 표 참조).
 **실행은 사람(Justin)이 한다.** 이 문서를 쓴 세션은 운영 서버·운영 DB·kamal 명령을 하나도
 실행하지 않았다 — 모든 명령은 이 리포의 기록과 설정 파일에서만 끌어온 것이다.
 
 위에서부터 순서대로 붙여넣는다. 각 단계의 **멈출 조건**을 넘기지 않는다.
+
+## 배포 대상 — 두 커밋이 함께 나간다
+
+| 커밋 | 내용 |
+|---|---|
+| `9da567f` | `chore: upgrade Rails to 8.1.x security patch (8.0 EOL 2026-11-07)` |
+| `235762d` | `chore: bump Ruby to 3.3.x latest security patch; pin CI runner` |
+
+배포하는 것은 **`main` 의 최신 커밋 하나**(= 둘을 모두 포함한 트리)다. ④ 에서 그 SHA 로
+detach 한다.
 
 ## 이 배포가 바꾸는 것 (왜 이 확인들이 필요한가)
 
 | 변경 | 그래서 확인하는 것 |
 |---|---|
 | Rails 8.0.5.1 → 8.1.4.1 (전체 프레임워크 교체) | ⑤-1 버전 · ⑤-2 DB 연결 · ⑤-3 SMTP · ⑤-5 에셋 |
+| **Ruby 3.3.9 → 3.3.13** (3.3 계열 최신 보안 패치) | ⑤-1 버전 · ⑤-4 이미지 변환(네이티브 확장) |
 | `app:update` 가 만든 Active Storage 마이그레이션 3건을 **커밋하지 않기로** 했다 | **② 읽기 전용 SQL 3건** — 그 판단의 유일한 미검증 전제가 「프로덕션 스키마가 dev 와 같다」다 |
 | 컨테이너 부팅 시 `db:prepare` 가 **자동 실행**된다 | **③ pending 0** — 모르는 마이그레이션이 있으면 배포가 그것을 **자동으로 적용**한다 |
+
+### Ruby 3.3.13 — 배포 전에 로컬에서 이미 확인한 것
+
+Ruby 범프는 **베이스 이미지가 바뀌는 변경**이라 모든 네이티브 확장(nokogiri·pg·ruby-vips)이
+다시 컴파일된다. 그래서 운영에 올리기 전에 **프로덕션 Dockerfile 로 실제 이미지를 빌드해**
+확인했다(`builder: arch: amd64` 와 같은 `linux/amd64`). 결과는 이 문서 맨 아래
+「부록 A — 로컬 이미지 검증 결과」에 적었다. ⑤-4 에서 사람이 보는 것은 **그 확인이
+운영에서도 같은지**다.
+
+세 곳이 함께 움직였다(어긋나면 2026-09-18 의 「CI 가 프로덕션과 다른 인터프리터를 시험」
+결함이 재발한다): `.ruby-version` · `Dockerfile` 의 `ARG RUBY_VERSION` · `Dockerfile.dev`.
+CI 워크플로는 `ruby-version: .ruby-version` 으로 **파일을 읽으므로** 하드코딩된 버전이 없다.
 
 > 🔴 **`db:prepare` 는 배포하면 저절로 돈다.** `Dockerfile` 의
 > `CMD ["./bin/thrust", "./bin/rails", "server"]` 가 `bin/docker-entrypoint` 의
@@ -47,15 +70,53 @@ cd /Users/sunghoon/Projects
 git clone https://github.com/chaop2026/docpack.git docpack-deploy && cd docpack-deploy && git log --oneline -1
 ```
 
-비밀값은 **개발 폴더 것을 심볼릭 링크로** 쓴다(복사·출력 금지). `.kamal/secrets` 는 git 에
-추적되므로 클론에 이미 있고, 그 파일이 읽는 것은 `.env.production.local` **하나**다
-(실측: `.kamal/secrets` 안의 `.env` 참조는 `.env.production.local` 뿐).
+#### 배포에 필요한 미추적 파일 — **경로 목록**
 
-> **[기존 터미널]** 폴더: `/Users/sunghoon/Projects/docpack-deploy` — 로컬 Mac, 일반 터미널
-> — 비밀 파일 링크
+클론에는 git 이 추적하는 것만 들어온다. 아래가 **추가로 필요한 파일 전부**다.
+**이름만 적었고 내용은 열지 않았다.**
+
+| # | 경로 (개발 폴더 = 실체) | 추적 | 배포에 필요한가 |
+|---|---|---|---|
+| 1 | `/Users/sunghoon/Projects/docpack/.env.production.local` | gitignore | ✅ **필요.** `.kamal/secrets` 가 이 파일에서 9개 값을 읽는다 |
+| 2 | `/Users/sunghoon/Projects/docpack/.kamal/secrets` | **git 추적** | 클론에 **이미 있다** — 링크하지 않는다 |
+| 3 | `/Users/sunghoon/Projects/docpack/config/master.key` | gitignore | ❌ 불필요. `RAILS_MASTER_KEY` 는 ①번 파일에서 `.kamal/secrets` 를 통해 전달되고, 이미지 빌드는 `SECRET_KEY_BASE_DUMMY=1` 로 precompile 한다(`Dockerfile:65`) |
+| 4 | `/Users/sunghoon/Projects/docpack/.env` | gitignore | ❌ **넣지 않는다.** 로컬 개발용 `DB_PASSWORD=postgres` 가 들어 있어 배포를 오염시킨다(CLAUDE.md 에 기록된 사고) |
+
+①번 파일이 공급하는 9개 변수 이름은 `config/deploy.yml` 에서 읽을 수 있다 —
+`env.secret` 7개(`RAILS_MASTER_KEY`·`DB_PASSWORD`·`ANTHROPIC_API_KEY`·`GMAIL_USERNAME`·
+`GMAIL_PASSWORD`·`ADMIN_PASSWORD`·`INDEXNOW_KEY`) + `registry.password` 의
+`KAMAL_REGISTRY_PASSWORD` + accessory db 의 `POSTGRES_PASSWORD`.
+**값은 어디에도 출력하지 않는다.**
+
+#### 연결 방법 — `cp` 가 아니라 **심볼릭 링크**
+
+`teachermatch-deploy` 가 쓰는 방식을 따른다.
+
+> **[읽기만]** 아래는 **붙여넣는 명령이 아니다** — `teachermatch-deploy` 에서 `ls -l` 로
+> 실측한 결과를 그대로 옮긴 것이다(2026-11-03 생성). docpack 에 실제로 실행할 명령은
+> 이 절 다음의 `ln -s` 한 줄 하나뿐이다. teachermatch 폴더는 읽기만 했다.
 
 ```
-ln -s /Users/sunghoon/Projects/docpack/.env.production.local /Users/sunghoon/Projects/docpack-deploy/.env.production.local && ls -l .env.production.local && git status --porcelain && echo "CLEAN-IF-EMPTY-ABOVE"
+.env                 -> /Users/sunghoon/Projects/teachermatch/.env
+.kamal/secrets.seoul -> /Users/sunghoon/Projects/teachermatch/.kamal/secrets.seoul
+config/master.key    -> /Users/sunghoon/Projects/teachermatch/config/master.key
+```
+
+(docpack 은 세 개가 아니라 **하나**다 — 위 표의 이유로 `.env.production.local` 뿐이다.)
+
+`docs/PAYMENT_OPEN_RUNBOOK.md` 가 그 이유를 적고 있다 — 개발 폴더가 **실체 파일**이고
+배포 폴더는 **심볼릭 링크**라서 「배포가 같은 값을 읽는다」. 전역 규칙도 같다(「복사·출력 금지」).
+
+> 🔴 **`cp` 를 쓰지 않는 이유.** 복사하면 값이 두 벌이 되고, 비밀값을 교체했을 때
+> **개발 폴더만 바뀌고 배포 폴더는 옛 값으로 배포된다.** teachermatch 에는 그 실패의
+> 선례가 기록돼 있다 — `teachermatch-payclose` 가 별개 사본을 들고 있어서 「여기서 넣으면
+> **배포에 안 간다**」(`PAYMENT_OPEN_RUNBOOK.md:64`). 링크는 그 상태를 만들 수 없다.
+
+> **[기존 터미널]** 폴더: `/Users/sunghoon/Projects/docpack-deploy` — 로컬 Mac, 일반 터미널
+> — 비밀 파일 1개를 심볼릭 링크로 연결하고, 링크가 실제로 읽히는지 확인
+
+```
+ln -s /Users/sunghoon/Projects/docpack/.env.production.local /Users/sunghoon/Projects/docpack-deploy/.env.production.local && ls -l .env.production.local && test -r .env.production.local && echo "READABLE OK" && git status --porcelain && echo "CLEAN-IF-NOTHING-ABOVE"
 ```
 
 **기대 결과**: 심볼릭 링크 1줄이 보이고, `git status --porcelain` 출력이 **비어 있다**
@@ -64,7 +125,8 @@ ln -s /Users/sunghoon/Projects/docpack/.env.production.local /Users/sunghoon/Pro
 **멈출 조건 (굵게)**:
 - **`git status --porcelain` 에 `.env.production.local` 이 나타나면 멈춘다** — gitignore 가
   깨진 것이고, 그대로 두면 비밀 파일이 공개 저장소에 커밋될 수 있다.
-- **클론한 `git log` 가 `9da567f` 를 포함하지 않으면 멈춘다**(push 가 안 됐다는 뜻).
+- **클론한 `git log` 가 `235762d` 를 포함하지 않으면 멈춘다**(push 가 안 됐다는 뜻).
+  `235762d` 가 Ruby 3.3.13 커밋이고, 그 조상으로 `9da567f`(Rails 8.1.4.1)가 들어 있다.
 
 ### ⓪-b 롤백 대상 버전을 **먼저** 적어 둔다
 
@@ -210,11 +272,19 @@ kamal app exec --reuse 'bin/rails db:migrate:status' 2>&1 | grep -E "^ *(up|down
 > 실패해도 배포가 돈다 — 전역 규칙)
 
 ```
-git fetch origin && git checkout --detach 9da567f && git status --porcelain && git log --oneline -1
+git fetch origin && git checkout --detach 235762d && git status --porcelain && git log --oneline -1 && cat .ruby-version && grep ARG\ RUBY_VERSION Dockerfile
 ```
 
-**기대 결과**: `HEAD detached at 9da567f`, `git status --porcelain` 출력 **비어 있음**,
-로그 1줄이 `9da567f chore: upgrade Rails to 8.1.x security patch (8.0 EOL 2026-11-07)`.
+**기대 결과**: `HEAD detached at 235762d`, `git status --porcelain` 출력 **비어 있음**,
+로그 1줄이 `235762d chore: bump Ruby to 3.3.x latest security patch; pin CI runner`,
+그리고 **`3.3.13`** 과 **`ARG RUBY_VERSION=3.3.13`**.
+
+> ℹ️ **왜 `main` 최신이 아니라 `235762d` 인가.** `235762d` 는 **배포되는 코드를 바꾼 마지막
+> 커밋**이다. 그 뒤에 오는 커밋(이 절차서 갱신)은 `docs/` 만 건드리므로 어느 쪽으로 detach
+> 해도 **같은 이미지**가 나온다. 움직이는 참조(`origin/main`)보다 고정 SHA 가 낫다 —
+> 내일 누가 코드를 푸시해도 이 절차서가 가리키는 것이 바뀌지 않는다.
+> 마지막 두 명령이 **그 트리가 정말 Ruby 3.3.13 인지**를 detach 직후에 보여준다(⑤-1 에서
+> 「3.3.9 가 나오면 멈춘다」고 한 상태를 배포 **전에** 걸러낸다).
 
 **멈출 조건**: **`git status --porcelain` 에 한 줄이라도 나오면 멈춘다** — 배포 폴더에
 미커밋 변경이 있다는 뜻이고, 배포 폴더는 코드 수정을 하지 않는 곳이다.
@@ -254,8 +324,12 @@ kamal deploy
 kamal app exec --reuse 'bin/rails runner "puts({rails: Rails.version, ruby: RUBY_VERSION, env: Rails.env, defaults: Rails.application.config.loaded_config_version}.inspect)"'
 ```
 
-**기대 결과**: `rails: "8.1.4.1"`, `ruby: "3.3.9"`, `env: "production"`, `defaults: 8.0`
+**기대 결과**: `rails: "8.1.4.1"`, **`ruby: "3.3.13"`**, `env: "production"`, `defaults: 8.0`
 (`load_defaults` 는 **의도적으로 8.0 유지** — 8.1 전환은 별도 작업이다).
+
+**멈출 조건 추가**: **`ruby` 가 `3.3.9` 로 나오면 멈춘다** — 이미지가 새 베이스로 다시
+빌드되지 않았다는 뜻이다. Ruby 범프는 `ARG RUBY_VERSION` 이 바뀌어 **베이스 레이어부터**
+다시 받아야 하므로, 캐시가 잘못 맞으면 코드만 새것이고 인터프리터는 옛것일 수 있다.
 
 > ℹ️ 이 네 호출은 dev 컨테이너에서 **실제로 실행해 동작을 확인**했다. 처음에는
 > `config.load_defaults_version` 으로 썼는데 **그런 메서드가 없어** `NoMethodError` 가 났다 —
@@ -320,18 +394,32 @@ kamal app exec --reuse 'bin/rails runner "ActionMailer::Base.mail(to: %q{chaop2@
 > 마이그레이션 판단에서 실제로 걸려 있던 것이다).
 
 대신 **제품의 실제 경로**를 사람이 브라우저로 1회 확인한다.
+**Ruby 범프 때문에 이번에는 이 단계가 특히 중요하다** — `ruby-vips`·`pg`·`nokogiri` 가
+새 인터프리터에서 다시 컴파일된 채로 운영에 올라간다.
 
 > **[읽기만]** 브라우저 (시크릿 창 권장) — 로컬 Mac
 
-1. `https://slimfile.net/compress` 열기 → 이미지 1장 업로드 → 압축 실행
-2. 결과 페이지에서 **다운로드** 버튼으로 파일 받기 → 받은 파일이 열리는지 확인
-3. `https://slimfile.net/pdf` 와 `https://slimfile.net/social` 도 각 1회
+1. `https://slimfile.net/compress` 열기 → **PNG 1장** 업로드 → 압축 → 다운로드
+2. 같은 화면에서 **JPEG 1장** → 압축 → 다운로드
+3. 같은 화면에서 **HEIC 1장**(아이폰 사진 원본) → 압축 → 다운로드
+4. `https://slimfile.net/pdf` 와 `https://slimfile.net/social` 도 각 1회
 
-**기대 결과**: 세 서비스 모두 업로드 → 처리 → 다운로드가 끝까지 되고, 받은 파일이 깨지지 않는다.
+**기대 결과**: 네 경우 모두 업로드 → 처리 → 다운로드가 끝까지 되고, 받은 파일이 열린다.
 
-**멈출 조건 (굵게)**: **업로드가 500 으로 죽거나 다운로드 파일이 0 바이트면 멈춘다.**
-이 경로는 `ImageProcessing::Vips`(1.14.0, 이번에 **올리지 않은** 젬)와 Active Storage
-(8.1.4.1, **올린** 쪽)가 만나는 자리라 이번 업그레이드에서 가장 먼저 봐야 하는 곳이다.
+> ℹ️ **HEIC 가 목록에 있는 이유.** `app/controllers/conversions_controller.rb:4` 의
+> `ALLOWED_TYPES` 에 `image/heic` 가 들어 있어 **서버가 HEIC 를 받아
+> `ImageProcessing::Vips` 로 넘긴다.** 그 처리는 Debian `libvips` 의 HEIF 지원에 달려
+> 있고(`Dockerfile:28` 이 `libvips` 를 설치한다), 그래서 Ruby/베이스 이미지가 바뀔 때
+> **조용히 사라질 수 있는** 기능이다. 로컬 이미지에서 먼저 확인했다(부록 A).
+> `/safe/` 의 HEIC 변환은 이것과 별개다 — 그쪽은 브라우저에서 `heic2any` 가 한다.
+
+**멈출 조건 (굵게)**:
+- **업로드가 500 으로 죽거나 다운로드 파일이 0 바이트면 멈춘다.** 이 경로는
+  `ImageProcessing::Vips`(1.14.0, 이번에 **올리지 않은** 젬)와 Rails 8.1.4.1 + Ruby 3.3.13
+  (**올린** 쪽)이 만나는 자리다.
+- **HEIC 만 실패하면 그것도 멈출 조건이다.** 「나머지가 되니까 괜찮다」가 아니라, 베이스
+  이미지의 `libvips` 가 HEIF 없이 빌드됐다는 신호다 — 받아 주겠다고 선언한 입력
+  (`ALLOWED_TYPES`)을 500 으로 떨어뜨리는 상태가 된다.
 
 ### ⑤-5 에셋이 정상인가
 
@@ -410,7 +498,7 @@ kamal rollback <이전버전>
 
 | 위치 | 무엇 | 왜 추측으로 채우지 않았나 |
 |---|---|---|
-| ⓪-a | **배포 전용 폴더 없음** | 전역 규칙(2026-11-03)은 전용 폴더를 요구하는데 `~/Projects/docpack-deploy` 가 **없다**. 과거 기록은 개발 폴더에서 배포했으나 그 기록이 규칙보다 앞선다. **만들기 전 배포 금지** |
+| ⓪-a | **배포 전용 폴더 없음 — 다만 만드는 방법은 이제 구체적이다** | 전역 규칙(2026-11-03)은 전용 폴더를 요구하는데 `~/Projects/docpack-deploy` 가 **없다**(실측). **만들기 전 배포 금지.** 2026-11-08 갱신: clone 명령 · 필요한 미추적 파일 경로 목록(4개 중 ✅1·❌3) · `teachermatch-deploy` 의 심볼릭 링크 방식을 넣었으므로 **「무엇을 해야 하는지」는 더 이상 미확인이 아니다**. 남은 미확인은 「아직 실행되지 않았다」뿐이다 |
 | ③ | 멀티 DB `db:migrate:status` 출력 모양 | production 연결이 4개인데 `db/{queue,cache,cable}_migrate` 디렉터리가 **없다**. DB 별로 나뉘어 출력되는지가 리포 기록에 없다 |
 | ⑤-3 | SMTP 확인 명령 | 리포에 메일 발송 태스크가 **0건**. 명령은 기록된 설정(수신자·발신자·SMTP)만으로 **조립**한 것이라고 밝혔다 |
 | ⑤-4 | 「variant 생성」 | **해당 없음.** Active Storage variant/representation 호출이 `app/`·`lib/` 에 0건. 없는 기능의 확인 단계를 적지 않고, 실제 제품 경로로 대체했다 |
@@ -426,3 +514,56 @@ Rails 8.1 업그레이드 절) · `docs/jp/s8b_report.md` §5(백업·`kamal app
 `docs/jp/s10_report.md`(실제 백업 파일명 선례) ·
 `docs/review/CROSS_REVIEW_TRIAGE_2026-11-07_rails81.md` §2(확인 SQL 3건) ·
 kamal 2.11.0 젬 소스 `lib/kamal/cli/main.rb`·`cli/app.rb`(rollback 인자·app 서브커맨드).
+
+2026-11-08 추가분: `.ruby-version`·`Dockerfile:10-21`·`Dockerfile.dev:1-4`(세 곳이 함께
+움직여야 하는 이유를 파일 자신이 적고 있다) · `Dockerfile:28`(`libvips` 설치) ·
+`app/controllers/conversions_controller.rb:4`(`ALLOWED_TYPES` 에 `image/heic`) ·
+`app/services/image_compressor.rb:30-76`(부록 A 가 재현한 파이프라인) ·
+`.github/workflows/ci.yml`(러너 고정) · ruby-lang.org 릴리스 목록(3.3 계열 최신 = 3.3.13).
+리포 **밖**이지만 전역 규칙이 참조하라고 한 것: `~/Projects/teachermatch-deploy`
+(심볼릭 링크 실측, 읽기만) · `~/Projects/teachermatch/docs/PAYMENT_OPEN_RUNBOOK.md:62-64`
+(개발 폴더=실체 / 배포 폴더=링크 / 별개 사본은 「배포에 안 간다」).
+
+---
+
+## 부록 A — 로컬 이미지 검증 결과 (2026-11-08, 배포 전)
+
+**운영에 올리기 전에 프로덕션 `Dockerfile` 로 실제 이미지를 빌드해 확인했다.**
+`config/deploy.yml` 의 `builder: arch: amd64` 와 **같은 플랫폼**(`--platform linux/amd64`)으로
+빌드했다 — 이 맥은 arm64 이므로 네이티브 아키텍처로만 빌드하면 「운영에서 쓰는 바이너리」에
+대한 증거가 되지 않는다. **푸시하지 않았고 이미지도 지우지 않았다**
+(태그 `docpack-local-verify:ruby3313`).
+
+| 항목 | 결과 |
+|---|---|
+| 이미지 | `amd64/linux`, 309,598,647 B, `BUILD EXIT=0` |
+| 컨테이너 안 버전 | `bin/rails runner` → **`3.3.13 8.1.4.1`** (`SECRET_KEY_BASE_DUMMY=1`) |
+| ruby | 3.3.13 (**`x86_64-linux`** — amd64 바이너리임을 플랫폼 문자열로 확인) |
+| nokogiri | 1.19.7 · libxml2 2.13.9 |
+| pg | 1.6.3 · libpq 180001 |
+| ruby-vips | 2.3.0 · **libvips 8.16.1** |
+| libvips HEIF | **`.heic,.heif`** — Debian `libvips` 가 libheif 포함으로 빌드돼 있다 |
+| 이미지 변환 3종 | **전부 OK** (아래) |
+
+`app/services/image_compressor.rb#compress` 와 `resize_to_limit` 경로를 그대로 재현해
+각 포맷을 두 번(평면 convert + 1/2 리사이즈) 통과시키고, **출력 JPEG 를 다시 vips 로 열어**
+읽히는지까지 확인했다(「0바이트가 아니다」로는 부족하다):
+
+| 입력 | 결과 | convert | resize |
+|---|---|---|---|
+| PNG `1038x66` 3,621 B | **OK** | 3,217 B | 1,202 B → `519x33` |
+| JPEG `1038x66` 5,908 B | **OK** | 3,151 B | 1,203 B → `519x33` |
+| **HEIC** `1038x66` 2,522 B | **OK** | 3,184 B | 1,175 B → `519x33` |
+
+HEIC 입력이 `1038x66` 로 **올바르게 디코드됐다**는 점이 중요하다 — 파일을 받기만 하고
+헤더를 못 읽으면 치수가 0 이거나 예외가 난다. 더미는 `sips -s format heic` 로 만든
+실제 HEVC/HEIF 파일이다(`file` 확인: `ISO Media, HEIF Image HEVC Main or Main Still
+Picture Profile`). 저장소에 HEIC 픽스처가 없어 새로 만들었고 **커밋하지 않았다**.
+
+같은 검증을 dev 컨테이너(arm64, `ruby:3.3.13-slim`)에서도 돌려 **동일한 결과**를 얻었다 —
+즉 이 결과는 아키텍처에 의존하지 않는다.
+
+> ⚠️ **이 부록이 증명하지 않는 것.** 이미지가 **부팅해서 요청을 처리하는 것**은 확인하지
+> 않았다(DB·시크릿이 필요하고, 그건 운영에서만 성립한다). 그래서 ⑤ 가 여전히 필요하다.
+> 또 `/compress` 의 **HTTP 경로**(업로드 → Active Storage → 서비스 → 다운로드)는 ⑤-4 에서
+> 사람이 본다 — 부록 A 가 확인한 것은 그 경로의 **가장 안쪽 한 겹**(vips 변환)이다.
