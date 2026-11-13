@@ -69,6 +69,12 @@ group :development, :test do
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
   gem "brakeman", require: false
 
+  # Gemfile.lock 을 ruby-advisory-db 에 대조한다. brakeman 과 겹치지 않는다
+  # (brakeman 은 앱 코드, 이쪽은 의존성). Dependabot 과도 겹치지 않는다 —
+  # 2026-11-13 실측: Dependabot 이 못 본 5 gem(High 3: addressable·net-ssh·puma)을
+  # 이쪽이 찾았다. ci-policy 9항.
+  gem "bundler-audit", require: false
+
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
 end

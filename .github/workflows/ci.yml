@@ -31,6 +31,13 @@ jobs:
       - name: Scan for common Rails security vulnerabilities using static analysis
         run: bin/brakeman --no-pager
 
+      # Dependabot 초록은 「취약점 없음」이 아니다. 2026-11-13 실측: 이 리포에서
+      # Dependabot 밖의 5 gem(High 3 — addressable·net-ssh·puma)을 bundle-audit 가 찾았다.
+      # brakeman 은 앱 코드를, 이쪽은 Gemfile.lock 을 본다 — 서로를 대체하지 못한다.
+      # `|| true` 를 붙이지 않는다. 취약점이 있으면 빨갛게 멈춰야 한다. (ci-policy 9항)
+      - name: Scan for vulnerable gems (advisory DB)
+        run: bundle exec bundle-audit check --update
+
   scan_js:
     # 2026-11-08 ubuntu-latest=26.04 에 Ruby 미제공 → 고정.
     # 내일앨범·hellokorean-rails 가 같은 원인으로 CI 가 깨졌다.
