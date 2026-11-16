@@ -8,17 +8,12 @@
 
 - Rails **8.1.4.1** · Ruby **3.3.13** + PostgreSQL 16, Hotwire/Propshaft/Importmap. Kamal 으로
   `5.223.92.4` 에 배포, `https://slimfile.net` 서비스 중. 압축·PDF·SNS 3개 서비스.
-- ✅ **Rails 8.1.4.1 + Ruby 3.3.13 배포 완료 (2026-11-08).** 운영 = `235762d`. 둘 다 보안 패치
-  (Rails 8.0 지원 종료 11-07 / Ruby 3.3 계열 최신). `load_defaults` 는 **8.0 유지**(별도 작업).
-  배포 후 확인 전부 통과 — 버전·DB 4연결·SMTP 1통·업로드→다운로드(#340, image/jpeg)·에셋 12개.
-  **결과와 실패 2회 기록은 `docs/deploy/DEPLOY_2026-11-08_rails81.md` 머리의 「배포 완료 · 결과」.**
-  🔴 그 과정에서 절차서의 **필요 파일 목록이 틀렸음**이 드러났다 — `config/master.key` 는
-  `RAILS_MASTER_KEY` 의 **유일한 출처**이고(`.env.production.local` 에 그 이름이 없다) 배포
-  폴더에 링크하지 않으면 **빌드·푸시는 성공하고 부팅에서** `Missing secret_key_base` 로 죽는다.
-  배포 전용 폴더 `~/Projects/docpack-deploy` 는 이제 **두 비밀 파일을 링크로** 갖고 있다.
-- **배포 파이프라인 복구 완료 (2026-08-25).** 이제 `kamal deploy` 만 치면 된다.
-  자세한 내용은 CLAUDE.md "Deploy note" / "Kamal secrets parser trap" 절.
-- **드래그앤드롭 + 업로드 목록 완료 (`6b42ec8` 외, 2026-08-25, 배포됨).**
+- ✅ **Rails 8.1.4.1 + Ruby 3.3.13 배포 완료 (2026-11-08).** 운영 = `235762d`.
+  `load_defaults` 는 **8.0 유지**(별도 작업). 기록: `docs/deploy/DEPLOY_2026-11-08_rails81.md`.
+  🔴 배포 전용 폴더는 **`config/master.key` 와 `.env.production.local` 둘 다** 링크로 가져야
+  한다 — master.key 가 `RAILS_MASTER_KEY` 의 유일한 출처라, 빠지면 **빌드는 성공하고 부팅에서**
+  `Missing secret_key_base` 로 죽는다. `~/Projects/docpack-deploy` 는 이제 둘 다 갖고 있다.
+- `kamal deploy` 만 치면 된다(2026-08-25 복구). CLAUDE.md "Deploy note" / "Kamal secrets parser trap".
   **다크모드는 이 앱에 없다** — `prefers-color-scheme` 가 `app/`·`public/` 어디에도 없다.
 - SafeFile(`public/safe/index.html`) v2 좌표 기반 마스킹. 최근 작업은 상단바 로고/네비 정리와
   서비스워커 stale-shell 고정, 포맷별 "PDF로 저장" 경로 추가.
