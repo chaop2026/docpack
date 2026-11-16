@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>SafeFile JP thumbnail — 理由 (warning)</title>
+<!--
+  intent = 理由 — the WARNING frame. Red accent.
+
+  "Why does this keep happening?" This frame's job is to make the reader
+  recognise a failure they have already had, so the loud element is the LEAK:
+  the black bar is there, and the number is still readable when copied. That
+  one line is the whole argument of every 理由 episode.
+
+  Rendered by scripts/content/make_thumbnail.mjs at 1080×1920 (Shorts cover)
+  and 1280×720 (long-form) from the SAME file. Nothing here runs in production.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=IBM+Plex+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<style>
+.warnbar{display:inline-flex;align-items:center;gap:.5em;color:#fff;background:var(--alarm);
+  font-weight:700;border-radius:999px;align-self:flex-start;white-space:nowrap}
+#card.short .warnbar{font-size:40px;padding:16px 34px;margin:44px 0 32px}
+#card.long  .warnbar{font-size:26px;padding:10px 24px;margin:26px 0 20px}
+
+/* The leak. Monospace on purpose — it is what a copy-paste produces. */
+.leak{border-top:4px dashed var(--line);color:var(--alarm);font-weight:700;
+  font-family:'IBM Plex Sans',monospace}
+#card.short .leak{margin-top:30px;padding-top:26px;font-size:40px;line-height:1.4}
+#card.long  .leak{margin-top:18px;padding-top:16px;font-size:26px;line-height:1.4}
+.mid{display:flex;flex-direction:column;flex:0 0 auto}
+</style>
+</head>
+<body>
+<div id="card"></div>
+<script src="thumb.js"></script>
+<script>
+window.SF_THUMB_READY = false;
+
+/*
+ * spec: { size, badge, headline:[l1,l2], accent, doc:{title,rows}, note,
+ *         tag, leak }
+ *
+ * `leak` is the copied-text line. When it is absent the frame still works —
+ * the focus outline carries the point — so this does not refuse to render.
+ */
+window.SF_THUMB = function (spec) {
+  var esc = window.SF_ESC;
+  var mid = '<div class="mid">'
+    + (spec.tag ? '<div class="warnbar">' + esc(spec.tag) + '</div>' : '')
+    + window.SF_HEAD(spec.headline, spec.accent, spec.redLine)
+    + window.SF_DOC(spec.doc)
+    + (spec.leak ? '<div class="leak">' + esc(spec.leak) + '</div>' : '')
+    + '</div>';
+  return window.SF_THUMB_RENDER(spec, mid);
+};
+</script>
+</body>
+</html>

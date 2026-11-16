@@ -42,9 +42,21 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import http from 'node:http';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+
+/* Shared with make_short.mjs and make_longform.mjs (2026-11-16).
+ *
+ * These were local definitions here until the Shorts cut got its own entry
+ * point. Two recorders that start identical drift, and the drift is invisible
+ * because each keeps passing its own expectations — the same reasoning that
+ * put the writing rules in content/jp/guard_rules.json instead of in this
+ * file. lib/shorts.mjs IS the Shorts cut; this script calls it. */
+import {
+  FIXTURE_FOR_DOC, loadTopic, parseFrontmatter, slugFor, viaUrl as buildViaUrl
+} from './lib/episode.mjs';
+import { ensureMaskable, loadPlaywright, pngSize, run, startServer } from './lib/capture.mjs';
+import { buildShorts } from './lib/shorts.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(__dirname, '..', '..');
@@ -55,42 +67,6 @@ const TEMPLATE = path.join(__dirname, 'templates', 'carousel.html');
 const GUIDE_TEMPLATE = path.join(__dirname, 'templates', 'guide.html');
 const SHORTS_TEMPLATE = path.join(__dirname, 'templates', 'shorts_card.html');
 
-const BASE_URL = 'https://slimfile.net';
-const LANDING_PATH = { nyusatsu: '/safe/jp/nyusatsu/', honnin: '/safe/jp/honnin-kakunin/', aimae: '/safe/jp/ai-mae/' };
-
-/* Which dummy document stands in for each `doc` in topics.json.
- *
- * Two families, and the difference matters when you watch the recording:
- *
- *   the four ALPHA types — the tool CLASSIFIES these and applies the JP rules,
- *   so the demo shows automatic bars appearing in the right places. They have
- *   golden specs (test/safe/fixtures/jp/*.specs.json) and gen.py owns them.
- *
- *   the eight DEMO props (S10, gen_demo_docs.py) — the tool does not classify
- *   these, so the recording shows generic PII detection plus manual region
- *   select. That is the honest demo for them and exactly what the marketing
- *   plan (§0-5) specifies: "탐지 규칙은 기존 4종 외는 수동 영역 선택으로 데모".
- *   They have NO specs and are not part of the golden harness.
- *
- * `学生証` (ep26) has no dummy — stated, not faked. It falls through and the
- * manifest says so.
- */
-const FIXTURE_FOR_DOC = {
-  // alpha — classified, golden-backed
-  shikaku_kakuninsho: 'jp/shikaku_kakuninsho/kenpo.jpg',
-  unten_menkyo: 'jp/unten_menkyo/front.jpg',
-  mynumber_card: 'jp/mynumber_card/front.jpg',
-  juminhyo: 'jp/juminhyo/ichibu_plain.jpg',
-  // demo props — not classified, manual region select
-  '契約書': 'jp/keiyakusho/chintai.jpg',
-  '源泉徴収票': 'jp/gensen_choshuhyo/mynumber_on.jpg',
-  '履歴書': 'jp/rirekisho/plain.jpg',
-  '給与明細': 'jp/kyuyo_meisai/plain.jpg',
-  '通帳': 'jp/tsucho/spread.jpg',
-  '在留カード': 'jp/zairyu_card/front.jpg',
-  'パスポート': 'jp/passport/data_page.jpg',
-  '職務経歴書': 'jp/shokumu_keirekisho/plain.jpg'
-};
 
 // The writing rules are NOT defined here any more. They live in
 // content/jp/guard_rules.json so the server's JpContentGuard enforces the same
@@ -124,24 +100,12 @@ const prevManifest = fs.existsSync(manifestPath)
   : {};
 
 /* ── plan ─────────────────────────────────────────────────────────────────── */
-const plan = JSON.parse(fs.readFileSync(path.join(CONTENT, 'topics.json'), 'utf8'));
-const topic = plan.episodes.find((e) => e.ep === EP);
-if (!topic) {
-  console.error(`ep${EP} is not in content/jp/topics.json`);
-  process.exit(2);
-}
-if (topic.blocked_until) {
-  // ep32 advertises batch processing, which does not exist. The strategy
-  // forbids promoting unshipped features, so refuse rather than build it.
-  console.error(`ep${EP} is blocked until: ${topic.blocked_until}`);
-  console.error(topic.note || '');
-  process.exit(2);
-}
-const landing = LANDING_PATH[topic.landing];
-if (!landing) {
-  console.error(`ep${EP}: unknown landing "${topic.landing}"`);
-  process.exit(2);
-}
+// loadTopic throws for a missing, blocked or mis-landed episode — the three
+// cases this used to handle with three copies of "print and exit 2".
+let plan, topic, landing;
+try { ({ plan, topic, landing } = loadTopic(CONTENT, EP)); }
+catch (e) { console.error(e.message); process.exit(2); }
+
 /* Attribution: ?via=<channel>&ep=NN, not ?utm_* (S10).
  *
  * Ad/tracker-blocking extensions strip ?utm_* before the request is made —
@@ -149,60 +113,9 @@ if (!landing) {
  * link while the server answered 200 to everything. Mirrors
  * JpEpisodeSource#via_url; the two build the same string for the same episode
  * and a test pins that. */
-const viaUrl = (channel) => `${BASE_URL}${landing}?via=${channel}&ep=ep${EPP}`;
+const viaUrl = (channel) => buildViaUrl({ landing, channel, epp: EPP });
 const utmUrl = viaUrl('x');
 
-/* ── frontmatter ──────────────────────────────────────────────────────────── */
-/* A deliberately small YAML subset: `key: value` and `key:` followed by `- `
- * items. Pulling in a YAML dependency for five keys would buy nothing, and a
- * parser that quietly accepted more than this would let the post file drift
- * into shapes the rest of the script does not read. Unknown keys are kept as
- * strings and passed through to the manifest.
- */
-function parseFrontmatter(text) {
-  if (!text.startsWith('---')) throw new Error('post_ja.md must open with a --- frontmatter block');
-  const end = text.indexOf('\n---', 3);
-  if (end === -1) throw new Error('post_ja.md frontmatter is not closed with ---');
-  const head = text.slice(3, end).split('\n');
-  const body = text.slice(text.indexOf('\n', end + 1) + 1);
-
-  const data = {};
-  let listKey = null;
-  for (const raw of head) {
-    const line = raw.replace(/\s+$/, '');
-    if (!line.trim() || line.trim().startsWith('#')) continue;
-    const item = line.match(/^\s*-\s+(.*)$/);
-    if (item && listKey) { data[listKey].push(unquote(item[1])); continue; }
-    const kv = line.match(/^([A-Za-z_][\w-]*):\s*(.*)$/);
-    if (!kv) throw new Error(`frontmatter line not understood: ${line}`);
-    const [, key, value] = kv;
-    if (value === '') { listKey = key; data[key] = []; } else { listKey = null; data[key] = unquote(value); }
-  }
-  return { data, body };
-}
-const unquote = (s) => s.replace(/^["'](.*)["']$/, '$1').trim();
-
-/* The published blog slug, mirroring JpEpisodeSource#slug.
- *
- * Duplicated across the Ruby/JS boundary because the Shorts description has to
- * contain the article URL and this script never talks to the database. A
- * mirrored implementation can drift, so test/integration/jp_shorts_test.rb
- * compares the two for every episode in topics.json rather than trusting this
- * comment. ActiveSupport's `parameterize` is transliterate + downcase +
- * non-alphanumeric to '-' + squeeze + trim; `title_en` is already ASCII, so
- * transliteration is a no-op here and the rest is this regex chain. */
-function slugFor(t) {
-  const epp = String(t.ep).padStart(2, '0');
-  let base = String(t.title_en || '')
-    .toLowerCase()
-    .replace(/[^a-z0-9\-_]+/g, '-')
-    .replace(/-{2,}/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 40)
-    .replace(/-$/, '');
-  if (!base) base = `ep${epp}`;
-  return `jp-ep${epp}-${base}`;
-}
 
 const postPath = path.join(epDir, 'post_ja.md');
 if (!fs.existsSync(postPath)) {
@@ -400,84 +313,7 @@ if (violations.length) {
 fs.writeFileSync(path.join(epDir, 'x_thread.md'), threadMd);
 
 
-/* The four alpha types classify and auto-mask, so #btnMake enables itself.
- * The S10 demo props do not classify — nothing is marked, #btnMake stays
- * disabled, and the recording used to die on a 30s click timeout.
- *
- * Pressing 「すべて非公開」 is not a workaround: for an unclassified document
- * that IS the flow (marketing plan §0-5, "manual region select"), and it is
- * what the article tells the reader to do. Clicked only when the button is
- * actually disabled, so the alpha recordings are unchanged. */
-async function ensureMaskable(page) {
-  const enabled = await page.$eval('#btnMake', (b) => !b.disabled).catch(() => false);
-  if (enabled) return 'auto';
-  // If the bulk control is disabled too, the tool found nothing it can mask on
-  // this document and no amount of waiting changes that. Say so, rather than
-  // letting a 30s waitForFunction time out with Playwright's generic message —
-  // measured on ep07, whose 源泉徴収票 prop OCRs poorly under the watermark.
-  const bulkReady = await page.$eval('#bulkBtns button[data-mode="no"]', (b) => !b.disabled).catch(() => false);
-  if (!bulkReady) throw new Error('the tool detected nothing maskable on this document (bulk control is disabled)');
-
-  await page.click('#bulkBtns button[data-mode="no"]').catch(() => {});
-  await page.waitForFunction(() => !document.getElementById('btnMake').disabled, { timeout: 15000 });
-  return 'bulk';
-}
-
-/* How many regions the tool actually covered.
- *
- * Counted from the page's own state, not from the success banner: the banner
- * is localised prose and parsing it would break the first time the wording
- * changes. `entities` is the array the tool masks from — the same predicate
- * updateMake() uses to enable the button.
- */
-async function maskedCount(page) {
-  return page.evaluate(() => {
-    try {
-      return entities.filter((e) => isOn(e) && e.mode !== 'ok' && located(e)).length;
-    } catch (e) { return -1; }
-  });
-}
-
-/* A recording is only worth shipping if the tool visibly did its job.
- *
- * Measured on ep03's 契約書 prop: generic detection found seven items but
- * located only one, so the finished frame showed a document with the names,
- * the address, the phone number and the account number still readable and a
- * banner saying 「1か所を隠しました」. That is an advertisement for the tool
- * failing, and on a muted autoplaying Short nobody reads the caption
- * explaining why.
- *
- * So the recording has to clear a bar, and when it does not the build falls
- * back to cards AND SAYS WHY in the manifest. The four alpha types classify
- * and mask every rule field, so they are nowhere near this floor; it only
- * fires on the unclassified demo props.
- */
-const SHORTS_MIN_MASKED = 3;
-
-/* ── playwright ───────────────────────────────────────────────────────────── */
-async function loadPlaywright() {
-  // Playwright is a CommonJS package, so a dynamic import of its entry file
-  // lands the exports under `.default` rather than as named exports. Reading
-  // `chromium` off the namespace gives `undefined` and the failure surfaces
-  // thirty lines later as "cannot read properties of undefined" — measured.
-  const pick = (mod) => (mod && mod.chromium) ? mod : (mod && mod.default) || {};
-
-  try {
-    const mod = pick(await import('playwright'));
-    if (mod.chromium) return mod;
-  } catch { /* not installed at this level — fall through */ }
-
-  // The golden harness owns the install (test/safe/node_modules); this script
-  // borrows it rather than adding a second copy that can drift in version.
-  const local = path.join(REPO, 'test', 'safe', 'node_modules', 'playwright', 'index.js');
-  if (fs.existsSync(local)) {
-    const mod = pick(await import(pathToFileURL(local).href));
-    if (mod.chromium) return mod;
-  }
-  throw new Error('playwright not found. Install it where the golden harness lives:\n'
-    + '  cd test/safe && npm i && npx playwright install chrome');
-}
-const { chromium } = await loadPlaywright();
+const { chromium } = await loadPlaywright(REPO);
 const browser = await chromium.launch({ channel: 'chrome' });
 
 /* ── carousel ─────────────────────────────────────────────────────────────── */
@@ -498,14 +334,6 @@ const CAROUSEL_SIZE = { width: 1080, height: 1350 };
 // which rules are enforced and which are still a human reading the draft.
 const ILLUSTRATION_MAX_LONG_SIDE = 800;
 
-function pngSize(file) {
-  const head = Buffer.alloc(24);
-  const fd = fs.openSync(file, 'r');
-  try { fs.readSync(fd, head, 0, 24, 0); } finally { fs.closeSync(fd); }
-  if (head.toString('hex', 0, 8) !== '89504e470d0a1a0a') throw new Error(`${path.basename(file)} is not a PNG`);
-  if (head.toString('ascii', 12, 16) !== 'IHDR') throw new Error(`${path.basename(file)} has no IHDR where one must be`);
-  return { width: head.readUInt32BE(16), height: head.readUInt32BE(20) };
-}
 
 const carousel = [];
 const carouselSizes = {};
@@ -551,30 +379,6 @@ if (sizeProblems.length) {
 }
 
 /* ── demo recording (track A only) ────────────────────────────────────────── */
-const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.ico': 'image/x-icon', '.webmanifest': 'application/manifest+json', '.txt': 'text/plain', '.pdf': 'application/pdf' };
-
-// Same shape as the golden harness's server: public/ at the root, the fixture
-// tree under /__fx/. Local only — the recording must never touch production.
-function startServer() {
-  return new Promise((resolve) => {
-    const srv = http.createServer((req, res) => {
-      let p = decodeURIComponent(req.url.split('?')[0]);
-      if (p === '/') p = '/index.html';
-      const root = p.startsWith('/__fx/') ? FIXTURES : PUBLIC;
-      if (p.startsWith('/__fx/')) p = p.slice(5);
-      let fp = path.join(root, p);
-      // Serve <dir>/index.html for a directory request. The real app relies on
-      // ActionDispatch::Static doing exactly this for /safe/, so a server that
-      // 404s here records a demo of an error page — which is what the first run
-      // of this script actually produced.
-      if (fp.startsWith(root) && fs.existsSync(fp) && fs.statSync(fp).isDirectory()) fp = path.join(fp, 'index.html');
-      if (!fp.startsWith(root) || !fs.existsSync(fp) || fs.statSync(fp).isDirectory()) { res.writeHead(404); res.end('nf'); return; }
-      res.writeHead(200, { 'content-type': MIME[path.extname(fp)] || 'application/octet-stream' });
-      fs.createReadStream(fp).pipe(res);
-    });
-    srv.listen(0, '127.0.0.1', () => resolve(srv));
-  });
-}
 
 /* Screenshots for guide_en.pdf, captured DURING the recording.
  *
@@ -599,7 +403,7 @@ else {
   try {
     fs.rmSync(frameDir, { recursive: true, force: true });
     fs.mkdirSync(frameDir, { recursive: true });
-    srv = await startServer();
+    srv = await startServer({ publicDir: PUBLIC, fixturesDir: FIXTURES });
     const port = srv.address().port;
     const page = await browser.newPage({ viewport: { width: 720, height: 1280 }, deviceScaleFactor: 1 });
 
@@ -888,257 +692,27 @@ let guide = 'skipped';
 }
 
 /* ── shorts.mp4 — the YouTube Shorts cut ──────────────────────────────────── */
-/*
- * 1080×1920, 30 seconds, structure from the marketing plan §1:
+/* The whole cut lives in lib/shorts.mjs and make_short.mjs calls the same
+ * function. It used to be ~250 lines inline here; moving it out is what makes
+ * `node scripts/content/make_short.mjs 1` a re-record rather than a second
+ * recorder. The arguments are the only thing this script knows that the module
+ * does not — which episode, which words, which browser.
  *
- *   0– 5s  the pain, one sentence, as big as it will go
- *   5–10s  why it happens
- *  10–25s  the fix — real screen recording (track A) or three comparison
- *          cards (track B, which has no tool flow to record)
- *  25–30s  the result + the landing URL
- *
- * ── Why this is not the GIF with a different aspect ratio ──────────────────
- *
- * demo.gif is a 720×1280 screen recording for X: it shows the tool working to
- * someone who already clicked. Shorts has to stop a thumb, so the first five
- * seconds are not the tool at all — they are the reader's problem. The two
- * are different films and both are kept.
- *
- * ── Everything is burned in ────────────────────────────────────────────────
- *
- * No subtitle track. Shorts autoplay muted and the platform does not reliably
- * render soft subtitles, so text that is not in the pixels is text nobody
- * reads. The cards carry their own text; the screen section gets a caption bar
- * injected into the PAGE before capture, which also keeps the Japanese font
- * inside the browser instead of hardcoding a font path into an ffmpeg filter.
- */
-const SHORTS = { w: 1080, h: 1920, fps: 30, maxSeconds: 30 };
-const SHORTS_SEGMENTS = { pain: 5, why: 5, fix: 15, done: 5 };
-
-let shorts = 'skipped';
-{
-  const outDir = path.join(epDir, '.shorts');
-  const mp4 = path.join(epDir, 'shorts.mp4');
-  try {
-    fs.rmSync(outDir, { recursive: true, force: true });
-    fs.mkdirSync(outDir, { recursive: true });
-
-    /* ── the three cards ───────────────────────────────────────────────── */
-    const cardPage = await browser.newPage({ viewport: { width: SHORTS.w, height: SHORTS.h }, deviceScaleFactor: 1 });
-    await cardPage.goto(pathToFileURL(SHORTS_TEMPLATE).href);
-    await Promise.race([cardPage.evaluate(() => document.fonts.ready), cardPage.waitForTimeout(6000)]);
-
-    // The pain line is fm.hook — the same sentence that opens the X thread,
-    // which S10 made a rule about. One opener per episode, written once.
-    const cards = [
-      ['pain', { tag: 'よくある差し戻し', text: fm.hook }],
-      ['why', { text: '黒い四角を重ねただけでは、\n下の文字が残ることがあります。',
-                note: 'PDFの文字層はコピーできてしまいます。' }]
-    ];
-    /* The comparison card is built for EVERY episode, not just track B.
-     *
-     * It is track B's middle 15 seconds by design, and it is also what track A
-     * falls back to when the recording does not clear SHORTS_MIN_MASKED or the
-     * document has no dummy. The first version only built it for track B, so a
-     * track A fallback held the "why" card for fifteen seconds — a Short that
-     * says nothing for half its length. The card costs one screenshot. */
-    cards.splice(2, 0, ['compare', { text: '隠し方で結果が変わります', items: [
-      { ok: false, txt: '付箋を貼って撮影 — 光で透けることがある' },
-      { ok: false, txt: '画像編集アプリで黒い四角 — 文字層が残る' },
-      { ok: true, txt: '画像に平坦化 — 下に原文が残らない' }
-    ] }]);
-    cards.push(['done', topic.track === 'A'
-      ? { text: '画像に平坦化されるので、\n黒塗りの下に原文は残りません。',
-          note: 'ファイルはブラウザの中だけで処理されます。', url: viaUrl('youtube') }
-      : { text: '提出先の指示に合わせて\n隠す範囲を選べます。',
-          note: 'ファイルはブラウザの中だけで処理されます。', url: viaUrl('youtube') }]);
-
-    const cardFiles = [];
-    for (let i = 0; i < cards.length; i++) {
-      const [kind, data] = cards[i];
-      const fit = await cardPage.evaluate(([k, d]) => window.SF_CARD(k, d), [kind, data]);
-      if (fit.overflowed) warnings.push(`shorts card ${i + 1} (${kind}): text still overflows at the ${Math.round(fit.scale * 100)}% floor — shorten it`);
-      const f = path.join(outDir, `card${i + 1}_${kind}.png`);
-      await cardPage.locator('#card').screenshot({ path: f });
-      const size = pngSize(f);
-      if (size.width !== SHORTS.w || size.height !== SHORTS.h) {
-        throw new Error(`${path.basename(f)} is ${size.width}×${size.height}, not ${SHORTS.w}×${SHORTS.h}`);
-      }
-      cardFiles.push({ file: f, kind });
-    }
-    await cardPage.close();
-
-    /* ── the fix section ───────────────────────────────────────────────── */
-    /* Track A records the tool at a PHONE viewport with deviceScaleFactor 2,
-     * so the frames come out 1080×1920 natively — scaling a 1080-wide desktop
-     * layout down to a phone frame would make the app's own text unreadable,
-     * which is the mistake the guide PDF already made once (S9 §E). */
-    let fixFrames = [];
-    let srv;
-    if (topic.track === 'A' && !noDemo && FIXTURE_FOR_DOC[topic.doc]) {
-      try {
-        srv = await startServer();
-        const port = srv.address().port;
-        const vp = await browser.newPage({
-          viewport: { width: SHORTS.w / 2, height: SHORTS.h / 2 }, deviceScaleFactor: 2
-        });
-        const url = `http://127.0.0.1:${port}/safe/?lang=ja&purpose=${topic.purpose}&from=direct`;
-        const resp = await vp.goto(url, { waitUntil: 'load' });
-        if (!resp || !resp.ok()) throw new Error(`${url} returned ${resp ? resp.status() : 'no response'}`);
-        if (!(await vp.locator('#fileInput').count())) throw new Error('no #fileInput — wrong document?');
-
-        // Caption bar, injected into the page (not drawn by ffmpeg) so the
-        // Japanese font stays inside the browser.
-        await vp.evaluate(() => {
-          const bar = document.createElement('div');
-          bar.id = '__scap';
-          bar.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;'
-            + 'background:rgba(23,20,15,.94);color:#fff;'
-            + 'font:700 25px/1.5 "Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;'
-            + 'padding:22px 24px;white-space:pre-line;min-height:104px';
-          document.body.appendChild(bar);
-          window.__scap = (t) => { bar.textContent = t; };
-        });
-        const caps = captions.length === 3 ? captions : [
-          '① PDF・写真をドラッグ',
-          `② 「提出目的：${topic.purpose}」を選ぶ`,
-          '③ ダウンロード — 下に原文は残りません'
-        ];
-        const setCap = (t) => vp.evaluate((x) => window.__scap(x), t);
-
-        let n = 0;
-        const grab = async (count) => {
-          for (let i = 0; i < count; i++) {
-            await vp.screenshot({ path: path.join(outDir, `fix${String(n).padStart(3, '0')}.png`) });
-            n++;
-            if (i < count - 1) await vp.waitForTimeout(400);
-          }
-        };
-
-        await setCap(caps[0]);
-        await grab(4);
-        await vp.setInputFiles('#fileInput', path.join(FIXTURES, FIXTURE_FOR_DOC[topic.doc]));
-        await vp.waitForFunction(
-          () => Array.isArray(pages) && pages.length > 0 && document.getElementById('docWrap').style.display === 'flex',
-          { timeout: 300000 }
-        );
-        await setCap(caps[1]);
-        await vp.locator('#jpBar').scrollIntoViewIfNeeded().catch(() => {});
-        await grab(5);
-        await ensureMaskable(vp);
-        const masked = await maskedCount(vp);
-        if (masked < SHORTS_MIN_MASKED) {
-          throw new Error(`the tool located only ${masked} region(s) on this document `
-            + `(floor ${SHORTS_MIN_MASKED}) — a Short showing a half-redacted page advertises the opposite of the product`);
-        }
-        await vp.click('#btnMake');
-        await vp.waitForFunction(() => document.getElementById('result').style.display === 'block', { timeout: 120000 });
-        await setCap(caps[2]);
-        await vp.locator('#result').scrollIntoViewIfNeeded().catch(() => {});
-        await vp.waitForTimeout(400);
-        await grab(6);
-        await vp.close();
-        fixFrames = fs.readdirSync(outDir).filter((f) => f.startsWith('fix')).sort();
-        if (fixFrames.length < 6) throw new Error(`only ${fixFrames.length} fix frames`);
-      } catch (e) {
-        // Partial by design: a failed recording falls back to comparison cards
-        // rather than losing the whole Short.
-        warnings.push(`shorts: screen recording failed (${e.message}) — using comparison cards instead`);
-        fixFrames = [];
-      } finally {
-        if (srv) srv.close();
-      }
-    }
-
-    /* ── stitch ────────────────────────────────────────────────────────── */
-    const segs = [];
-    const seg = (file, seconds) => {
-      const out = path.join(outDir, `seg${segs.length}.mp4`);
-      run('ffmpeg', ['-y', '-loop', '1', '-i', file, '-t', String(seconds),
-        '-r', String(SHORTS.fps), '-c:v', 'libx264', '-pix_fmt', 'yuv420p',
-        '-vf', `scale=${SHORTS.w}:${SHORTS.h}:force_original_aspect_ratio=decrease,pad=${SHORTS.w}:${SHORTS.h}:(ow-iw)/2:(oh-ih)/2:color=0xF7F5EF`,
-        out]);
-      segs.push(out);
-    };
-
-    const painCard = cardFiles.find((c) => c.kind === 'pain');
-    const whyCard = cardFiles.find((c) => c.kind === 'why');
-    const cmpCard = cardFiles.find((c) => c.kind === 'compare');
-    const doneCard = cardFiles.find((c) => c.kind === 'done');
-
-    seg(painCard.file, SHORTS_SEGMENTS.pain);
-    seg(whyCard.file, SHORTS_SEGMENTS.why);
-
-    if (fixFrames.length) {
-      // The recording, stretched to exactly the fix window so the total stays
-      // at 30s whatever the frame count turned out to be.
-      const fps = fixFrames.length / SHORTS_SEGMENTS.fix;
-      const out = path.join(outDir, `seg${segs.length}.mp4`);
-      run('ffmpeg', ['-y', '-framerate', String(fps), '-i', path.join(outDir, 'fix%03d.png'),
-        '-r', String(SHORTS.fps), '-c:v', 'libx264', '-pix_fmt', 'yuv420p',
-        '-vf', `scale=${SHORTS.w}:${SHORTS.h}:force_original_aspect_ratio=decrease,pad=${SHORTS.w}:${SHORTS.h}:(ow-iw)/2:(oh-ih)/2:color=0x111111`,
-        out]);
-      segs.push(out);
-    } else {
-      seg(cmpCard.file, SHORTS_SEGMENTS.fix);
-    }
-    seg(doneCard.file, SHORTS_SEGMENTS.done);
-
-    const listFile = path.join(outDir, 'concat.txt');
-    fs.writeFileSync(listFile, segs.map((f) => `file '${f.replace(/'/g, "'\\\\''")}'`).join('\n') + '\n');
-    run('ffmpeg', ['-y', '-f', 'concat', '-safe', '0', '-i', listFile, '-c', 'copy', '-movflags', '+faststart', mp4]);
-
-    /* ── verify from the FILE, not from what we asked for ──────────────── */
-    const probe = spawnSync('ffprobe', ['-v', 'error', '-select_streams', 'v:0',
-      '-show_entries', 'stream=width,height:format=duration', '-of', 'json', mp4], { encoding: 'utf8' });
-    if (probe.status !== 0) throw new Error(`ffprobe failed: ${(probe.stderr || '').slice(-200)}`);
-    const meta = JSON.parse(probe.stdout);
-    const st = meta.streams[0];
-    const dur = Number(meta.format.duration);
-    if (st.width !== SHORTS.w || st.height !== SHORTS.h) {
-      throw new Error(`shorts.mp4 is ${st.width}×${st.height}, not ${SHORTS.w}×${SHORTS.h}`);
-    }
-    if (!(dur > 0) || dur > SHORTS.maxSeconds + 0.5) {
-      throw new Error(`shorts.mp4 is ${dur.toFixed(2)}s, over the ${SHORTS.maxSeconds}s cap`);
-    }
-
-    /* ── title and description ─────────────────────────────────────────── */
-    // Title: question form, JA, <=20 chars + 3 hashtags (marketing plan §6-3).
-    // Taken from topics.json rather than invented here, and TRUNCATION IS NOT
-    // SILENT — an over-length title is reported the same way an over-length
-    // tweet is, because a headline cut at a byte boundary is one the author
-    // did not write.
-    const shortsTitle = (topic.shorts_title_ja || fm.title).trim();
-    if ([...shortsTitle].length > 20) {
-      warnings.push(`shorts_title_ja: ${[...shortsTitle].length}字 — 20字以内が望ましい(topics.json に shorts_title_ja を足す)`);
-    }
-    const tags = (topic.shorts_tags || ['#黒塗り', '#個人情報', '#提出書類']).slice(0, 3);
-    fs.writeFileSync(path.join(epDir, 'shorts_title_ja.txt'), `${shortsTitle} ${tags.join(' ')}\n`);
-    fs.writeFileSync(path.join(epDir, 'shorts_desc_ja.txt'), [
-      fm.hook,
-      '',
-      ...fm.bullets.map((b, i) => `${['①', '②', '③'][i]}${b}`),
-      '',
-      MUST_SENTENCE,
-      '',
-      `くわしく: ${BASE_URL}/ja/blog/${slugFor(topic)}?via=youtube&ep=ep${EPP}`,
-      `試す: ${viaUrl('youtube')}`,
-      '',
-      tags.join(' ')
-    ].join('\n') + '\n');
-
-    const kb = Math.round(fs.statSync(mp4).size / 1024);
-    shorts = `ok: ${dur.toFixed(1)}s, ${st.width}x${st.height}, ${kb}KB, ${fixFrames.length ? `${fixFrames.length} recorded frames` : 'cards only'}`;
-    process.stdout.write(`  shorts.mp4  (${dur.toFixed(1)}s, ${st.width}x${st.height}, ${kb}KB, ${fixFrames.length ? 'recording' : 'cards'})\n`);
-    fs.rmSync(outDir, { recursive: true, force: true });
-  } catch (e) {
-    shorts = `failed: ${e.message}`;
-    warnings.push(`shorts.mp4: ${e.message}`);
-    process.stdout.write(`  shorts.mp4 FAILED: ${e.message}\n`);
-    // Intermediates are left behind on failure — they are the only evidence of
-    // how far the build got, same rule as the demo frames.
-  }
-}
+ * It writes short_ja.json, NOT manifest.json: `cover`, `hooks` and `script`
+ * in that file are a person's decisions and video-story's output, and they are
+ * carried forward rather than recomputed. `warnings` is the same array this
+ * script collects, so a Shorts problem is reported in the episode's warnings
+ * exactly as it was before. */
+const { status: shorts } = await buildShorts({
+  browser, epDir, ep: EP, epp: EPP, topic, fm, captions,
+  templatePath: SHORTS_TEMPLATE,
+  publicDir: PUBLIC, fixturesDir: FIXTURES, fixtureForDoc: FIXTURE_FOR_DOC,
+  landing, slug: slugFor(topic),
+  mustSentence: MUST_SENTENCE,
+  record: !noDemo,
+  warnings
+});
+process.stdout.write(`  shorts.mp4  ${shorts}\n`);
 
 await browser.close();
 
@@ -1227,8 +801,4 @@ function countPdfPages(file) {
   return Math.max(...counts);
 }
 
-function run(bin, args) {
-  const r = spawnSync(bin, args, { encoding: 'utf8' });
-  if (r.error) throw new Error(`${bin} not available: ${r.error.message}`);
-  if (r.status !== 0) throw new Error(`${bin} exited ${r.status}: ${(r.stderr || '').split('\n').slice(-4).join(' ')}`);
-}
+

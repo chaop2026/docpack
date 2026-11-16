@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>SafeFile JP thumbnail — 手順 (numbered)</title>
+<!--
+  intent = 手順 — the NUMBERED frame.
+
+  "What do I do first?" The reader is not asking to be convinced; they already
+  have the document open. So the countable thing is the loud element: three
+  steps, short enough to read while scrolling.
+
+  🔴 The steps are LABELS, not the procedure. Three words each. A thumbnail
+  that tries to contain the instructions is a thumbnail nobody can read — and
+  the instructions are in the video, which is the thing the thumbnail is for.
+
+  Same file renders 1080×1920 and 1280×720.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=IBM+Plex+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<style>
+.steps{display:flex;align-items:stretch}
+.steps .s{background:var(--card);border:4px solid var(--line);border-radius:22px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1 1 0;text-align:center}
+.steps .s.last{border-color:var(--ok);background:#F2F7EC}
+.steps .n{font-family:'IBM Plex Sans',sans-serif;font-weight:700;color:var(--sub);line-height:1}
+.steps .s.last .n{color:var(--ok)}
+.steps .t{font-weight:700;line-height:1.3}
+
+#card.short .steps{gap:20px;margin:32px 0 0}
+#card.short .steps .s{padding:24px 14px}
+#card.short .steps .n{font-size:46px;margin-bottom:12px}
+#card.short .steps .t{font-size:32px}
+/* Landscape stacks the steps instead of placing them side by side.
+ * Measured: in the right-hand grid column three boxes across are ~170px wide,
+ * and 「写真をドラッグ」 wrapped after six glyphs — a step label broken mid-word
+ * is slower to read than no label. Vertically each one gets the full column. */
+#card.long  .steps{flex-direction:column;gap:12px;margin:18px 0 0}
+#card.long  .steps .s{flex-direction:row;align-items:center;justify-content:flex-start;
+  gap:14px;padding:12px 18px;text-align:left}
+#card.long  .steps .n{font-size:30px;margin-bottom:0}
+#card.long  .steps .t{font-size:24px}
+.mid{display:flex;flex-direction:column;flex:0 0 auto}
+</style>
+</head>
+<body>
+<div id="card"></div>
+<script src="thumb.js"></script>
+<script>
+window.SF_THUMB_READY = false;
+
+/*
+ * spec: { size, badge, headline:[l1,l2], accent, doc:{title,rows}, note,
+ *         steps:['…','…','…'] }
+ *
+ * The last step is marked green — it is the one that produces the file you
+ * submit, and on these documents that step is the one people skip.
+ */
+window.SF_THUMB = function (spec) {
+  var esc = window.SF_ESC;
+  var steps = (spec.steps || []).slice(0, 3);
+  var mid = '<div class="mid">'
+    + window.SF_HEAD(spec.headline, spec.accent, spec.redLine)
+    + window.SF_DOC(spec.doc)
+    + (steps.length
+        ? '<div class="steps">' + steps.map(function (t, i) {
+            return '<div class="s' + (i === steps.length - 1 ? ' last' : '') + '">'
+              + '<span class="n">' + ['①', '②', '③'][i] + '</span>'
+              + '<span class="t">' + esc(t) + '</span></div>';
+          }).join('') + '</div>'
+        : '')
+    + '</div>';
+  return window.SF_THUMB_RENDER(spec, mid);
+};
+</script>
+</body>
+</html>

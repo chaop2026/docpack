@@ -79,7 +79,13 @@
    * `?utm_source=email` was accepted by this file, sent, and then thrown away
    * whole by the server — and since sendBeacon never reads the response, the
    * loss would be invisible from both ends. */
-  var VIA_CHANNELS = ['x', 'linkedin', 'youtube', 'blog', 'email', 'direct'];
+  /* `yt_long` (2026-11-16) is the monthly long-form cut, kept apart from
+   * `youtube` (Shorts + the channel profile link). A Shorts description is not
+   * clickable and a long-form one is, so the two are different funnels; an
+   * event row cannot be reclassified later, which is why they are split now
+   * rather than when someone wants the breakdown. Added to `via` only —
+   * `utm_source` describes links that are already published. */
+  var VIA_CHANNELS = ['x', 'linkedin', 'youtube', 'yt_long', 'blog', 'email', 'direct'];
   var UTM_CHANNELS = ['x', 'linkedin', 'youtube', 'blog', 'direct'];
   var VIA = pick('via', VIA_CHANNELS);
   var UTM_SOURCE = VIA === 'none' ? pick('utm_source', UTM_CHANNELS) : 'none';

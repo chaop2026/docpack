@@ -1,0 +1,139 @@
+{
+  "ep": 1,
+  "generated_by": "scripts/content/lib/shorts.mjs",
+  "size": "1080x1920",
+  "segments": {
+    "painWipe": 1,
+    "painHold": 4,
+    "why": 5,
+    "fix": 15,
+    "done": 4.5,
+    "end": 0.5
+  },
+  "cover": "thumb_short_a.png",
+  "cover_provisional": true,
+  "hooks": [
+    {
+      "id": "A",
+      "text": "黒塗りが一箇所だけ残っていて、入札書類が差し戻された。",
+      "angle": "止められた瞬間",
+      "note": "現在 post_ja.md が採用している案。差し戻しという結果が先に来る"
+    },
+    {
+      "id": "B",
+      "text": "提出し直しの連絡が来た理由が、枝番の二文字だった。",
+      "angle": "やり直しの損",
+      "note": "損失(やり直し)を前に出す案。『二文字』という小ささが効く"
+    },
+    {
+      "id": "C",
+      "text": "黒い四角を重ねたPDFは、コピーすると数字が出てくる。",
+      "angle": "知らなかった事実",
+      "note": "まだ差し戻されていない人に効く案。ただし痛みが『未来』なので A・B より弱い可能性"
+    }
+  ],
+  "script": [
+    {
+      "seg": "pain",
+      "sec": [
+        0,
+        5
+      ],
+      "text": "hook(post_ja.md) — マーカーが1秒かけて引かれる"
+    },
+    {
+      "seg": "why",
+      "sec": [
+        5,
+        10
+      ],
+      "text": "黒い四角を重ねただけでは、下の文字が残ることがあります"
+    },
+    {
+      "seg": "fix",
+      "sec": [
+        10,
+        25
+      ],
+      "text": "実画面の録画 — ①写真をドラッグ ②提出目的を選ぶ ③ダウンロード"
+    },
+    {
+      "seg": "done",
+      "sec": [
+        25,
+        29.5
+      ],
+      "text": "画像に平坦化されるので、黒塗りの下に原文は残りません"
+    },
+    {
+      "seg": "end",
+      "sec": [
+        29.5,
+        30
+      ],
+      "text": "選ばれた表紙 + 「プロフィールのリンクから」"
+    }
+  ],
+  "posted": {
+    "youtube_shorts": true,
+    "url": "https://youtube.com/shorts/-mrJZVWP_6E",
+    "at": "2026-11-01T16:50:00+09:00",
+    "pinned_comment": null,
+    "_note": "manifest.json の posted から写した実績。この shorts.mp4 は 2026-11-16 に終わり画面を入れて作り直したもので、上の URL で公開されている動画とは別物だ。差し替えると新しい URL になり、再生数は引き継がれない — 適用するかは人が決める(docs/jp/youtube_upload_checklist.md)。"
+  },
+  "duration_sec": 30,
+  "track": "A",
+  "rendered_segments": {
+    "pain": {
+      "tag": "よくある差し戻し",
+      "text": "黒塗りが一箇所だけ残っていて、入札書類が差し戻された。"
+    },
+    "why": {
+      "text": "黒い四角を重ねただけでは、\n下の文字が残ることがあります。",
+      "note": "PDFの文字層はコピーできてしまいます。"
+    },
+    "compare": {
+      "text": "隠し方で結果が変わります",
+      "items": [
+        {
+          "ok": false,
+          "txt": "付箋を貼って撮影 — 光で透けることがある"
+        },
+        {
+          "ok": false,
+          "txt": "画像編集アプリで黒い四角 — 文字層が残る"
+        },
+        {
+          "ok": true,
+          "txt": "画像に平坦化 — 下に原文が残らない"
+        }
+      ]
+    },
+    "done": {
+      "text": "画像に平坦化されるので、\n黒塗りの下に原文は残りません。",
+      "note": "ファイルはブラウザの中だけで処理されます。",
+      "url": "https://slimfile.net/safe/jp/nyusatsu/?via=youtube&ep=ep01"
+    },
+    "end": {
+      "line": "プロフィールのリンクから",
+      "sub": "第01回 黒塗り、一箇所残っていませんか？"
+    }
+  },
+  "fix_source": "screen recording",
+  "recorded_frames": 15,
+  "masked_regions": 5,
+  "end_card": {
+    "from": "thumb_short_a.png",
+    "fell_back_to_closing_card": false,
+    "line": "プロフィールのリンクから",
+    "starts_at_sec": 29.5
+  },
+  "thumbnail_frame_sec": 29.5,
+  "thumbnail_frame_window": [
+    29.5,
+    30
+  ],
+  "warnings": [
+    "shorts: cover \"thumb_short_a.png\" is PROVISIONAL (cover_provisional: true) — Gate 1 has not confirmed it. Clear the flag in short_ja.json when it is chosen"
+  ]
+}

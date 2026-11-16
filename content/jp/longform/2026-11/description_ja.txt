@@ -1,0 +1,28 @@
+「マスキングのうえ提出」とだけ書いてあって、どこを隠すのか分からない。
+→ ブラウザだけで試す: https://slimfile.net/safe/jp/nyusatsu/?via=yt_long
+
+この動画は 2026-11 に公開したショート動画をひとつの手順としてまとめたものです。
+書類ごとに「隠すところ」と「残すところ」を分けて説明します。
+
+00:00 この動画で扱うこと
+00:20 第02回 どこを隠せばいいのか分からない？
+00:56 第03回 AIに契約書、そのまま貼ってない？
+01:32 第04回 契約書、相談前に何を隠す？
+02:08 第05回 入札のPDF、容量で弾かれた？
+02:44 第06回 補助金の精算、どこまで隠す？
+03:20 提出前の確認
+
+くわしい手順（日本語の記事）
+第02回 https://slimfile.net/ja/blog/jp-ep02-reading-a-tender-s-masking-instructions?via=yt_long&ep=ep02
+第03回 https://slimfile.net/ja/blog/jp-ep03-redact-the-personal-data-before-you-past?via=yt_long&ep=ep03
+第04回 https://slimfile.net/ja/blog/jp-ep04-anonymising-a-lease-before-you-ask-a-pro?via=yt_long&ep=ep04
+第05回 https://slimfile.net/ja/blog/jp-ep05-handling-e-tender-pdf-size-limits-and-re?via=yt_long&ep=ep05
+第06回 https://slimfile.net/ja/blog/jp-ep06-subsidy-settlement-attachments-how-much?via=yt_long&ep=ep06
+
+このツールはファイルをサーバーに送りません。処理はブラウザの中だけで終わります。
+AIによる深いスキャンを使うときだけ、抽出したテキストがサーバーに送られます。
+
+隠す範囲は提出先によって異なります。
+提出先の指示を必ず確認してください。
+
+#黒塗り #個人情報 #提出書類

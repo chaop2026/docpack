@@ -1,0 +1,86 @@
+{
+  "month": "2026-11",
+  "generated_by": "scripts/content/make_longform.mjs",
+  "kind": "draft — the edit is done by a person",
+  "channel_param": "yt_long",
+  "landing_cta": "https://slimfile.net/safe/jp/nyusatsu/?via=yt_long",
+  "episodes": [
+    {
+      "ep": 2,
+      "title_ja": "入札添付の資格確認書、マスキング指示の読み方",
+      "publish_on": "2026-11-02",
+      "article": "https://slimfile.net/ja/blog/jp-ep02-reading-a-tender-s-masking-instructions?via=yt_long&ep=ep02",
+      "shorts_cut": "content/jp/ep02/shorts.mp4",
+      "post_written": true
+    },
+    {
+      "ep": 3,
+      "title_ja": "ChatGPTに契約書を貼る前に、個人情報だけ黒塗りする",
+      "publish_on": "2026-11-09",
+      "article": "https://slimfile.net/ja/blog/jp-ep03-redact-the-personal-data-before-you-past?via=yt_long&ep=ep03",
+      "shorts_cut": "content/jp/ep03/shorts.mp4",
+      "post_written": true
+    },
+    {
+      "ep": 4,
+      "title_ja": "賃貸借契約書を専門家に相談する前の匿名化",
+      "publish_on": "2026-11-16",
+      "article": "https://slimfile.net/ja/blog/jp-ep04-anonymising-a-lease-before-you-ask-a-pro?via=yt_long&ep=ep04",
+      "shorts_cut": "content/jp/ep04/shorts.mp4",
+      "post_written": true
+    },
+    {
+      "ep": 5,
+      "title_ja": "電子入札のPDF容量と黒塗りを一度に片づける",
+      "publish_on": "2026-11-23",
+      "article": "https://slimfile.net/ja/blog/jp-ep05-handling-e-tender-pdf-size-limits-and-re?via=yt_long&ep=ep05",
+      "shorts_cut": "content/jp/ep05/shorts.mp4",
+      "post_written": true
+    },
+    {
+      "ep": 6,
+      "title_ja": "補助金精算の添付書類、どこまで隠すか",
+      "publish_on": "2026-11-30",
+      "article": "https://slimfile.net/ja/blog/jp-ep06-subsidy-settlement-attachments-how-much?via=yt_long&ep=ep06",
+      "shorts_cut": "content/jp/ep06/shorts.mp4",
+      "post_written": true
+    }
+  ],
+  "planned_chapters": [
+    {
+      "at": "00:00",
+      "label": "この動画で扱うこと"
+    },
+    {
+      "at": "00:20",
+      "label": "第02回 どこを隠せばいいのか分からない？"
+    },
+    {
+      "at": "00:56",
+      "label": "第03回 AIに契約書、そのまま貼ってない？"
+    },
+    {
+      "at": "01:32",
+      "label": "第04回 契約書、相談前に何を隠す？"
+    },
+    {
+      "at": "02:08",
+      "label": "第05回 入札のPDF、容量で弾かれた？"
+    },
+    {
+      "at": "02:44",
+      "label": "第06回 補助金の精算、どこまで隠す？"
+    },
+    {
+      "at": "03:20",
+      "label": "提出前の確認"
+    }
+  ],
+  "planned_length": "04:00",
+  "posted": {
+    "youtube": false,
+    "url": null,
+    "related_video_set_on_shorts": false
+  },
+  "warnings": []
+}

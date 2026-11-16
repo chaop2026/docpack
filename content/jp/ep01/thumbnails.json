@@ -1,0 +1,81 @@
+{
+  "ep": 1,
+  "intent": "手順",
+  "frame": "steps.html",
+  "version": "v1",
+  "generated_by": "scripts/content/make_thumbnail.mjs",
+  "cover_chosen_at_gate1": null,
+  "files": [
+    {
+      "name": "thumb_short_a.png",
+      "variant": "a",
+      "format": "short",
+      "frame": "steps.html",
+      "pixels": "1080x1920",
+      "bytes": 139058,
+      "fit": 0.96,
+      "outside": 0,
+      "headline": [
+        "一箇所残ると",
+        "差し戻される"
+      ]
+    },
+    {
+      "name": "thumb_short_b.png",
+      "variant": "b",
+      "format": "short",
+      "frame": "steps.html",
+      "pixels": "1080x1920",
+      "bytes": 144904,
+      "fit": 0.98,
+      "outside": 0,
+      "headline": [
+        "その黒塗り、",
+        "下に文字が残る"
+      ]
+    },
+    {
+      "name": "thumb_long_a.png",
+      "variant": "a",
+      "format": "long",
+      "frame": "steps.html",
+      "pixels": "1280x720",
+      "bytes": 88443,
+      "fit": 1,
+      "outside": 0,
+      "headline": [
+        "一箇所残ると",
+        "差し戻される"
+      ]
+    },
+    {
+      "name": "thumb_long_b.png",
+      "variant": "b",
+      "format": "long",
+      "frame": "steps.html",
+      "pixels": "1280x720",
+      "bytes": 91215,
+      "fit": 1,
+      "outside": 0,
+      "headline": [
+        "その黒塗り、",
+        "下に文字が残る"
+      ]
+    },
+    {
+      "name": "thumb_long_c.png",
+      "variant": "c",
+      "format": "long",
+      "frame": "steps.html",
+      "pixels": "1280x720",
+      "bytes": 84524,
+      "fit": 1,
+      "outside": 0,
+      "headline": [
+        "番号を隠して",
+        "出す三手順"
+      ]
+    }
+  ],
+  "warnings": []
+}

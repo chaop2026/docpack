@@ -47,25 +47,27 @@
     },
     {
       "name": "demo.gif",
-      "bytes": 805903
+      "bytes": 834994
     },
     {
       "name": "demo.mp4",
-      "bytes": 341714
+      "bytes": 343514
     },
     {
       "name": "guide_en.pdf",
-      "bytes": 985006
+      "bytes": 992633
     },
     {
       "name": "shorts.mp4",
-      "bytes": 553067
+      "bytes": 662859
     }
   ],
-  "demo": "ok: 40 frames, demo.gif 787KB, demo.mp4 334KB",
-  "guide": "ok: 7 pages, 962KB, real screenshots",
-  "shorts": "ok: 30.0s, 1080x1920, 540KB, 15 recorded frames",
-  "warnings": [],
+  "demo": "ok: 40 frames, demo.gif 815KB, demo.mp4 335KB",
+  "guide": "ok: 7 pages, 969KB, real screenshots",
+  "shorts": "ok: 30.0s, 1080x1920, 647KB, 15 recorded frames, end card from thumb_short_a.png",
+  "warnings": [
+    "shorts: cover \"thumb_short_a.png\" is PROVISIONAL (cover_provisional: true) — Gate 1 has not confirmed it. Clear the flag in short_ja.json when it is chosen"
+  ],
   "posted": {
     "x": true,
     "youtube_shorts": true,

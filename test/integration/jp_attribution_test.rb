@@ -275,6 +275,83 @@ class JpAttributionTest < ActionDispatch::IntegrationTest
     assert_includes JpWeeklyKpi::NON_SOCIAL_SOURCES, "email"
   end
 
+  # ── `via=yt_long` (2026-11-16) ─────────────────────────────────────────────
+  #
+  # The monthly long-form cut. Separate from `youtube` because the two surfaces
+  # are different funnels — a Shorts description is not clickable, a long-form
+  # one is — and because an event row cannot be reclassified after it is
+  # written. Both are social reach, so both are in P16's numerator.
+
+  test "via=yt_long is storable and distinct from via=youtube" do
+    assert_includes SafeEvent::VALUES["via"], "yt_long"
+    assert_includes SafeEvent::VALUES["via"], "youtube"
+
+    assert_difference -> { SafeEvent.count }, 1 do
+      post "/api/safe_events",
+           params: { name: "landing_view", props: { from: "nyusatsu", locale: "ja", via: "yt_long" } }.to_json,
+           headers: { "CONTENT_TYPE" => "application/json" }
+      assert_response :no_content
+    end
+    assert_equal "yt_long", SafeEvent.last.props.fetch("via")
+  end
+
+  test "utm_source=yt_long is NOT storable — that list describes links already published" do
+    # Same rule that kept `email` out of `utm_source`. The server rejecting a
+    # value the client was willing to send discards the WHOLE event, and
+    # sendBeacon never reads the response, so the loss is invisible from both
+    # ends. Two lists, two purposes — and jp.js keeps them in two arrays.
+    refute_includes SafeEvent::VALUES["utm_source"], "yt_long"
+    assert_nil SafeEvent.sanitize("landing_view", { "from" => "nyusatsu", "utm_source" => "yt_long" })
+  end
+
+  test "both YouTube surfaces count toward P16 and stay separable in the table" do
+    SafeEvent.delete_all
+    2.times { SafeEvent.create!(name: "landing_view", props: { "from" => "nyusatsu", "via" => "youtube" }) }
+    3.times { SafeEvent.create!(name: "landing_view", props: { "from" => "nyusatsu", "via" => "yt_long" }) }
+    SafeEvent.create!(name: "landing_view", props: { "from" => "nyusatsu", "via" => "blog" })
+
+    kpi = JpWeeklyKpi.new
+    k = kpi.p16
+    assert_equal 5, k[:social], "Shorts and long-form are both social reach"
+    assert_equal 6, k[:total]
+    assert_includes JpWeeklyKpi::SOCIAL_SOURCES, "yt_long"
+
+    # Separable: merging them into one `youtube` bucket would be irreversible,
+    # so the weekly table has to be able to show them apart.
+    by_source = kpi.attributed_landing_views
+    assert_equal 2, by_source.fetch("youtube")
+    assert_equal 3, by_source.fetch("yt_long")
+  end
+
+  test "the P16 detail line names the channels it actually counts" do
+    # It read "x+linkedin+youtube" while SOCIAL_SOURCES had four entries. A
+    # detail line that names the wrong channels is worse than one that names
+    # none: it is the line a reader uses to check the number.
+    SafeEvent.delete_all
+    SafeEvent.create!(name: "landing_view", props: { "from" => "nyusatsu", "via" => "yt_long" })
+
+    row = JpWeeklyKpi.new.rows.find { |r| r["id"] == "P16" }
+    JpWeeklyKpi::SOCIAL_SOURCES.each do |src|
+      assert_match(/#{Regexp.escape(src)}/, row["detail"],
+                   "P16's detail line does not mention #{src}, which it counts")
+    end
+    assert_match(/yt_long/, JpWeeklyKpi.new.lines.join("\n"),
+                 "the weekly table has to name the channels in the numerator")
+  end
+
+  test "P17 no longer claims the channel is unopened" do
+    # ep01's Short has been live since 2026-11-01 (its manifest records the
+    # URL). What is still true is that this database has no view count. A
+    # stale reason is how a metric stops being chased.
+    note = JpWeeklyKpi.new.p17[:note]
+    refute_match(/미개설/, note, "the channel is open — ep01's manifest records a published Shorts URL")
+    assert_nil JpWeeklyKpi.new.p17[:current], "still unmeasured here: 0 would read as 'measured and found nothing'"
+
+    manifest = JSON.parse(Rails.root.join("content", "jp", "ep01", "manifest.json").read)
+    assert manifest.dig("posted", "youtube_url").present?,
+           "premise of this test: ep01 records a published Shorts URL"
+  end
+
   test "the P16 row names both exclusions so the number can be read" do
     SafeEvent.delete_all
     SafeEvent.create!(name: "landing_view", props: { "from" => "nyusatsu", "via" => "email" })

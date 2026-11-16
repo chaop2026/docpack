@@ -66,7 +66,13 @@ class JpWeeklyKpi
   # channel with the most volume today, so putting it in the numerator would
   # make P16 read ≥10% off the back of work P16 was not asked about. Both are
   # in the DENOMINATOR — they are real landing visits.
-  SOCIAL_SOURCES = %w[x linkedin youtube].freeze
+  #
+  # `yt_long` (2026-11-16) joins the numerator: the monthly long-form cut is
+  # organic reach on a social platform exactly as the Shorts are. It is a
+  # separate VALUE rather than more `youtube` because the two surfaces behave
+  # differently (a Shorts description is not clickable; a long-form one is),
+  # and an event row cannot be reclassified after it is written.
+  SOCIAL_SOURCES = %w[x linkedin youtube yt_long].freeze
 
   # Attributed-but-not-social. Listed so the weekly table can show them
   # explicitly: a channel that is in neither list would be silently invisible
@@ -112,11 +118,16 @@ class JpWeeklyKpi
   end
 
   # P17 — YouTube only. v3's table had it covering "SNS", which it never did.
-  # There is no YouTube channel yet and this app has no YouTube data, so the
-  # honest answer is 「—」 rather than 0: zero would read as "measured and found
-  # nothing".
+  #
+  # Still 「—」, but for a different reason than when this was written. The note
+  # said 「채널 미개설」; the channel is open and ep01's Short has been live since
+  # 2026-11-01 (content/jp/ep01/manifest.json records the URL). What is still
+  # true is that THIS DATABASE holds no YouTube view count — the numbers live
+  # in YouTube Studio and nothing imports them. Zero would read as "measured
+  # and found nothing", so the honest answer stays 「—」; the reason had to be
+  # corrected, because a stale reason is how a metric stops being chased.
   def p17
-    { current: nil, note: "YouTube 실측만. 채널 미개설 — 계측 원본이 없다" }
+    { current: nil, note: "YouTube 실측만. 채널은 열려 있으나 재생수를 이 DB 로 가져오는 경로가 없다 — Studio 에서 직접 확인" }
   end
 
   # `from` is the landing page's own slug (nyusatsu | honnin | aimae | direct) —
@@ -156,7 +167,12 @@ class JpWeeklyKpi
         "current" => "—", "detail" => "Instagram 보류·YouTube 미개설 — 이 표로는 셀 수 없다. P18 을 볼 것" },
       { "id" => "P16", "statement" => "랜딩 유입 중 소셜 경유", "target" => "≥10%",
         "current" => p16v[:share] ? "#{p16v[:share]}%" : "—",
-        "detail" => "x+linkedin+youtube #{p16v[:social]} / #{p16v[:total]} " \
+        # The channel list is printed FROM the constant, not retyped. It said
+        # "x+linkedin+youtube" while the constant had four entries for exactly
+        # as long as it took to notice — and a detail line that names the wrong
+        # channels is worse than one that names none, because it is the line a
+        # reader uses to check the number.
+        "detail" => "#{SOCIAL_SOURCES.join('+')} #{p16v[:social]} / #{p16v[:total]} " \
                     "(blog #{p16v[:blog_excluded]}건·email #{p16v[:email_excluded]}건은 " \
                     "분모에만 넣고 분자에서 제외)" },
       { "id" => "P17", "statement" => "YouTube 누적 재생", "target" => "≥3,000",
@@ -213,7 +229,7 @@ class JpWeeklyKpi
       out << ""
       out << "> 전체 landing_view **#{p16v[:total]}건** 중 출처가 기록된 것 #{p16v[:attributed]}건."
       out << "> 나머지는 파라미터 없이 들어온 방문이며 **P16 의 분모에는 포함**된다."
-      out << "> P16 의 분자는 x + linkedin + youtube 만 — `blog`(자사 내부 링크)와"
+      out << "> P16 의 분자는 #{SOCIAL_SOURCES.join(' + ')} 만 — `blog`(자사 내부 링크)와"
       out << "> `email`(손으로 보낸 아웃리치 메일)은 **분모에만** 넣는다. 둘 다 진짜 방문이지만"
       out << "> 소셜 도달이 아니고, 분자에 넣으면 P16 이 아웃리치 통수에 따라 올라간다."
       out << "> `other` = 목록 밖 값."

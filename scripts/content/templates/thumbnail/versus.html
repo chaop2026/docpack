@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>SafeFile JP thumbnail — 比較 (versus)</title>
+<!--
+  intent = 比較 — the TWO-COLUMN frame.
+
+  "Which way is right?" The reader has already chosen a method and wants to
+  know whether it was the wrong one. So both columns are shown, and the wrong
+  one is shown FIRST — the order is the argument.
+
+  🔴 The ✗ column must describe a method a reader could plausibly have used
+  (a sticky note, an image editor's black rectangle), not a straw man. A
+  comparison nobody recognises reads as an advertisement.
+
+  Same file renders 1080×1920 and 1280×720.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=IBM+Plex+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<style>
+.vs{display:flex;align-items:stretch;position:relative}
+.vs .col{background:var(--card);border:4px solid var(--line);border-radius:22px;flex:1 1 0;
+  display:flex;flex-direction:column;gap:.5em}
+.vs .col.bad{border-color:var(--alarm)}
+.vs .col.good{border-color:var(--ok);background:#F2F7EC}
+.vs .mark{font-weight:900;line-height:1}
+.vs .col.bad .mark{color:var(--alarm)}
+.vs .col.good .mark{color:var(--ok)}
+.vs .txt{font-weight:700;line-height:1.35}
+.vs .res{color:var(--sub);font-weight:500;line-height:1.35;margin-top:auto}
+.vs .col.bad .res{color:var(--alarm);font-weight:700}
+
+#card.short .vs{gap:24px;margin:40px 0 0}
+#card.short .vs .col{padding:34px 30px}
+#card.short .vs .mark{font-size:66px}
+#card.short .vs .txt{font-size:40px}
+#card.short .vs .res{font-size:32px;padding-top:18px}
+#card.long  .vs{gap:16px;margin:22px 0 0}
+#card.long  .vs .col{padding:20px 20px}
+#card.long  .vs .mark{font-size:42px}
+#card.long  .vs .txt{font-size:26px}
+#card.long  .vs .res{font-size:21px;padding-top:10px}
+.mid{display:flex;flex-direction:column;flex:0 0 auto}
+</style>
+</head>
+<body>
+<div id="card"></div>
+<script src="thumb.js"></script>
+<script>
+window.SF_THUMB_READY = false;
+
+/*
+ * spec: { size, badge, headline:[l1,l2], accent, doc:{title,rows}, note,
+ *         versus:[{ok:false,txt,res},{ok:true,txt,res}] }
+ *
+ * Exactly two columns are rendered. A three-way comparison does not fit at
+ * phone size, and the question this intent answers is binary: the way you did
+ * it, or the way that holds.
+ */
+window.SF_THUMB = function (spec) {
+  var esc = window.SF_ESC;
+  var cols = (spec.versus || []).slice(0, 2);
+  var mid = '<div class="mid">'
+    + window.SF_HEAD(spec.headline, spec.accent, spec.redLine)
+    + (cols.length === 2
+        ? '<div class="vs">' + cols.map(function (c) {
+            return '<div class="col ' + (c.ok ? 'good' : 'bad') + '">'
+              + '<span class="mark">' + (c.ok ? '○' : '×') + '</span>'
+              + '<span class="txt">' + esc(c.txt) + '</span>'
+              + (c.res ? '<span class="res">' + esc(c.res) + '</span>' : '')
+              + '</div>';
+          }).join('') + '</div>'
+        : window.SF_DOC(spec.doc))
+    + '</div>';
+  return window.SF_THUMB_RENDER(spec, mid);
+};
+</script>
+</body>
+</html>

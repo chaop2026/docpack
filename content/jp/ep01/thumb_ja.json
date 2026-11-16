@@ -1,0 +1,52 @@
+{
+  "_readme": [
+    "ep01 のサムネイル原稿。scripts/content/make_thumbnail.mjs 1 が読む。",
+    "",
+    "枠は topics.json の intent が決める — ep01 は 手順 なので steps.html。",
+    "ここで決めるのは『言葉』だけで、枠は決めない。",
+    "",
+    "rows の `field` は アプリ自身の日本語辞書(public/safe/index.html の ja.jpFields)",
+    "のキーだ。ラベル文字列をここに書き写すと、アプリが項目名を変えたときに",
+    "サムネイルだけ古い言葉を使い続け、それを知らせるものが何もない。",
+    "キーが辞書になければビルドが止まる。",
+    "",
+    "値はすべて架空。実在しない保険者番号・事業所名で、ダミー書類と同じ扱い。",
+    "",
+    "variants は 3 つ: short は a·b(2案 — Gate 1 で人が1つ選ぶ)、",
+    "long は a·b·c。ショートのカスタムサムネイルは YPP 機能で使えないので、",
+    "A/B できるのは長い動画のほうだけだ。"
+  ],
+
+  "doc_title": "資格確認書（被用者保険）",
+
+  "rows": [
+    { "field": "hokensha_bango", "value": "01230567", "masked": true, "focus": true },
+    { "field": "kigo", "value": "4821", "masked": true },
+    { "field": "bango", "value": "9930", "masked": true },
+    { "field": "name", "value": "山田 太郎", "masked": false },
+    { "field": "jigyosho", "value": "〇〇建設株式会社", "masked": false }
+  ],
+
+  "steps": [ "写真をドラッグ", "提出目的を選ぶ", "ダウンロード" ],
+
+  "variants": [
+    {
+      "headline": [ "一箇所残ると", "差し戻される" ],
+      "accent": 1,
+      "red_line": -1,
+      "_why": "痛み優先。『差し戻される』が結果で、そこに마커を置く"
+    },
+    {
+      "headline": [ "その黒塗り、", "下に文字が残る" ],
+      "accent": 1,
+      "red_line": -1,
+      "_why": "痛みの角度を変えた案 — 『気づいていない』ほうを突く。文言と強調位置の両方が a と違う"
+    },
+    {
+      "headline": [ "番号を隠して", "出す三手順" ],
+      "accent": 0,
+      "red_line": -1,
+      "_why": "手順そのものを前に出す案。長い動画向け（検索で来る人は手順を探している）"
+    }
+  ]
+}

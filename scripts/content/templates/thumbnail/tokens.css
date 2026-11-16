@@ -1,0 +1,143 @@
+/*
+ * Shared tokens and chrome for the three thumbnail frames (2026-11-16).
+ *
+ *   warn.html   理由  — warning, red accent
+ *   steps.html  手順  — numbered
+ *   versus.html 比較  — two columns
+ *
+ * ONE file rather than three copies: the brand tokens are also /safe/'s
+ * (public/safe/index.html :root) and the carousel's, and a thumbnail that
+ * drifts from the product's own colours stops being recognisable as the same
+ * tool. Three copies is three chances for one of them to go stale.
+ *
+ * Loaded over file:// as a relative <link>. Measured 2026-11-16 in the exact
+ * Playwright/Chrome this pipeline uses: a file:// page does load a sibling
+ * stylesheet and a sibling script. (It does NOT get to fetch() them, which is
+ * why nothing here reads JSON from disk — make_thumbnail.mjs passes data in.)
+ */
+:root{
+  --paper:#F7F5EF; --card:#FFFFFF; --ink:#17140F; --sub:#6B655A;
+  --line:#E6E1D4; --marker:#FFE066; --alarm:#A32D2D; --ok:#3B6D11;
+  --band:#17140F;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:#111}
+
+#card{
+  background:var(--paper);color:var(--ink);position:relative;overflow:hidden;
+  font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',sans-serif;
+  display:flex;flex-direction:column;
+}
+
+/* ── The safe area ──────────────────────────────────────────────────────────
+ *
+ * On a Shorts cover the bottom and the right are covered by the platform's own
+ * UI (title, channel, buttons). Text placed there is visible while you design
+ * and gone when someone watches — so this is a coordinate, not a preference.
+ *
+ * `#safe` is the only place text may go. thumb.js MEASURES every text node
+ * against it and reports what sticks out; it does not merely assume this CSS
+ * worked. Long-form (1280×720) has no overlay, so #safe is the whole card.
+ */
+#card.short #safe{height:1280px}            /* top 2/3 of 1920 */
+#card.short #fill{height:640px;position:relative;overflow:hidden}
+#card.long  #safe{height:720px}
+#card.long  #fill{display:none}
+
+#safe{display:flex;flex-direction:column;flex:0 0 auto;position:relative;z-index:2}
+#card.short #safe{padding:96px 96px 56px}
+#card.long  #safe{padding:64px 72px 56px}
+
+/* ── chrome ─────────────────────────────────────────────────────────────── */
+.top{display:flex;align-items:center;justify-content:space-between;gap:24px;flex:0 0 auto}
+.brand{display:flex;align-items:center;gap:16px;font-family:'IBM Plex Sans',sans-serif;
+  font-weight:700;letter-spacing:-.02em;white-space:nowrap}
+.brand .bar{background:var(--ink);border-radius:8px}
+.brand .slim{color:var(--sub);font-weight:500}
+.badge{font-family:'IBM Plex Sans',sans-serif;font-weight:700;background:var(--ink);color:#fff;
+  border-radius:999px;white-space:nowrap}
+
+#card.short .brand{font-size:42px}
+#card.short .brand .bar{width:58px;height:29px}
+#card.short .badge{font-size:38px;padding:14px 30px}
+#card.long  .brand{font-size:32px}
+#card.long  .brand .bar{width:44px;height:22px}
+#card.long  .badge{font-size:28px;padding:10px 24px}
+
+/* ── headline — two lines, the pain first ───────────────────────────────── */
+.head{font-weight:900;letter-spacing:-.03em;line-height:1.22}
+.head .l{display:block}
+.head .hl{background:linear-gradient(transparent 56%, var(--marker) 56%);padding:0 .06em}
+.head .red{color:var(--alarm)}
+#card.short .head{font-size:112px}
+#card.long  .head{font-size:60px}
+
+/* ── the landscape layout is not the portrait one, shrunk ──────────────────
+ *
+ * Measured 2026-11-16: stacking headline → document → steps vertically inside
+ * 720px hit the 55% shrink floor AND pushed the required notice 18px past the
+ * bottom. Both are real — the first makes the app's own field labels unreadable
+ * at thumbnail size, the second drops the standing instruction off the frame.
+ *
+ * So long-form gets a grid: the headline spans the width (two lines of twelve
+ * glyphs is simply wide — at 60px it needs ~720px and a half-width column has
+ * ~550px), and the document sits beside the steps instead of under them.
+ * Portrait keeps the stack, where the vertical room actually exists.
+ */
+#card.long .mid{
+  display:grid;grid-template-columns:1fr 1fr;column-gap:28px;align-content:start;
+}
+#card.long .mid > .head,
+#card.long .mid > .warnbar{grid-column:1 / -1}
+#card.long .mid > .doc{grid-column:1}
+#card.long .mid > .steps,
+#card.long .mid > .vs,
+#card.long .mid > .leak{grid-column:2;align-self:start}
+/* versus is itself two columns — it takes the whole width and the document is
+ * not drawn (see versus.html: the comparison IS the close-up for that intent). */
+#card.long .mid > .vs{grid-column:1 / -1}
+
+/* ── document close-up ──────────────────────────────────────────────────── */
+/* Rendered, not photographed. A crop of the dummy JPG would need the golden
+ * specs' box coordinates, and those are in the PNG's 1100×700 space while the
+ * JPG this repo ships is 1118×728 — measured. Bands placed from one into the
+ * other would sit next to the field instead of on it, which on a thumbnail is
+ * the product failing in public. The labels below are resolved from the app's
+ * OWN Japanese dictionary by make_thumbnail.mjs, so they cannot drift. */
+.doc{background:var(--card);border:4px solid var(--line);border-radius:26px;
+  box-shadow:0 18px 50px rgba(23,20,15,.09)}
+.doc .dt{color:var(--sub);font-weight:700;border-bottom:3px solid var(--line)}
+.doc .row{display:flex;align-items:center;gap:22px}
+.doc .lbl{color:var(--sub);flex:0 0 auto}
+.doc .val{font-family:'IBM Plex Sans',monospace;font-weight:600}
+.doc .val.masked{background:var(--band);color:transparent;border-radius:5px}
+.doc .row.focus{position:relative}
+.doc .row.focus .val.masked{outline:6px solid var(--alarm);outline-offset:5px}
+.doc .row.keep .val{color:var(--ink)}
+
+#card.short .doc{margin-top:40px;padding:0 40px 28px}
+#card.short .doc .dt{font-size:32px;padding:26px 0 18px;margin-bottom:14px}
+#card.short .doc .row{font-size:40px;padding:11px 0}
+#card.short .doc .lbl{font-size:31px;width:260px}
+#card.short .doc .val{font-size:38px;padding:4px 14px}
+#card.long  .doc{margin-top:18px;padding:0 24px 18px}
+#card.long  .doc .dt{font-size:22px;padding:16px 0 12px;margin-bottom:10px}
+#card.long  .doc .row{font-size:26px;padding:7px 0}
+#card.long  .doc .lbl{font-size:20px;width:150px}
+#card.long  .doc .val{font-size:25px;padding:3px 10px}
+
+/* ── the must-say line ──────────────────────────────────────────────────── */
+/* Small on purpose: it is a standing instruction, not the message. It is still
+ * INSIDE the safe area — a notice that the platform UI covers is not a notice. */
+.note{color:var(--sub);font-weight:500;margin-top:auto;flex:0 0 auto}
+#card.short .note{font-size:30px;padding-top:20px}
+#card.long  .note{font-size:21px;padding-top:16px}
+
+/* ── the covered strip (short only) ─────────────────────────────────────── */
+/* Below the safe area. Visual continuation of the paper so the cover does not
+ * look cut off, plus a gradient that says "this part is not the message".
+ * NOTHING readable goes here. */
+#fill .sheet{position:absolute;left:96px;right:96px;top:-70px;height:540px;
+  background:var(--card);border:4px solid var(--line);border-radius:26px;opacity:.85}
+#fill .veil{position:absolute;inset:0;
+  background:linear-gradient(180deg, rgba(247,245,239,0) 0%, rgba(247,245,239,.55) 45%, rgba(247,245,239,.95) 78%, var(--paper) 100%)}

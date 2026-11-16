@@ -48,7 +48,12 @@ html,body{background:#111}
 
 /* 0–5s: the pain. One sentence, as big as it will go. */
 .pain{font-size:108px;font-weight:900;line-height:1.3;letter-spacing:-.03em}
-.pain .hl{background:linear-gradient(transparent 56%, var(--marker) 56%);padding:0 6px}
+/* The marker is CLIPPED by background-size rather than animated by width, so
+   the sentence never reflows while it sweeps in. A wipe that re-laid-out the
+   line would read as a glitch in the first second of the video, which is the
+   second that decides whether anyone watches the rest. */
+.pain .hl{background-image:linear-gradient(transparent 56%, var(--marker) 56%);
+  background-repeat:no-repeat;background-size:var(--hlw, 100%) 100%;padding:0 6px}
 .pain-tag{font-size:40px;font-weight:700;color:var(--alarm);margin-bottom:40px;letter-spacing:.02em}
 
 /* 5–10s: why. */
@@ -83,6 +88,24 @@ html,body{background:#111}
 .cmp .txt{font-size:46px;line-height:1.45;font-weight:500}
 
 .foot{font-size:34px;line-height:1.5;color:var(--sub);font-weight:500}
+
+/* ── the end card (last 0.5s) ──────────────────────────────────────────────
+ *
+ * The chosen cover, full bleed, plus the one sentence that is the only route
+ * out of a Short: the description and the comments are not clickable, the
+ * channel's profile link is.
+ *
+ * The sentence sits at y≈1360 — BELOW the cover's own safe area (the top 2/3,
+ * where the cover put its headline) and ABOVE the bottom ~15% where the Shorts
+ * UI draws the title, the channel and the buttons. The cover leaves that strip
+ * empty on purpose; this is what it was left empty for.
+ */
+#card.endcard{padding:0;display:block}
+#card.endcard .cover{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#card.endcard .cta{position:absolute;left:84px;right:84px;top:1330px;
+  background:var(--ink);color:#fff;border-radius:34px;padding:46px 40px;text-align:center}
+#card.endcard .cta .big{display:block;font-size:62px;font-weight:900;line-height:1.25;letter-spacing:-.02em}
+#card.endcard .cta .sub{display:block;margin-top:22px;font-size:34px;line-height:1.4;color:#C9C4B8;font-weight:500}
 </style>
 </head>
 <body>
@@ -115,13 +138,38 @@ function fitToBox(el, min = 0.5) {
 const BRAND = '<div class="brand"><span class="bar"></span>SafeFile<span class="slim">／SlimFile</span></div>';
 const FOOT = '<div class="foot">提出先の指示を必ず確認してください。</div>';
 
+/* The opening sweep. Called between screenshots with 0…100; everything else
+ * about the card stays exactly as SF_CARD('pain', …) left it, so the frames
+ * differ only in how much marker has been painted. */
+window.SF_CARD_WIPE = function (pct) {
+  document.documentElement.style.setProperty('--hlw', pct + '%');
+  return pct;
+};
+
 /*
- * kind: 'pain' | 'why' | 'compare' | 'done'
- * data: { tag, text, note, items:[{ok,txt}], url }
+ * kind: 'pain' | 'why' | 'compare' | 'done' | 'end'
+ * data: { tag, text, note, items:[{ok,txt}], url,
+ *         img, fallbackImg, line, sub }   ← 'end' only
  */
 window.SF_CARD = function (kind, d) {
   const card = document.getElementById('card');
   let mid = '';
+
+  /* The end card is not laid out like the others — it IS the cover image, with
+   * one sentence over it. Returned early so the brand row and the footer are
+   * not drawn on top of a cover that already carries them. */
+  if (kind === 'end') {
+    const src = d.img || d.fallbackImg;
+    card.className = 'endcard';
+    card.innerHTML =
+      (src ? '<img class="cover" src="' + src + '">' : '')
+      + '<div class="cta"><span class="big">' + esc(d.line) + '</span>'
+      + (d.sub ? '<span class="sub">' + esc(d.sub) + '</span>' : '')
+      + '</div>';
+    window.SF_CARD_READY = true;
+    return { scale: 1, overflowed: false, kind: 'end', hasImage: !!src };
+  }
+  card.className = '';
 
   if (kind === 'pain') {
     mid = `<div class="mid">`

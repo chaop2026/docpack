@@ -84,7 +84,24 @@ class SafeEvent < ApplicationRecord
     # of landing visits arriving from SOCIAL, and a mail sent by hand to a
     # named firm is not that. Counting it would make P16 rise as outreach
     # scaled, which is the opposite of what the metric is for (JpWeeklyKpi).
-    "via"        => %w[x linkedin youtube blog email direct other none],
+    #
+    # ── `yt_long` (2026-11-16) ─────────────────────────────────────────────
+    #
+    # The monthly long-form cut, kept apart from `youtube` (Shorts and the
+    # channel profile link) because the two surfaces are not comparable and
+    # merging them would be irreversible — an event row cannot be reclassified
+    # after the fact.
+    #
+    # They differ in the one way that matters here: a Shorts description and a
+    # Shorts comment are NOT clickable, so a Shorts viewer reaches the site
+    # only through the channel's profile link, having decided to go looking. A
+    # long-form description IS clickable, and its first two lines are above the
+    # fold. Those are different funnels with different costs, and "YouTube is
+    # working" would be an average of them.
+    #
+    # It IS in P16's numerator: both are organic reach on a social platform
+    # (JpWeeklyKpi::SOCIAL_SOURCES), unlike `blog` and `email`.
+    "via"        => %w[x linkedin youtube yt_long blog email direct other none],
 
     # Which episode's link was clicked. New information: `utm_campaign=epNN`
     # was in the URL but was never stored (it is not in KEYS below), so

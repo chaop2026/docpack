@@ -119,15 +119,29 @@ class JpShortsTest < ActiveSupport::TestCase
   end
 
   test "the JS slug mirror agrees with JpEpisodeSource for every planned episode" do
-    # make_episode.mjs reimplements the slug because it never talks to the
+    # The JS pipeline reimplements the slug because it never talks to the
     # database, and the Shorts description contains the article URL. A mirrored
     # implementation drifts; this compares the two rather than trusting the
     # comment that says they match.
+    #
+    # It lived in make_episode.mjs until 2026-11-16 and now lives in
+    # scripts/content/lib/episode.mjs, shared by make_episode / make_short /
+    # make_longform. The move was caught by the guard below — which is what it
+    # is for: without it, a relocated mirror makes this test compare the Ruby
+    # implementation with itself and pass for every episode.
     plan = JSON.parse(Rails.root.join("content", "jp", "topics.json").read)["episodes"]
     assert_operator plan.length, :>=, 30, "premise: the plan is populated"
 
-    js = Rails.root.join("scripts", "content", "make_episode.mjs").read
-    assert_match(/function slugFor\(t\)/, js, "the mirror this test exists to check is gone")
+    js = Rails.root.join("scripts", "content", "lib", "episode.mjs").read
+    assert_match(/export function slugFor\(t\)/, js, "the mirror this test exists to check is gone")
+
+    # And that the three entry points use THAT one rather than growing their
+    # own. A second slugFor anywhere under scripts/content/ is the drift this
+    # test cannot otherwise see.
+    others = Dir[Rails.root.join("scripts", "content", "**", "*.mjs").to_s]
+             .reject { |f| f.end_with?("lib/episode.mjs") }
+             .select { |f| File.read(f).match?(/function slugFor\b/) }
+    assert_empty others, "a second slug implementation exists: #{others.inspect}"
 
     plan.each do |row|
       ruby = JpEpisodeSource.new(dir: Rails.root.join("content", "jp", format("ep%02d", row["ep"])),
