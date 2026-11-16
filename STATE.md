@@ -59,14 +59,12 @@
 
 - **YouTube 영상팀 (2026-11-16, `7a10adc`, 미배포·미게시).** 쇼츠 파이프라인이
   `scripts/content/lib/{capture,episode,shorts}.mjs` 로 나왔고 `make_short`·`make_thumbnail`·
-  `make_longform`·`qa_video` 네 진입점이 그것을 공유한다(`make_episode.mjs` 1234→807줄).
-  쇼츠 끝 0.5초 = 표지 + 「プロフィールのリンクから」, 첫 1초 = 마커 와이프.
-  썸네일 틀 3종(intent 가 고른다) · 승인 2회(Gate 1 `plan_ko.md` 한국어 / Gate 2 기존 화면).
-  계측 `via=yt_long` 신설. 에이전트 4개는 `~/.claude/agents/video-*.md`(**저장소 밖**).
-  조사·보고: `docs/jp/{video_team_reuse,video_approval_flow,video_qa_ep01,youtube_longform,
-  youtube_upload_checklist,codex_review_video_team}.md`.
-  🔴 **ep01 쇼츠는 2026-11-01 에 이미 게시돼 있다** — 새로 만든 파일은 끝 화면이 든 **다른**
-  영상이고, 올리면 새 URL 이 생기고 재생수는 따라오지 않는다(사람 결정, 아래).
+  `make_longform`·`qa_video` 가 공유한다(`make_episode.mjs` 1234→807줄). 쇼츠 끝 0.5초 =
+  표지 + 「プロフィールのリンクから」· 첫 1초 = 마커 와이프 · 썸네일 틀 3종(intent 가 고른다) ·
+  승인 2회 · 계측 `via=yt_long`. 에이전트 4개는 `~/.claude/agents/video-*.md`(**저장소 밖**).
+  문서는 `docs/jp/video_*.md` 와 `docs/jp/youtube_*.md`.
+  🔴 **ep01 쇼츠는 2026-11-01 에 이미 게시돼 있다** — 새 파일은 끝 화면이 든 **다른** 영상이고,
+  올리면 새 URL 이 생기고 재생수는 따라오지 않는다(사람 결정, 아래).
 
 ## 다음 할 일
 
@@ -76,12 +74,11 @@
 
 0~1. **라이브 확인 + GSC 재크롤링 요청.** SEO·S6b 작업은 **배포됐다**(2026-11-08 `235762d`).
    배포 자체가 아니라 **라이브 확인과 GSC 요청만** 남았다. 내역은 CLAUDE.md 의 해당 절들.
-   - 301 1홉 확인: `/safe`·`/safe/index.html`·`/safe//`·`/safe/sw.js/`·`//about`·`/en//about`
+   - 301 1홉: `/safe`·`/safe/index.html`·`/safe//`·`/safe/sw.js/`·`//about`·`/en//about`
      ·`/blog//<슬러그>` (로컬 137경로에서 중복 200 = 0 이었다).
    - `curl -H 'Accept-Language: en-US' .../blog/<슬러그>` 가 **noindex 없이** 오는지,
      `/faq` canonical 이 `/faq` 로 남는지 (SEO 수정의 핵심 지표).
-   - **`blog:migrate_privacy` 를 돌린다**(멱등, 3개 글의 단일 소유자) + `rake blog:stuck` ·
-     `jobs:failed` 각 1회(둘 다 읽기 전용, 문제 있으면 exit 1).
+   - `blog:migrate_privacy`(멱등) + `blog:stuck` · `jobs:failed` 각 1회(읽기 전용, 문제 시 exit 1).
    - **S6b**: `/api/` 세 경로에 form POST → **415**, 타 Origin JSON → **403**, 정상 JSON 은 기존대로.
    - SW 가 새로 깔리므로 `/safe/` 를 열고 오프라인에서도 열리는지 눈으로 1회.
    - GSC: `/safe/`·`/blog` URL 검사 → 색인 요청, sitemap 재제출. 반영까지 며칠~2주.
@@ -96,22 +93,19 @@
 1c. **JP S6·S7 교차검증 완료 → S6b 반영 완료.** 원문
    `docs/jp/codex_review_s6s7_2026-10-22.md` · 처리 `docs/jp/s6b_report.md`.
    AMBER 7건 중 (a) 6건 수정 · (b) 1건 백로그 · (c) 0건. **코드 쪽 배포 차단 항목은 없다.**
-   **남은 사람 결정 3건**: ① **B-10** — `nyusatsu` 의 meta/og/twitter description 이 아직
-   `複数PDFを一括` 이라고 말한다(본문은 고쳤고 스니펫에는 단서가 들어갈 자리가 없다;
-   대안 문안은 `s6b_report.md` §5) ② Stripe JP 상품 2개(月¥2,980 / 30日パス¥980) —
-   없으면 `ai-mae` 의 구매 CTA 는 메일로 남는다 ③ 한 라운드 더 돌릴지. 돌린다면 검토 범위는
-   **「AMBER 6건이 닫혔는가 + 새 가드가 공허하지 않은가」**(s6b_report §2~§5, 변이 프로브 7/7).
+   **남은 사람 결정 2건**: ① **B-10** — `nyusatsu` 의 meta/og/twitter description 이 아직
+   `複数PDFを一括` 이라고 말한다(본문은 고쳤다; 대안 문안 `s6b_report.md` §5)
+   ② Stripe JP 상품 2개(月¥2,980 / 30日パス¥980) — 없으면 `ai-mae` 의 구매 CTA 는 메일로 남는다.
 
 2. **ghcr.io PAT 재발급.** 2026-08-25 디버깅 중 `od -c` 로 토큰을 평문 출력해 세션 기록에 남았다.
    교체 후 `.env.production.local` 과 `.env` 두 파일 모두 갱신 (두 파일은 같은 값을 유지해야 함).
 3. **진단 코드 제거.** `application.html.erb` 의 `window.__jsErrors` 수집기와 `params[:debug]`
-   `alert()` 블록은 임시다. 지워도 된다 (`dragover`/`drop` preventDefault 는 남긴다).
-4. **업로드 목록 실기기 확인.** 실제 모바일 Safari/Chrome 에서 드롭·파일 선택·긴 파일명 생략.
-5. **블로그 자동화 현재 상태 점검.** `kamal app exec 'bin/rails blog:stuck'` +
-   `jobs:failed` + `runner "puts Post.group(:status).count"`. 2026-04-07 이후 재검증 기록 없음.
-6. **PWA 작업 시 `app/views/pwa/manifest.json.erb` 처리 결정.** Rails 8 스캐폴드 잔재다 —
-   라우트가 없고 레이아웃은 `/site.webmanifest`(정적)를 링크한다(`theme_color: "red"` 가 증거).
-   **삭제할지 실제로 라우팅해 쓸지** 정한다. 쓰면 둘 중 하나만 남긴다.
+   `alert()` 블록은 임시다 (`dragover`/`drop` preventDefault 는 남긴다).
+4. **업로드 목록 실기기 확인.** 모바일 Safari/Chrome 에서 드롭·파일 선택·긴 파일명 생략.
+5. **블로그 자동화 점검.** `blog:stuck` + `jobs:failed` + `Post.group(:status).count`.
+   2026-04-07 이후 재검증 기록 없음.
+6. **`app/views/pwa/manifest.json.erb` 처리 결정.** Rails 8 스캐폴드 잔재 — 라우트가 없고
+   레이아웃은 정적 `/site.webmanifest` 를 링크한다. 삭제할지 라우팅할지 정하고 하나만 남긴다.
 
 ## 막힌 것 / 기다리는 것
 
