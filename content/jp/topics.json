@@ -40,7 +40,20 @@
     "one of 手順 | 理由 | 比較. `verify_before` means the facts must be re-confirmed",
     "before the package may be scheduled (ep30 cites a rule that is not in force,",
     "ep32 describes a feature that has not shipped). `social_skip` means blog only",
-    "that week — the X thread and LinkedIn post roll forward to the next Monday."
+    "that week — the X thread and LinkedIn post roll forward to the next Monday.",
+    "",
+    "⚠️ 2026-11-22 — publish_on is no longer derived from strategy v3 §4. The Notion",
+    "board 「SafeFile JP 제작 보드」 is now the schedule of record: only ep01 actually",
+    "shipped (2026-10-26), so the board restarted the guide track at ep02 = 2026-11-30",
+    "and everything after it moved five weeks later. add_v31_fields.mjs still holds",
+    "the §4 table and would silently restore the old dates, so it now refuses to run;",
+    "the Monday rule and the weekly cadence from ep02 are still asserted by",
+    "test/models/jp_plan_test.rb. ep01→ep02 is a five-week gap on purpose — that is",
+    "the real publishing history, not a typo.",
+    "",
+    "`social_skip` follows the CALENDAR, not the episode: it marks the year-end and",
+    "Golden Week Mondays. The reshuffle moved them from ep10/ep28 to ep06",
+    "(2026-12-28) and ep24 (2027-05-03)."
   ],
   "_forbidden": [
     "No incident names (タイムズカー etc.). No first-person victim account.",
@@ -87,7 +100,7 @@
       "status": "draft",
       "blog_title_ja": "入札添付の資格確認書、「マスキング指示」の読み方",
       "intent": "理由",
-      "publish_on": "2026-11-02",
+      "publish_on": "2026-11-30",
       "verify_before": false,
       "social_skip": false,
       "shorts_title_ja": "どこを隠せばいいのか分からない？",
@@ -110,7 +123,7 @@
       "status": "draft",
       "blog_title_ja": "ChatGPTに契約書を貼る前に個人情報だけ黒塗りする方法",
       "intent": "手順",
-      "publish_on": "2026-11-09",
+      "publish_on": "2026-12-07",
       "verify_before": false,
       "social_skip": false,
       "shorts_title_ja": "AIに契約書、そのまま貼ってない？",
@@ -133,7 +146,7 @@
       "status": "draft",
       "blog_title_ja": "賃貸借契約書を専門家に相談する前の匿名化の手順",
       "intent": "手順",
-      "publish_on": "2026-11-16",
+      "publish_on": "2026-12-14",
       "verify_before": false,
       "social_skip": false,
       "shorts_title_ja": "契約書、相談前に何を隠す？",
@@ -156,7 +169,7 @@
       "status": "draft",
       "blog_title_ja": "電子入札のPDF容量制限と黒塗りを一度に済ませる方法",
       "intent": "手順",
-      "publish_on": "2026-11-23",
+      "publish_on": "2026-12-21",
       "verify_before": false,
       "social_skip": false,
       "shorts_title_ja": "入札のPDF、容量で弾かれた？",
@@ -179,9 +192,9 @@
       "status": "draft",
       "blog_title_ja": "補助金精算の添付書類、どこまで隠すか【用途別】",
       "intent": "比較",
-      "publish_on": "2026-11-30",
+      "publish_on": "2026-12-28",
       "verify_before": false,
-      "social_skip": false,
+      "social_skip": true,
       "shorts_title_ja": "補助金の精算、どこまで隠す？",
       "shorts_tags": [
         "#補助金",
@@ -202,7 +215,7 @@
       "status": "draft",
       "blog_title_ja": "源泉徴収票に個人番号がある場合・ない場合の扱い",
       "intent": "比較",
-      "publish_on": "2026-12-07",
+      "publish_on": "2027-01-04",
       "verify_before": false,
       "social_skip": false,
       "shorts_title_ja": "源泉徴収票、番号ありますか？",
@@ -225,7 +238,7 @@
       "status": "draft",
       "blog_title_ja": "家族の書類を代理で提出するときに確認すること",
       "intent": "手順",
-      "publish_on": "2026-12-14",
+      "publish_on": "2027-01-11",
       "verify_before": false,
       "social_skip": false,
       "shorts_title_ja": "家族の書類、代理で出せる？",
@@ -248,7 +261,7 @@
       "status": "draft",
       "blog_title_ja": "マイナンバーカードの表面・裏面、提出が必要なのはどちらか",
       "intent": "比較",
-      "publish_on": "2026-12-21",
+      "publish_on": "2027-01-18",
       "verify_before": false,
       "social_skip": false
     },
@@ -265,9 +278,9 @@
       "status": "draft",
       "blog_title_ja": "運転免許証のコピーを送る前に確認する3つのこと",
       "intent": "手順",
-      "publish_on": "2026-12-28",
+      "publish_on": "2027-01-25",
       "verify_before": false,
-      "social_skip": true
+      "social_skip": false
     },
     {
       "ep": 11,
@@ -282,7 +295,7 @@
       "status": "draft",
       "blog_title_ja": "住民票の写し：用途別に残す項目・隠す項目",
       "intent": "比較",
-      "publish_on": "2027-01-04",
+      "publish_on": "2027-02-01",
       "verify_before": false,
       "social_skip": false
     },
@@ -299,7 +312,7 @@
       "status": "draft",
       "blog_title_ja": "「黒塗りしたつもり」が読めてしまう仕組み",
       "intent": "理由",
-      "publish_on": "2027-01-11",
+      "publish_on": "2027-02-08",
       "verify_before": false,
       "social_skip": false
     },
@@ -316,7 +329,7 @@
       "status": "draft",
       "blog_title_ja": "付箋・マスキングテープで隠して撮影する方法の限界",
       "intent": "理由",
-      "publish_on": "2027-01-18",
+      "publish_on": "2027-02-15",
       "verify_before": false,
       "social_skip": false
     },
@@ -333,7 +346,7 @@
       "status": "draft",
       "blog_title_ja": "「マスキングしてください」と書く提出先、書かない提出先",
       "intent": "比較",
-      "publish_on": "2027-01-25",
+      "publish_on": "2027-02-22",
       "verify_before": false,
       "social_skip": false
     },
@@ -351,7 +364,7 @@
       "status": "draft",
       "blog_title_ja": "本人確認書類は「最小化」が原則 — 求められた面と項目だけ",
       "intent": "理由",
-      "publish_on": "2027-02-01",
+      "publish_on": "2027-03-01",
       "verify_before": false,
       "social_skip": false
     },
@@ -368,7 +381,7 @@
       "status": "draft",
       "blog_title_ja": "フリマ・ネット銀行の本人確認、画像を送る前にできること",
       "intent": "手順",
-      "publish_on": "2027-02-08",
+      "publish_on": "2027-03-08",
       "verify_before": false,
       "social_skip": false
     },
@@ -385,7 +398,7 @@
       "status": "draft",
       "blog_title_ja": "賃貸契約で身分証のコピーを求められたら確認すること",
       "intent": "手順",
-      "publish_on": "2027-02-15",
+      "publish_on": "2027-03-15",
       "verify_before": false,
       "social_skip": false
     },
@@ -402,7 +415,7 @@
       "status": "draft",
       "blog_title_ja": "履歴書PDFを相談用に共有する — 連絡先だけ隠す方法",
       "intent": "手順",
-      "publish_on": "2027-02-22",
+      "publish_on": "2027-03-22",
       "verify_before": false,
       "social_skip": false
     },
@@ -419,7 +432,7 @@
       "status": "draft",
       "blog_title_ja": "給与明細を相談に出すとき、口座番号と社員番号の扱い",
       "intent": "比較",
-      "publish_on": "2027-03-01",
+      "publish_on": "2027-03-29",
       "verify_before": false,
       "social_skip": false
     },
@@ -436,7 +449,7 @@
       "status": "draft",
       "blog_title_ja": "通帳画像：残高証明として出す場合と相談用の違い",
       "intent": "比較",
-      "publish_on": "2027-03-08",
+      "publish_on": "2027-04-05",
       "verify_before": false,
       "social_skip": false
     },
@@ -453,7 +466,7 @@
       "status": "draft",
       "blog_title_ja": "在留カード：提出先が求める面を確認してから隠す",
       "intent": "手順",
-      "publish_on": "2027-03-15",
+      "publish_on": "2027-04-12",
       "verify_before": false,
       "social_skip": false
     },
@@ -470,7 +483,7 @@
       "status": "draft",
       "blog_title_ja": "パスポートの番号・MRZを隠してよい場面、いけない場面",
       "intent": "比較",
-      "publish_on": "2027-03-22",
+      "publish_on": "2027-04-19",
       "verify_before": false,
       "social_skip": false
     },
@@ -487,7 +500,7 @@
       "status": "draft",
       "blog_title_ja": "職務経歴書を匿名で共有するときの考え方",
       "intent": "理由",
-      "publish_on": "2027-03-29",
+      "publish_on": "2027-04-26",
       "verify_before": false,
       "social_skip": false
     },
@@ -504,9 +517,9 @@
       "status": "draft",
       "blog_title_ja": "スマホだけで：撮影 → 黒塗り → 確認 → 送信",
       "intent": "手順",
-      "publish_on": "2027-04-05",
+      "publish_on": "2027-05-03",
       "verify_before": false,
-      "social_skip": false
+      "social_skip": true
     },
     {
       "ep": 25,
@@ -521,7 +534,7 @@
       "status": "draft",
       "blog_title_ja": "透かし「〇〇提出用」の入れ方と、その限界",
       "intent": "手順",
-      "publish_on": "2027-04-12",
+      "publish_on": "2027-05-10",
       "verify_before": false,
       "social_skip": false
     },
@@ -539,7 +552,7 @@
       "status": "draft",
       "blog_title_ja": "提出した本人確認書類はいつまで残るのか",
       "intent": "理由",
-      "publish_on": "2027-04-19",
+      "publish_on": "2027-05-17",
       "verify_before": false,
       "social_skip": false
     },
@@ -557,7 +570,7 @@
       "status": "draft",
       "blog_title_ja": "「そもそも出さない」という選択 — 最小化原則の実務",
       "intent": "理由",
-      "publish_on": "2027-04-26",
+      "publish_on": "2027-05-24",
       "verify_before": false,
       "social_skip": false
     },
@@ -574,9 +587,9 @@
       "status": "draft",
       "blog_title_ja": "学生証の画像を送るとき、学生が確認できること",
       "intent": "手順",
-      "publish_on": "2027-05-03",
+      "publish_on": "2027-05-31",
       "verify_before": false,
-      "social_skip": true
+      "social_skip": false
     },
     {
       "ep": 29,
@@ -591,7 +604,7 @@
       "status": "draft",
       "blog_title_ja": "「サーバーに保存しない」ツールの見分け方",
       "intent": "比較",
-      "publish_on": "2027-05-10",
+      "publish_on": "2027-06-07",
       "verify_before": false,
       "social_skip": false
     },
@@ -608,7 +621,7 @@
       "status": "draft",
       "blog_title_ja": "2027年4月の犯収法改正で本人確認はどう変わるか",
       "intent": "理由",
-      "publish_on": "2027-05-17",
+      "publish_on": "2027-06-14",
       "verify_before": true,
       "social_skip": false
     },
@@ -625,7 +638,7 @@
       "status": "draft",
       "blog_title_ja": "副業の本人確認を毎回やり直さないために",
       "intent": "手順",
-      "publish_on": "2027-05-24",
+      "publish_on": "2027-06-21",
       "verify_before": false,
       "social_skip": false
     },
@@ -644,7 +657,7 @@
       "note": "Unshipped feature. The strategy forbids advertising it, so this episode must NOT be written or built before batch processing exists. Kept in the list so the slot is visible rather than forgotten.",
       "blog_title_ja": "複数書類をまとめて処理する",
       "intent": "手順",
-      "publish_on": "2027-05-31",
+      "publish_on": "2027-06-28",
       "verify_before": true,
       "social_skip": false
     },
@@ -661,7 +674,7 @@
       "status": "draft",
       "blog_title_ja": "7か月の振り返りと、よくある黒塗りの落とし穴",
       "intent": "理由",
-      "publish_on": "2027-06-07",
+      "publish_on": "2027-07-05",
       "verify_before": false,
       "social_skip": false
     }

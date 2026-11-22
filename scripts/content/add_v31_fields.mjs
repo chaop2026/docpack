@@ -78,6 +78,28 @@ const minusOneDay = (iso) => {
   return d.toISOString().slice(0, 10);
 };
 
+/* ── Retired 2026-11-22 ────────────────────────────────────────────────────
+ *
+ * This script is kept because the §4 table above is the audit trail for
+ * blog_title_ja and intent. It must not RUN any more.
+ *
+ * The Notion board 「SafeFile JP 제작 보드」 became the schedule of record on
+ * 2026-11-22: only ep01 actually shipped, so the guide track restarted at
+ * ep02 = 2026-11-30 and every later episode moved five weeks. Re-running this
+ * would rewrite publish_on from the §4 table and quietly restore the dates the
+ * board replaced — and because every result would still be a Monday and still
+ * be one week apart, jp_plan_test would stay green while the plan disagreed
+ * with the board. A one-shot that can still fire is not a one-shot.
+ *
+ * Exits 2 before reading topics.json. Deleting these lines is the deliberate
+ * act that re-enables it; a comment saying "do not run" is not.
+ */
+console.error('scripts/content/add_v31_fields.mjs is RETIRED (2026-11-22) and will not run.\n'
+  + '  publish_on / social_skip are owned by the Notion production board, not by the\n'
+  + '  strategy v3 §4 table in this file. Running it would restore the pre-board dates\n'
+  + '  and nothing would fail. Edit content/jp/topics.json directly instead.');
+process.exit(2);
+
 const doc = JSON.parse(fs.readFileSync(FILE, 'utf8'));
 const byEp = new Map(TABLE.map(([ep, date, intent, title]) => [ep, { date, intent, title }]));
 
