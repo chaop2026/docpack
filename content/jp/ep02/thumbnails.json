@@ -1,0 +1,81 @@
+{
+  "ep": 2,
+  "intent": "理由",
+  "frame": "warn.html",
+  "version": "v1",
+  "generated_by": "scripts/content/make_thumbnail.mjs",
+  "cover_chosen_at_gate1": null,
+  "files": [
+    {
+      "name": "thumb_short_a.png",
+      "variant": "a",
+      "format": "short",
+      "frame": "warn.html",
+      "pixels": "1080x1920",
+      "bytes": 120459,
+      "fit": 0.92,
+      "outside": 0,
+      "headline": [
+        "記号と番号だけで",
+        "足りている？"
+      ]
+    },
+    {
+      "name": "thumb_short_b.png",
+      "variant": "b",
+      "format": "short",
+      "frame": "warn.html",
+      "pixels": "1080x1920",
+      "bytes": 128525,
+      "fit": 0.94,
+      "outside": 0,
+      "headline": [
+        "別枠の枝番は",
+        "隠さなくていい？"
+      ]
+    },
+    {
+      "name": "thumb_long_a.png",
+      "variant": "a",
+      "format": "long",
+      "frame": "warn.html",
+      "pixels": "1280x720",
+      "bytes": 68176,
+      "fit": 0.88,
+      "outside": 0,
+      "headline": [
+        "記号と番号だけで",
+        "足りている？"
+      ]
+    },
+    {
+      "name": "thumb_long_b.png",
+      "variant": "b",
+      "format": "long",
+      "frame": "warn.html",
+      "pixels": "1280x720",
+      "bytes": 73794,
+      "fit": 0.9,
+      "outside": 0,
+      "headline": [
+        "別枠の枝番は",
+        "隠さなくていい？"
+      ]
+    },
+    {
+      "name": "thumb_long_c.png",
+      "variant": "c",
+      "format": "long",
+      "frame": "warn.html",
+      "pixels": "1280x720",
+      "bytes": 72349,
+      "fit": 0.9,
+      "outside": 0,
+      "headline": [
+        "「適宜処理のうえ」",
+        "どこまで隠す？"
+      ]
+    }
+  ],
+  "warnings": []
+}
