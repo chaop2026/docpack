@@ -1,0 +1,81 @@
+{
+  "ep": 6,
+  "intent": "比較",
+  "frame": "versus.html",
+  "version": "v1",
+  "generated_by": "scripts/content/make_thumbnail.mjs",
+  "cover_chosen_at_gate1": null,
+  "files": [
+    {
+      "name": "thumb_short_a.png",
+      "variant": "a",
+      "format": "short",
+      "frame": "versus.html",
+      "pixels": "1080x1920",
+      "bytes": 113781,
+      "fit": 1,
+      "outside": 0,
+      "headline": [
+        "「適宜処理」とは",
+        "どこまで隠す？"
+      ]
+    },
+    {
+      "name": "thumb_short_b.png",
+      "variant": "b",
+      "format": "short",
+      "frame": "versus.html",
+      "pixels": "1080x1920",
+      "bytes": 120973,
+      "fit": 1,
+      "outside": 0,
+      "headline": [
+        "金額まで黒塗り、",
+        "差し戻されない？"
+      ]
+    },
+    {
+      "name": "thumb_long_a.png",
+      "variant": "a",
+      "format": "long",
+      "frame": "versus.html",
+      "pixels": "1280x720",
+      "bytes": 65193,
+      "fit": 1,
+      "outside": 0,
+      "headline": [
+        "「適宜処理」とは",
+        "どこまで隠す？"
+      ]
+    },
+    {
+      "name": "thumb_long_b.png",
+      "variant": "b",
+      "format": "long",
+      "frame": "versus.html",
+      "pixels": "1280x720",
+      "bytes": 69477,
+      "fit": 1,
+      "outside": 0,
+      "headline": [
+        "金額まで黒塗り、",
+        "差し戻されない？"
+      ]
+    },
+    {
+      "name": "thumb_long_c.png",
+      "variant": "c",
+      "format": "long",
+      "frame": "versus.html",
+      "pixels": "1280x720",
+      "bytes": 70328,
+      "fit": 1,
+      "outside": 0,
+      "headline": [
+        "補助金の精算書類、",
+        "隠す範囲はどこ？"
+      ]
+    }
+  ],
+  "warnings": []
+}

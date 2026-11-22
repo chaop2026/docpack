@@ -1,0 +1,81 @@
+{
+  "ep": 4,
+  "intent": "手順",
+  "frame": "steps.html",
+  "version": "v1",
+  "generated_by": "scripts/content/make_thumbnail.mjs",
+  "cover_chosen_at_gate1": null,
+  "files": [
+    {
+      "name": "thumb_short_a.png",
+      "variant": "a",
+      "format": "short",
+      "frame": "steps.html",
+      "pixels": "1080x1920",
+      "bytes": 144249,
+      "fit": 1,
+      "outside": 0,
+      "headline": [
+        "契約書の写真を",
+        "そのまま送った？"
+      ]
+    },
+    {
+      "name": "thumb_short_b.png",
+      "variant": "b",
+      "format": "short",
+      "frame": "steps.html",
+      "pixels": "1080x1920",
+      "bytes": 139262,
+      "fit": 1,
+      "outside": 0,
+      "headline": [
+        "相手方の名前も",
+        "隠してしまった？"
+      ]
+    },
+    {
+      "name": "thumb_long_a.png",
+      "variant": "a",
+      "format": "long",
+      "frame": "steps.html",
+      "pixels": "1280x720",
+      "bytes": 91012,
+      "fit": 1,
+      "outside": 0,
+      "headline": [
+        "契約書の写真を",
+        "そのまま送った？"
+      ]
+    },
+    {
+      "name": "thumb_long_b.png",
+      "variant": "b",
+      "format": "long",
+      "frame": "steps.html",
+      "pixels": "1280x720",
+      "bytes": 87952,
+      "fit": 1,
+      "outside": 0,
+      "headline": [
+        "相手方の名前も",
+        "隠してしまった？"
+      ]
+    },
+    {
+      "name": "thumb_long_c.png",
+      "variant": "c",
+      "format": "long",
+      "frame": "steps.html",
+      "pixels": "1280x720",
+      "bytes": 91222,
+      "fit": 1,
+      "outside": 0,
+      "headline": [
+        "相談前の契約書、",
+        "匿名化の範囲は？"
+      ]
+    }
+  ],
+  "warnings": []
+}

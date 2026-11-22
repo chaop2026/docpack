@@ -1,0 +1,81 @@
+{
+  "ep": 7,
+  "intent": "比較",
+  "frame": "versus.html",
+  "version": "v1",
+  "generated_by": "scripts/content/make_thumbnail.mjs",
+  "cover_chosen_at_gate1": null,
+  "files": [
+    {
+      "name": "thumb_short_a.png",
+      "variant": "a",
+      "format": "short",
+      "frame": "versus.html",
+      "pixels": "1080x1920",
+      "bytes": 118874,
+      "fit": 1,
+      "outside": 0,
+      "headline": [
+        "その源泉徴収票、",
+        "番号ありますか？"
+      ]
+    },
+    {
+      "name": "thumb_short_b.png",
+      "variant": "b",
+      "format": "short",
+      "frame": "versus.html",
+      "pixels": "1080x1920",
+      "bytes": 118946,
+      "fit": 1,
+      "outside": 0,
+      "headline": [
+        "勤務先の控えは",
+        "どちらの様式？"
+      ]
+    },
+    {
+      "name": "thumb_long_a.png",
+      "variant": "a",
+      "format": "long",
+      "frame": "versus.html",
+      "pixels": "1280x720",
+      "bytes": 67414,
+      "fit": 1,
+      "outside": 0,
+      "headline": [
+        "その源泉徴収票、",
+        "番号ありますか？"
+      ]
+    },
+    {
+      "name": "thumb_long_b.png",
+      "variant": "b",
+      "format": "long",
+      "frame": "versus.html",
+      "pixels": "1280x720",
+      "bytes": 67236,
+      "fit": 1,
+      "outside": 0,
+      "headline": [
+        "勤務先の控えは",
+        "どちらの様式？"
+      ]
+    },
+    {
+      "name": "thumb_long_c.png",
+      "variant": "c",
+      "format": "long",
+      "frame": "versus.html",
+      "pixels": "1280x720",
+      "bytes": 66779,
+      "fit": 1,
+      "outside": 0,
+      "headline": [
+        "源泉徴収票の個人番号、",
+        "提出先に聞く？"
+      ]
+    }
+  ],
+  "warnings": []
+}

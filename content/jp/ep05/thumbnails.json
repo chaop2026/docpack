@@ -1,0 +1,81 @@
+{
+  "ep": 5,
+  "intent": "手順",
+  "frame": "steps.html",
+  "version": "v1",
+  "generated_by": "scripts/content/make_thumbnail.mjs",
+  "cover_chosen_at_gate1": null,
+  "files": [
+    {
+      "name": "thumb_short_a.png",
+      "variant": "a",
+      "format": "short",
+      "frame": "steps.html",
+      "pixels": "1080x1920",
+      "bytes": 138752,
+      "fit": 1,
+      "outside": 0,
+      "headline": [
+        "入札のPDF、",
+        "容量で弾かれた？"
+      ]
+    },
+    {
+      "name": "thumb_short_b.png",
+      "variant": "b",
+      "format": "short",
+      "frame": "steps.html",
+      "pixels": "1080x1920",
+      "bytes": 141454,
+      "fit": 1,
+      "outside": 0,
+      "headline": [
+        "黒塗りと容量、",
+        "どちらを先に？"
+      ]
+    },
+    {
+      "name": "thumb_long_a.png",
+      "variant": "a",
+      "format": "long",
+      "frame": "steps.html",
+      "pixels": "1280x720",
+      "bytes": 87867,
+      "fit": 1,
+      "outside": 0,
+      "headline": [
+        "入札のPDF、",
+        "容量で弾かれた？"
+      ]
+    },
+    {
+      "name": "thumb_long_b.png",
+      "variant": "b",
+      "format": "long",
+      "frame": "steps.html",
+      "pixels": "1280x720",
+      "bytes": 89121,
+      "fit": 1,
+      "outside": 0,
+      "headline": [
+        "黒塗りと容量、",
+        "どちらを先に？"
+      ]
+    },
+    {
+      "name": "thumb_long_c.png",
+      "variant": "c",
+      "format": "long",
+      "frame": "steps.html",
+      "pixels": "1280x720",
+      "bytes": 90607,
+      "fit": 1,
+      "outside": 0,
+      "headline": [
+        "電子入札のPDF、",
+        "黒塗りは先？後？"
+      ]
+    }
+  ],
+  "warnings": []
+}

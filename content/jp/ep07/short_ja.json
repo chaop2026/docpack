@@ -1,0 +1,92 @@
+{
+  "_readme": [
+    "ep07 のショート。scripts/content/make_short.mjs 7 が読み、同じファイルを書き戻す。",
+    "",
+    "このファイルは半分が人の決定で、半分が測定値だ。",
+    "  人が決める: cover / cover_provisional / hooks / script / posted",
+    "  ビルドが書く: segments / rendered_segments / end_card / duration_sec / warnings",
+    "make_short.mjs は前者を読み込んで持ち越すだけで、作り直さない。",
+    "",
+    "🔴 cover は Gate 1（土曜の承認）で人が a・b のどちらかを選ぶ。",
+    "   ここに入っている thumb_short_a.png は 暫定 で、選ばれたものではない。",
+    "   cover_provisional: true がその事実で、ビルドは毎回それを警告に出す。",
+    "   選ばれたら値を直して cover_provisional を消す — 消すまでは、",
+    "   既定値が決定の顔をしてしまう。",
+    "",
+    "   なぜ暫定でも入れておくか: 終わり画面（29.5〜30.0秒）が cover の画像を",
+    "   使うので、空のままだと動画を承認の場に出せない。承認する会議より前に",
+    "   動画が出来ていないと、承認する対象が無い。"
+  ],
+  "ep": 7,
+  "generated_by": "scripts/content/lib/shorts.mjs",
+  "size": "1080x1920",
+  "segments": {
+    "painWipe": 1,
+    "painHold": 4,
+    "why": 5,
+    "fix": 15,
+    "done": 4.5,
+    "end": 0.5
+  },
+  "cover": "thumb_short_a.png",
+  "cover_provisional": true,
+  "hooks": null,
+  "script": null,
+  "posted": null,
+  "duration_sec": 30,
+  "track": "A",
+  "rendered_segments": {
+    "pain": {
+      "tag": "よくある差し戻し",
+      "text": "源泉徴収票をコピーして出した後で、個人番号の欄に気づいた。"
+    },
+    "why": {
+      "text": "黒い四角を重ねただけでは、\n下の文字が残ることがあります。",
+      "note": "PDFの文字層はコピーできてしまいます。"
+    },
+    "compare": {
+      "text": "隠し方で結果が変わります",
+      "items": [
+        {
+          "ok": false,
+          "txt": "付箋を貼って撮影 — 光で透けることがある"
+        },
+        {
+          "ok": false,
+          "txt": "画像編集アプリで黒い四角 — 文字層が残る"
+        },
+        {
+          "ok": true,
+          "txt": "画像に平坦化 — 下に原文が残らない"
+        }
+      ]
+    },
+    "done": {
+      "text": "画像に平坦化されるので、\n黒塗りの下に原文は残りません。",
+      "note": "ファイルはブラウザの中だけで処理されます。",
+      "url": "https://slimfile.net/safe/jp/nyusatsu/?via=youtube&ep=ep07"
+    },
+    "end": {
+      "line": "プロフィールのリンクから",
+      "sub": "第07回 源泉徴収票、番号ありますか？"
+    }
+  },
+  "fix_source": "comparison cards",
+  "recorded_frames": 0,
+  "masked_regions": null,
+  "end_card": {
+    "from": "thumb_short_a.png",
+    "fell_back_to_closing_card": false,
+    "line": "プロフィールのリンクから",
+    "starts_at_sec": 29.5
+  },
+  "thumbnail_frame_sec": 29.5,
+  "thumbnail_frame_window": [
+    29.5,
+    30
+  ],
+  "warnings": [
+    "shorts: cover \"thumb_short_a.png\" is PROVISIONAL (cover_provisional: true) — Gate 1 has not confirmed it. Clear the flag in short_ja.json when it is chosen",
+    "shorts: screen recording failed (the tool detected nothing maskable on this document (bulk control is disabled)) — using comparison cards instead"
+  ]
+}

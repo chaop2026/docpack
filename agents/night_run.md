@@ -79,6 +79,17 @@ printf 'RELEASED %s night_run\n' "$(date '+%Y-%m-%d %H:%M:%S')" > logs/night/RUN
      ```
      틀은 `intent` 가 정한다(理由→warn · 手順→steps · 比較→versus). **고르지 않는다.**
      🔴 `focus: true` 는 `masked: true` 인 행에서만 보인다.
+     그리고 **반드시** 이어서:
+     ```
+     node scripts/content/check_thumbnails.mjs NN
+     ```
+     🔴 `make_thumbnail.mjs` 는 **넘침만** 보고 **접힘은 보지 않는다.** 가로로 너무
+     긴 줄이 접힐 자리가 있으면 접히고, 접힌 글자는 아무 데도 삐져나오지 않아
+     **exit 0 으로 통과한다** — 단어가 두 줄로 쪼개진 표지가 그대로 나간다.
+     2026-11-22 에 한 세션에서 세 번 이렇게 빠져나갔다(ep03 ①② · ep06 a · ep07 b ·
+     ep08 b). 측정된 상한은 **제목 한 줄 8자 · steps 라벨 7자**(fit 100% 기준)다.
+     ⚠️ **줄이면 더 나빠질 수 있다** — 짧아지면 fitToBox 가 더 키워서 안전영역을
+     넘는다. 「tight」(여유 3px 미만)로 나오면 그 줄을 **늘리는** 쪽으로 고친다.
    - **video-production** — 쇼츠를 끝 화면이 든 버전으로 렌더한다:
      ```
      node scripts/content/make_short.mjs NN
