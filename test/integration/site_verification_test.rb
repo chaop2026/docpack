@@ -15,7 +15,13 @@ require "test_helper"
 # saw it (/safe, 2026-09-17). So the premise is asserted rather than assumed:
 # there is no public/index.html, and "/" renders a Rails view.
 class SiteVerificationTest < ActionDispatch::IntegrationTest
-  NAVER = "541f515d0df5a153db9d76c689c544a7d88ac2d1".freeze
+  # Two Naver claims, not one: a second Search Advisor account was registered on
+  # 2026-11-22 and the first one is not retired. Both have to be served — a
+  # verifier that cannot find its own token revokes that account's ownership,
+  # and which of the two Naver fetches is not ours to choose.
+  NAVER_OLD = "541f515d0df5a153db9d76c689c544a7d88ac2d1".freeze
+  NAVER_NEW = "1a5b666e52ab7ee944c03c6f581bc6e10c422e14".freeze
+  NAVER_ALL = [ NAVER_OLD, NAVER_NEW ].freeze
   GOOGLE = "kgzqmiPFYQX0JWICmT3tB88tsJ7TADz-uyXJdu1pAEw".freeze
 
   test "the root is served by Rails, not by the static file handler" do
@@ -41,15 +47,23 @@ class SiteVerificationTest < ActionDispatch::IntegrationTest
                     "/ did not render through the Rails layout"
   end
 
-  test "GET / carries the Naver ownership tag exactly once" do
+  test "GET / carries both Naver ownership tags, each exactly once" do
     get "/"
     assert_response :success
     html = response.body.dup.force_encoding("UTF-8")
 
     tags = html.scan(/<meta\s+name="naver-site-verification"[^>]*>/)
-    assert_equal 1, tags.length,
-                 "expected exactly one naver-site-verification tag, found #{tags.length}"
-    assert_includes tags.first, %(content="#{NAVER}")
+    assert_equal NAVER_ALL.length, tags.length,
+                 "expected #{NAVER_ALL.length} naver-site-verification tags, found #{tags.length}"
+
+    # Counted per token rather than "the set matches": a copy/paste that
+    # duplicates one token and drops the other keeps the total at 2, and an
+    # equality check on a Set would pass that too.
+    NAVER_ALL.each do |token|
+      matching = tags.count { |tag| tag.include?(%(content="#{token}")) }
+      assert_equal 1, matching,
+                   "expected the #{token} claim exactly once, found #{matching}"
+    end
   end
 
   test "the Google ownership tag is still there and still single" do
@@ -67,7 +81,9 @@ class SiteVerificationTest < ActionDispatch::IntegrationTest
     [ "/faq", "/about", "/blog" ].each do |path|
       get path
       assert_response :success, path
-      assert_includes response.body, NAVER, "#{path} lost the Naver tag"
+      NAVER_ALL.each do |token|
+        assert_includes response.body, token, "#{path} lost the Naver #{token} tag"
+      end
       assert_includes response.body, GOOGLE, "#{path} lost the Google tag"
     end
   end
